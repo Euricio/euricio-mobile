@@ -4,6 +4,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Euricio',
   slug: 'euricio',
+  platforms: ['ios', 'android'],
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
