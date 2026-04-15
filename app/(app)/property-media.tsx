@@ -173,6 +173,7 @@ function PhotosTab({ propertyId }: { propertyId: string }) {
       mediaTypes: ['images'],
       quality: 0.8,
       allowsEditing: false,
+      exif: false,
     });
 
     if (!result.canceled && result.assets.length > 0) {
@@ -192,6 +193,7 @@ function PhotosTab({ propertyId }: { propertyId: string }) {
       quality: 0.8,
       allowsMultipleSelection: true,
       selectionLimit: 10,
+      exif: false,
     });
 
     if (!result.canceled && result.assets.length > 0) {

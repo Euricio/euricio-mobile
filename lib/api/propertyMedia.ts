@@ -85,14 +85,18 @@ export function useUploadPropertyImage() {
       const fileName = `${timestamp}-${index}.jpeg`;
       const storagePath = `${propertyId}/${fileName}`;
 
-      // Read the file as a blob
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      // Use FormData approach for reliable uploads on React Native (iOS HEIC, etc.)
+      const formData = new FormData();
+      formData.append('', {
+        uri,
+        name: fileName,
+        type: 'image/jpeg',
+      } as any);
 
       const { error: uploadError } = await supabase.storage
         .from('property-images')
-        .upload(storagePath, blob, {
-          contentType: 'image/jpeg',
+        .upload(storagePath, formData, {
+          contentType: 'multipart/form-data',
           upsert: false,
         });
 
@@ -104,7 +108,7 @@ export function useUploadPropertyImage() {
           property_id: propertyId,
           storage_path: storagePath,
           file_name: fileName,
-          file_size: blob.size,
+          file_size: null,
           uploaded_by: userId,
         })
         .select()
@@ -246,13 +250,18 @@ export function useUploadPropertyDocument() {
       const timestamp = Date.now();
       const storagePath = `${propertyId}/${timestamp}-${fileName}`;
 
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      // Use FormData approach for reliable uploads on React Native
+      const formData = new FormData();
+      formData.append('', {
+        uri,
+        name: fileName,
+        type: mimeType,
+      } as any);
 
       const { error: uploadError } = await supabase.storage
         .from('property-documents')
-        .upload(storagePath, blob, {
-          contentType: mimeType,
+        .upload(storagePath, formData, {
+          contentType: 'multipart/form-data',
           upsert: false,
         });
 
@@ -264,7 +273,7 @@ export function useUploadPropertyDocument() {
           property_id: propertyId,
           storage_path: storagePath,
           file_name: fileName,
-          file_size: fileSize ?? blob.size,
+          file_size: fileSize,
           document_type: documentType,
           uploaded_by: userId,
         })
