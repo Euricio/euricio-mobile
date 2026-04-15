@@ -1,44 +1,67 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useCallback } from 'react';
+import { supabase } from '../supabase';
 import { useAuthStore } from '../../store/authStore';
-import { supabase } from '../api/client';
 
-type AuthContextType = {
+interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
-};
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+}
 
-const AuthContext = createContext<AuthContextType>({
+const AuthContext = createContext<AuthContextValue>({
   isAuthenticated: false,
   isLoading: true,
+  signIn: async () => {},
+  signOut: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { user, setUser, setSession, setLoading, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, setSession, setLoading, clearAuth } =
+    useAuthStore();
 
   useEffect(() => {
-    // Initiale Session laden
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Auth-Änderungen beobachten
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-      }
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [setSession, setLoading]);
+
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      setLoading(false);
+      if (error) throw error;
+    },
+    [setLoading],
+  );
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    clearAuth();
+  }, [clearAuth]);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated: !!user, isLoading }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated, isLoading, signIn, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  return useContext(AuthContext);
+}

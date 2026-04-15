@@ -1,43 +1,30 @@
-import { Config } from '../../constants/config';
-import { supabase } from '../api/client';
+import { supabase } from '../supabase';
 
-let cachedToken: string | null = null;
-let tokenExpiry: number = 0;
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://crm.euricio.es';
 
 /**
- * Holt ein Twilio Access Token vom Backend.
- * Token wird gecached und vor Ablauf erneuert.
+ * Fetch a Twilio Voice access token from the backend.
+ * The backend endpoint generates time-limited tokens for the Voice SDK.
  */
-export async function getAccessToken(): Promise<string> {
-  if (cachedToken && Date.now() < tokenExpiry) {
-    return cachedToken;
-  }
+export async function getVoiceAccessToken(): Promise<string> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    throw new Error('Nicht authentifiziert');
-  }
-
-  const response = await fetch(`${Config.apiUrl}${Config.twilio.tokenEndpoint}`, {
+  const res = await fetch(`${API_URL}/api/twilio/voice/token`, {
     method: 'POST',
     headers: {
+      Authorization: `Bearer ${session.access_token}`,
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
     },
+    body: JSON.stringify({ platform: 'ios' }),
   });
 
-  if (!response.ok) {
-    throw new Error(`Token-Anfrage fehlgeschlagen: ${response.status}`);
+  if (!res.ok) {
+    throw new Error(`Token fetch failed: ${res.status}`);
   }
 
-  const { token, expiresIn } = await response.json();
-  cachedToken = token;
-  tokenExpiry = Date.now() + (expiresIn * 1000) - 60_000; // 1 Min Puffer
-
+  const { token } = await res.json();
   return token;
-}
-
-export function clearTokenCache(): void {
-  cachedToken = null;
-  tokenExpiry = 0;
 }

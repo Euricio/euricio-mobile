@@ -1,30 +1,48 @@
 import { Tabs } from 'expo-router';
-import { Colors } from '../../../constants/colors';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, fontWeight } from '../../../constants/theme';
+
+type TabIconName = React.ComponentProps<typeof Ionicons>['name'];
+
+function TabIcon({ name, color, size }: { name: TabIconName; color: string; size: number }) {
+  return <Ionicons name={name} size={size} color={color} />;
+}
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textMuted,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: {
-          backgroundColor: Colors.surface,
-          borderTopColor: Colors.borderLight,
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+          borderTopWidth: 0.5,
+          paddingBottom: 4,
+          height: 88,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: fontWeight.medium,
         },
         headerStyle: {
-          backgroundColor: Colors.surface,
+          backgroundColor: colors.surface,
         },
-        headerTintColor: Colors.text,
+        headerTintColor: colors.text,
         headerTitleStyle: {
-          fontWeight: '600',
+          fontWeight: fontWeight.semibold,
         },
+        headerShadowVisible: false,
       }}
     >
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: 'Heute',
+          title: 'Dashboard',
           headerTitle: 'Dashboard',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="home-outline" color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -32,13 +50,19 @@ export default function TabLayout() {
         options={{
           title: 'Leads',
           headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="people-outline" color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
         name="properties"
         options={{
-          title: 'Objekte',
+          title: 'Immobilien',
           headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="business-outline" color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -46,13 +70,19 @@ export default function TabLayout() {
         options={{
           title: 'Aufgaben',
           headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="checkbox-outline" color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Einstellungen',
+          title: 'Mehr',
           headerTitle: 'Einstellungen',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="settings-outline" color={color} size={size} />
+          ),
         }}
       />
     </Tabs>

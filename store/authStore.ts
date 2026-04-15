@@ -1,40 +1,35 @@
 import { create } from 'zustand';
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '../lib/api/client';
-import { clearAllSecureData } from '../lib/auth/secureStorage';
+import type { Session, User } from '@supabase/supabase-js';
 
 interface AuthState {
   user: User | null;
   session: Session | null;
+  isAuthenticated: boolean;
   isLoading: boolean;
   setUser: (user: User | null) => void;
   setSession: (session: Session | null) => void;
   setLoading: (loading: boolean) => void;
-  signIn: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
+  clearAuth: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   session: null,
+  isAuthenticated: false,
   isLoading: true,
-
-  setUser: (user) => set({ user }),
-  setSession: (session) => set({ session }),
+  setUser: (user) => set({ user, isAuthenticated: !!user }),
+  setSession: (session) =>
+    set({
+      session,
+      user: session?.user ?? null,
+      isAuthenticated: !!session,
+    }),
   setLoading: (isLoading) => set({ isLoading }),
-
-  signIn: async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw error;
-    set({ user: data.user, session: data.session });
-  },
-
-  signOut: async () => {
-    await supabase.auth.signOut();
-    await clearAllSecureData();
-    set({ user: null, session: null });
-  },
+  clearAuth: () =>
+    set({
+      user: null,
+      session: null,
+      isAuthenticated: false,
+      isLoading: false,
+    }),
 }));

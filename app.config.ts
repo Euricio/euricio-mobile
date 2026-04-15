@@ -3,49 +3,41 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Euricio',
-  slug: 'euricio-mobile',
+  slug: 'euricio',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
+  scheme: 'euricio',
   userInterfaceStyle: 'light',
   newArchEnabled: true,
-  scheme: 'euricio',
 
   splash: {
     image: './assets/splash-icon.png',
     resizeMode: 'contain',
-    backgroundColor: '#1B4D3E',
+    backgroundColor: '#1E3A5F',
   },
 
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'es.euricio.crm',
     infoPlist: {
-      UIBackgroundModes: ['voip', 'audio', 'remote-notification', 'fetch'],
-      NSMicrophoneUsageDescription: 'Euricio benötigt Zugriff auf das Mikrofon für Telefonate.',
-      NSCameraUsageDescription: 'Euricio benötigt Zugriff auf die Kamera für Dokumenten-Scans.',
-    },
-    entitlements: {
-      'aps-environment': 'production',
+      NSMicrophoneUsageDescription:
+        'Euricio benötigt Zugriff auf das Mikrofon für Telefonate.',
+      UIBackgroundModes: ['voip', 'audio', 'fetch', 'remote-notification'],
     },
   },
 
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#1B4D3E',
+      backgroundColor: '#1E3A5F',
     },
-    edgeToEdgeEnabled: true,
     package: 'es.euricio.crm',
     permissions: [
       'RECORD_AUDIO',
       'INTERNET',
-      'ACCESS_NETWORK_STATE',
       'VIBRATE',
       'RECEIVE_BOOT_COMPLETED',
-      'WAKE_LOCK',
-      'FOREGROUND_SERVICE',
-      'CAMERA',
     ],
   },
 
@@ -54,18 +46,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundler: 'metro',
   },
 
-  plugins: [
-    'expo-router',
-    'expo-secure-store',
-    [
-      'expo-notifications',
-      {
-        icon: './assets/notification-icon.png',
-        color: '#1B4D3E',
-        sounds: ['./assets/sounds/ringtone.wav'],
-      },
-    ],
-  ],
+  plugins: ['expo-router', 'expo-secure-store'],
 
   experiments: {
     typedRoutes: true,
@@ -73,7 +54,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   extra: {
     eas: {
-      projectId: 'your-eas-project-id',
+      projectId: '',
     },
   },
 });

@@ -1,46 +1,92 @@
-import { supabase } from './client';
+import { supabase } from '../supabase';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export interface Lead {
   id: string;
   name: string;
   email: string | null;
   phone: string | null;
-  status: 'new' | 'contacted' | 'qualified' | 'proposal' | 'won' | 'lost';
+  status: string;
   source: string | null;
   assigned_to: string | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export async function getLeads(page = 0, pageSize = 20) {
-  const from = page * pageSize;
-  const to = from + pageSize - 1;
+export function useLeads(search?: string) {
+  return useQuery({
+    queryKey: ['leads', search],
+    queryFn: async () => {
+      let query = supabase
+        .from('leads')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-  return supabase
-    .from('leads')
-    .select('*', { count: 'exact' })
-    .order('created_at', { ascending: false })
-    .range(from, to);
+      if (search && search.length >= 2) {
+        query = query.or(
+          `name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`,
+        );
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data ?? []) as Lead[];
+    },
+  });
 }
 
-export async function getLead(id: string) {
-  return supabase.from('leads').select('*').eq('id', id).single();
+export function useLead(id: string) {
+  return useQuery({
+    queryKey: ['lead', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (error) throw error;
+      return data as Lead;
+    },
+    enabled: !!id,
+  });
 }
 
-export async function updateLead(id: string, updates: Partial<Lead>) {
-  return supabase
-    .from('leads')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single();
+export function useCreateLead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (lead: Partial<Lead>) => {
+      const { data, error } = await supabase
+        .from('leads')
+        .insert(lead)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Lead;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    },
+  });
 }
 
-export async function searchLeads(query: string) {
-  return supabase
-    .from('leads')
-    .select('*')
-    .or(`name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`)
-    .order('created_at', { ascending: false })
-    .limit(20);
+export function useUpdateLead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Lead> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('leads')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Lead;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['lead', data.id] });
+    },
+  });
 }

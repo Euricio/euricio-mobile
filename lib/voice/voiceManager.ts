@@ -1,138 +1,67 @@
-import { Voice, Call, CallInvite } from '@twilio/voice-react-native-sdk';
-import { Config } from '../../constants/config';
-import { useCallStore } from '../../store/callStore';
-
-const voice = new Voice();
-let activeCall: Call | null = null;
-
 /**
- * Twilio Voice SDK Manager
+ * Twilio Voice React Native SDK integration
+ * Will be implemented in Phase 2
+ * SDK: @twilio/voice-react-native-sdk
  *
- * Verwaltet die gesamte Voice-Kommunikation:
- * - Registrierung mit Access Token
- * - Ausgehende Anrufe
- * - Eingehende Anrufe annehmen/ablehnen
- * - Anruf-Steuerung (Mute, Hold, Hangup)
+ * This class will wrap the Twilio Voice SDK as a singleton,
+ * handling registration, CallKit/ConnectionService integration,
+ * and call state management.
  */
+export class VoiceManager {
+  private static instance: VoiceManager;
 
-export async function register(accessToken: string): Promise<void> {
-  await voice.register(accessToken);
-
-  voice.on(Voice.Event.CallInvite, handleIncomingCall);
-  voice.on(Voice.Event.CancelledCallInvite, handleCancelledInvite);
-
-  console.log('[VoiceManager] Registered for incoming calls');
-}
-
-export async function unregister(accessToken: string): Promise<void> {
-  await voice.unregister(accessToken);
-  voice.removeAllListeners();
-  console.log('[VoiceManager] Unregistered');
-}
-
-export async function connect(
-  accessToken: string,
-  to: string,
-  params?: Record<string, string>
-): Promise<Call> {
-  const store = useCallStore.getState();
-
-  const call = await voice.connect(accessToken, {
-    params: {
-      To: to,
-      ...params,
-    },
-  });
-
-  activeCall = call;
-  store.setCallState('connecting');
-  store.setRemoteNumber(to);
-
-  setupCallListeners(call);
-  return call;
-}
-
-export function accept(callInvite: CallInvite): void {
-  const call = callInvite.accept();
-  activeCall = call;
-  setupCallListeners(call);
-}
-
-export function reject(callInvite: CallInvite): void {
-  callInvite.reject();
-  useCallStore.getState().reset();
-}
-
-export function hangup(): void {
-  if (activeCall) {
-    activeCall.disconnect();
-    activeCall = null;
+  static getInstance(): VoiceManager {
+    if (!VoiceManager.instance) {
+      VoiceManager.instance = new VoiceManager();
+    }
+    return VoiceManager.instance;
   }
-  useCallStore.getState().reset();
-}
 
-export function mute(muted: boolean): void {
-  if (activeCall) {
-    activeCall.mute(muted);
-    useCallStore.getState().setMuted(muted);
+  /** Register device with Twilio for incoming calls */
+  async register(_accessToken: string): Promise<void> {
+    // Phase 2: Register with Voice SDK
+    // voice.register(accessToken)
   }
-}
 
-export function hold(onHold: boolean): void {
-  if (activeCall) {
-    activeCall.hold(onHold);
-    useCallStore.getState().setOnHold(onHold);
+  /** Unregister device */
+  async unregister(): Promise<void> {
+    // Phase 2: Unregister from Voice SDK
   }
-}
 
-export function sendDigits(digits: string): void {
-  if (activeCall) {
-    activeCall.sendDigits(digits);
+  /** Place an outbound call */
+  async makeCall(_to: string): Promise<void> {
+    // Phase 2: voice.connect({ To: to, From: agentNumber })
   }
-}
 
-export function getActiveCall(): Call | null {
-  return activeCall;
-}
+  /** Accept an incoming call */
+  async acceptCall(): Promise<void> {
+    // Phase 2: callInvite.accept()
+  }
 
-// --- Private Handlers ---
+  /** Reject an incoming call */
+  async rejectCall(): Promise<void> {
+    // Phase 2: callInvite.reject()
+  }
 
-function handleIncomingCall(callInvite: CallInvite): void {
-  const store = useCallStore.getState();
-  store.setCallState('ringing');
-  store.setDirection('inbound');
-  store.setRemoteNumber(callInvite.getFrom() || 'Unbekannt');
-  store.setCallInvite(callInvite);
-}
+  /** Hang up the active call */
+  async hangup(): Promise<void> {
+    // Phase 2: activeCall.disconnect()
+  }
 
-function handleCancelledInvite(_callInvite: CallInvite): void {
-  useCallStore.getState().reset();
-}
+  /** Toggle mute on the active call */
+  async toggleMute(): Promise<boolean> {
+    // Phase 2: activeCall.mute(!isMuted)
+    return false;
+  }
 
-function setupCallListeners(call: Call): void {
-  const store = useCallStore.getState();
+  /** Toggle hold on the active call */
+  async toggleHold(): Promise<boolean> {
+    // Phase 2: activeCall.hold(!isOnHold)
+    return false;
+  }
 
-  call.on(Call.Event.Connected, () => {
-    store.setCallState('connected');
-    store.setCallStartTime(Date.now());
-  });
-
-  call.on(Call.Event.Reconnecting, () => {
-    store.setCallState('reconnecting');
-  });
-
-  call.on(Call.Event.Reconnected, () => {
-    store.setCallState('connected');
-  });
-
-  call.on(Call.Event.Disconnected, () => {
-    activeCall = null;
-    store.reset();
-  });
-
-  call.on(Call.Event.ConnectFailure, (error) => {
-    console.error('[VoiceManager] Connect failure:', error);
-    activeCall = null;
-    store.setCallState('failed');
-  });
+  /** Send DTMF digits during a call */
+  async sendDigits(_digits: string): Promise<void> {
+    // Phase 2: activeCall.sendDigits(digits)
+  }
 }

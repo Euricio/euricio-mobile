@@ -1,54 +1,91 @@
-import { supabase } from './client';
+import { supabase } from '../supabase';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export interface Task {
   id: string;
   title: string;
   description: string | null;
-  type: 'callback' | 'follow_up' | 'meeting' | 'general';
-  status: 'open' | 'in_progress' | 'done';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  type: string;
+  status: string;
+  priority: string;
   due_date: string | null;
   lead_id: string | null;
-  assigned_to: string;
+  assigned_to: string | null;
+  completed_at: string | null;
   created_at: string;
+  updated_at: string;
+  lead?: { id: string; name: string } | null;
 }
 
-export async function getTasks(status?: Task['status']) {
-  let query = supabase
-    .from('tasks')
-    .select('*, leads(name, phone)')
-    .order('due_date', { ascending: true });
+export function useTasks(statusFilter?: string) {
+  return useQuery({
+    queryKey: ['tasks', statusFilter],
+    queryFn: async () => {
+      let query = supabase
+        .from('tasks')
+        .select('*, lead:leads(id, name)')
+        .order('due_date', { ascending: true, nullsFirst: false })
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-  if (status) {
-    query = query.eq('status', status);
-  }
+      if (statusFilter && statusFilter !== 'alle') {
+        query = query.eq('status', statusFilter);
+      }
 
-  return query;
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data ?? []) as Task[];
+    },
+  });
 }
 
-export async function getTask(id: string) {
-  return supabase
-    .from('tasks')
-    .select('*, leads(name, phone, email)')
-    .eq('id', id)
-    .single();
+export function useTask(id: string) {
+  return useQuery({
+    queryKey: ['task', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*, lead:leads(id, name)')
+        .eq('id', id)
+        .single();
+      if (error) throw error;
+      return data as Task;
+    },
+    enabled: !!id,
+  });
 }
 
-export async function updateTaskStatus(id: string, status: Task['status']) {
-  return supabase
-    .from('tasks')
-    .update({ status })
-    .eq('id', id)
-    .select()
-    .single();
+export function useCompleteTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ status: 'done', completed_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
 }
 
-export async function createCallbackTask(leadId: string, phoneNumber: string) {
-  return supabase.from('tasks').insert({
-    title: `Rückruf: ${phoneNumber}`,
-    type: 'callback',
-    status: 'open',
-    priority: 'high',
-    lead_id: leadId,
-  }).select().single();
+export function useCreateTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (task: Partial<Task>) => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert(task)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Task;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    },
+  });
 }

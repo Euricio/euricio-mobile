@@ -9,15 +9,17 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@react-native-firebase/app": "^24.0.0",
-    "@react-native-firebase/messaging": "^24.0.0",
+    "@expo/vector-icons": "^15.1.1",
     "@supabase/supabase-js": "^2.103.0",
-    "@twilio/voice-react-native-sdk": "^1.7.0",
+    "@tanstack/react-query": "^5.99.0",
     "expo": "~54.0.33",
+    "expo-constants": "^55.0.14",
     "expo-device": "~8.0.10",
-    "expo-notifications": "~0.32.16",
+    "expo-font": "^55.0.6",
+    "expo-linking": "^8.0.11",
     "expo-router": "~6.0.23",
     "expo-secure-store": "~15.0.8",
+    "expo-splash-screen": "^55.0.18",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
     "react-native": "0.81.5",
@@ -25,6 +27,7 @@
     "react-native-reanimated": "^4.3.0",
     "react-native-safe-area-context": "^5.7.0",
     "react-native-screens": "^4.24.0",
+    "react-native-url-polyfill": "^3.0.0",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

@@ -1,20 +1,239 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Stack } from 'expo-router';
-import { Colors } from '../../../../constants/colors';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  RefreshControl,
+  Image,
+} from 'react-native';
+import { Stack, router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useProperties, Property } from '../../../../lib/api/properties';
+import { SearchBar } from '../../../../components/ui/SearchBar';
+import { Card } from '../../../../components/ui/Card';
+import { Badge } from '../../../../components/ui/Badge';
+import { EmptyState } from '../../../../components/ui/EmptyState';
+import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
+import {
+  colors,
+  spacing,
+  fontSize,
+  fontWeight,
+  borderRadius,
+} from '../../../../constants/theme';
+
+const statusLabels: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'error' | 'info' | 'primary' }> = {
+  available: { label: 'Verfügbar', variant: 'success' },
+  reserved: { label: 'Reserviert', variant: 'warning' },
+  sold: { label: 'Verkauft', variant: 'error' },
+  rented: { label: 'Vermietet', variant: 'info' },
+};
+
+function formatPrice(price: number | null): string {
+  if (!price) return '—';
+  return new Intl.NumberFormat('de-DE', {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0,
+  }).format(price);
+}
+
+function PropertyCard({ property }: { property: Property }) {
+  const status = statusLabels[property.status ?? ''] ?? {
+    label: property.status ?? 'Unbekannt',
+    variant: 'default' as const,
+  };
+
+  return (
+    <Card
+      style={styles.propertyCard}
+      padded={false}
+      onPress={() => router.push(`/(app)/(tabs)/properties/${property.id}`)}
+    >
+      {/* Image */}
+      <View style={styles.imageContainer}>
+        {property.image_url ? (
+          <Image
+            source={{ uri: property.image_url }}
+            style={styles.image}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <Ionicons name="image-outline" size={32} color={colors.textTertiary} />
+          </View>
+        )}
+        <View style={styles.badgeOverlay}>
+          <Badge label={status.label} variant={status.variant} />
+        </View>
+      </View>
+
+      {/* Content */}
+      <View style={styles.propertyContent}>
+        <Text style={styles.propertyTitle} numberOfLines={1}>
+          {property.title}
+        </Text>
+        {property.address && (
+          <View style={styles.addressRow}>
+            <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+            <Text style={styles.addressText} numberOfLines={1}>
+              {property.address}
+              {property.city ? `, ${property.city}` : ''}
+            </Text>
+          </View>
+        )}
+        <View style={styles.statsRow}>
+          <Text style={styles.priceText}>{formatPrice(property.price)}</Text>
+          <View style={styles.propertyMeta}>
+            {property.size && (
+              <Text style={styles.metaText}>{property.size} m²</Text>
+            )}
+            {property.rooms && (
+              <Text style={styles.metaText}>{property.rooms} Zi.</Text>
+            )}
+          </View>
+        </View>
+      </View>
+    </Card>
+  );
+}
 
 export default function PropertiesListScreen() {
+  const [search, setSearch] = useState('');
+  const {
+    data: properties,
+    isLoading,
+    refetch,
+    isRefetching,
+  } = useProperties(search);
+
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ headerTitle: 'Objekte', headerShown: true }} />
-      <Text style={styles.placeholder}>Immobilien-Liste wird hier angezeigt.</Text>
-      <Text style={styles.hint}>Villen, Apartments, Grundstücke — durchsuchen und filtern.</Text>
+      <Stack.Screen
+        options={{
+          headerTitle: 'Immobilien',
+          headerShown: true,
+          headerStyle: { backgroundColor: colors.surface },
+          headerShadowVisible: false,
+        }}
+      />
+
+      <View style={styles.searchContainer}>
+        <SearchBar
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Immobilie suchen..."
+        />
+      </View>
+
+      {isLoading ? (
+        <LoadingScreen />
+      ) : (
+        <FlatList
+          data={properties}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <PropertyCard property={item} />}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={() => refetch()}
+              tintColor={colors.primary}
+            />
+          }
+          ListEmptyComponent={
+            <EmptyState
+              icon="business-outline"
+              title="Keine Immobilien gefunden"
+              message={
+                search
+                  ? 'Versuchen Sie eine andere Suche'
+                  : 'Noch keine Immobilien vorhanden'
+              }
+            />
+          }
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.backgroundSecondary, justifyContent: 'center', alignItems: 'center', padding: 32 },
-  placeholder: { fontSize: 18, fontWeight: '600', color: Colors.text, textAlign: 'center' },
-  hint: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', marginTop: 8 },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  searchContainer: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+  },
+  list: {
+    padding: spacing.md,
+    paddingBottom: spacing.xxl,
+  },
+  propertyCard: {
+    marginBottom: spacing.md,
+    overflow: 'hidden',
+  },
+  imageContainer: {
+    height: 180,
+    position: 'relative',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeOverlay: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+  },
+  propertyContent: {
+    padding: spacing.md,
+  },
+  propertyTitle: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.text,
+  },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xs,
+    gap: spacing.xs,
+  },
+  addressText: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.sm,
+  },
+  priceText: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
+  },
+  propertyMeta: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  metaText: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: fontWeight.medium,
+  },
 });

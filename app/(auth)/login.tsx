@@ -1,27 +1,46 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { router } from 'expo-router';
-import { useAuthStore } from '../../store/authStore';
-import { Colors } from '../../constants/colors';
+import {
+  View,
+  Text,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
+} from 'react-native';
+import { useAuth } from '../../lib/auth/authContext';
+import { Input } from '../../components/ui/Input';
+import { Button } from '../../components/ui/Button';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, fontSize, fontWeight, shadow } from '../../constants/theme';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const signIn = useAuthStore((s) => s.signIn);
+  const [error, setError] = useState('');
+  const { signIn } = useAuth();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Fehler', 'Bitte E-Mail und Passwort eingeben.');
+      setError('Bitte E-Mail und Passwort eingeben.');
       return;
     }
 
+    setError('');
     setLoading(true);
     try {
       await signIn(email.trim(), password);
-      router.replace('/(app)/(tabs)/dashboard');
-    } catch (error) {
-      Alert.alert('Anmeldung fehlgeschlagen', 'Bitte überprüfen Sie Ihre Zugangsdaten.');
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Unbekannter Fehler';
+      if (message.includes('Invalid login credentials')) {
+        setError('E-Mail oder Passwort ist falsch.');
+      } else if (message.includes('fetch') || message.includes('network')) {
+        setError('Netzwerkfehler. Bitte Verbindung prüfen.');
+      } else {
+        setError('Anmeldung fehlgeschlagen. Bitte erneut versuchen.');
+      }
     } finally {
       setLoading(false);
     }
@@ -32,60 +51,153 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.header}>
-        <Text style={styles.logo}>EURICIO</Text>
-        <Text style={styles.subtitle}>Immobilien CRM</Text>
-      </View>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.header}>
+          <View style={styles.logoContainer}>
+            <Text style={styles.logo}>EURICIO</Text>
+          </View>
+          <Text style={styles.subtitle}>Immobilien CRM</Text>
+        </View>
 
-      <View style={styles.form}>
-        <Text style={styles.label}>E-Mail</Text>
-        <TextInput
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          placeholder="name@euricio.es"
-          placeholderTextColor={Colors.textMuted}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-        />
+        <View style={styles.card}>
+          <Text style={styles.welcomeTitle}>Willkommen</Text>
+          <Text style={styles.welcomeSubtitle}>
+            Melden Sie sich mit Ihrem Konto an
+          </Text>
 
-        <Text style={styles.label}>Passwort</Text>
-        <TextInput
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Passwort eingeben"
-          placeholderTextColor={Colors.textMuted}
-          secureTextEntry
-          autoComplete="password"
-        />
+          {error ? (
+            <View style={styles.errorContainer}>
+              <Ionicons name="alert-circle" size={18} color={colors.error} />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
 
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleLogin}
-          disabled={loading}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.buttonText}>{loading ? 'Wird angemeldet...' : 'Anmelden'}</Text>
-        </TouchableOpacity>
-      </View>
+          <Input
+            label="E-Mail"
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text);
+              setError('');
+            }}
+            placeholder="name@euricio.es"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            icon={
+              <Ionicons name="mail-outline" size={20} color={colors.textTertiary} />
+            }
+          />
 
-      <Text style={styles.footer}>Euricio Real Estate Group S.L.</Text>
+          <Input
+            label="Passwort"
+            value={password}
+            onChangeText={(text) => {
+              setPassword(text);
+              setError('');
+            }}
+            placeholder="Passwort eingeben"
+            secureTextEntry
+            autoComplete="password"
+            icon={
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color={colors.textTertiary}
+              />
+            }
+          />
+
+          <Button
+            title={loading ? 'Wird angemeldet...' : 'Anmelden'}
+            onPress={handleLogin}
+            loading={loading}
+            disabled={!email.trim() || !password.trim()}
+            size="lg"
+            style={styles.loginButton}
+          />
+        </View>
+
+        <Text style={styles.footer}>Euricio Real Estate Group S.L.</Text>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background, justifyContent: 'center', paddingHorizontal: 32 },
-  header: { alignItems: 'center', marginBottom: 48 },
-  logo: { fontSize: 36, fontWeight: '800', color: Colors.primary, letterSpacing: 4 },
-  subtitle: { fontSize: 14, color: Colors.textSecondary, marginTop: 4 },
-  form: { width: '100%' },
-  label: { fontSize: 14, fontWeight: '600', color: Colors.text, marginBottom: 6, marginTop: 16 },
-  input: { backgroundColor: Colors.backgroundSecondary, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: Colors.text, borderWidth: 1, borderColor: Colors.border },
-  button: { backgroundColor: Colors.primary, borderRadius: 10, paddingVertical: 16, alignItems: 'center', marginTop: 32 },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: Colors.textInverse, fontSize: 16, fontWeight: '700' },
-  footer: { textAlign: 'center', color: Colors.textMuted, fontSize: 12, marginTop: 48 },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xxl,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  logoContainer: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: 12,
+    ...shadow.lg,
+  },
+  logo: {
+    fontSize: 32,
+    fontWeight: fontWeight.bold,
+    color: colors.white,
+    letterSpacing: 6,
+  },
+  subtitle: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: spacing.lg,
+    ...shadow.md,
+  },
+  welcomeTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  welcomeSubtitle: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.errorLight,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 8,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  errorText: {
+    fontSize: fontSize.sm,
+    color: colors.error,
+    flex: 1,
+  },
+  loginButton: {
+    marginTop: spacing.md,
+  },
+  footer: {
+    textAlign: 'center',
+    color: colors.textTertiary,
+    fontSize: fontSize.xs,
+    marginTop: spacing.xl,
+  },
 });

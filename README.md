@@ -1,39 +1,39 @@
 # Euricio CRM — Mobile App
 
-Die mobile App für das Euricio Immobilien-CRM. Gebaut mit React Native (Expo) und integriert mit Twilio Voice für VoIP-Telefonie.
+Die mobile App für das Euricio Immobilien-CRM. Gebaut mit React Native (Expo) und TypeScript. Integriert sich mit dem bestehenden Backend unter `crm.euricio.es` (Supabase + Next.js).
 
 ## Tech Stack
 
 - **Framework**: React Native mit [Expo](https://expo.dev/) (SDK 54)
-- **Sprache**: TypeScript
-- **Navigation**: [Expo Router](https://docs.expo.dev/router/introduction/) (file-based routing)
-- **State Management**: [Zustand](https://github.com/pmndrs/zustand)
-- **Backend**: [Supabase](https://supabase.com/) (Auth, Database, Realtime)
-- **Telefonie**: [Twilio Voice React Native SDK](https://www.twilio.com/docs/voice/sdks/react-native)
-- **Push**: Expo Notifications + Firebase Cloud Messaging
-- **Secure Storage**: Expo SecureStore
-- **Build**: [EAS Build](https://docs.expo.dev/build/introduction/)
+- **Sprache**: TypeScript (strict mode)
+- **Navigation**: [Expo Router](https://docs.expo.dev/router/introduction/) (file-based routing mit typed routes)
+- **State Management**: [Zustand](https://github.com/pmndrs/zustand) (Auth-Store)
+- **Server State**: [@tanstack/react-query](https://tanstack.com/query) (Caching, Refetching, Mutations)
+- **Backend**: [Supabase](https://supabase.com/) (Auth, PostgreSQL, Realtime)
+- **Telefonie**: Twilio Voice React Native SDK (Phase 2)
+- **Secure Storage**: Expo SecureStore (Session-Token, Credentials)
+- **Build & Deploy**: [EAS Build](https://docs.expo.dev/build/introduction/)
 
-## Features (geplant)
+## Features
 
-- Login / Authentifizierung via Supabase Auth
-- Dashboard mit Tagesübersicht (verpasste Anrufe, Aufgaben, neue Leads)
-- Lead-Verwaltung (Liste, Suche, Detail-Ansicht)
-- Immobilien-Katalog
-- Aufgaben-Management (Rückruf-Tasks, Follow-ups)
-- VoIP-Telefonie (ein-/ausgehende Anrufe via Twilio)
-- Push-Benachrichtigungen (verpasste Anrufe, neue Leads, fällige Aufgaben)
-- WhatsApp / Telegram Chat-Integration
-- Offline-Caching
+- **Authentifizierung** — Supabase Auth mit E-Mail/Passwort, Session-Persistierung via SecureStore
+- **Dashboard** — Tagesübersicht mit Statistiken (offene Aufgaben, neue Leads, verpasste Anrufe), Schnellzugriff, letzte Aktivitäten
+- **Lead-Verwaltung** — Liste mit Suche, Detail-Ansicht mit Kontaktdaten, Anrufen, WhatsApp, E-Mail
+- **Immobilien-Katalog** — Bildergalerie, Preise, Fläche, Zimmer, Standort-Link, Exposé senden
+- **Aufgaben-Management** — Filtern (Alle/Offen/In Arbeit/Erledigt), Prioritäten, Fälligkeitsdaten, direkt als erledigt markieren
+- **Einstellungen** — Profil, Verfügbarkeit, Benachrichtigungen, App-Info, Abmelden
+- **Pull-to-Refresh** auf allen Daten-Screens
+- **VoIP-Telefonie** — Vorbereitet für Twilio Voice SDK (Phase 2)
 
 ## Voraussetzungen
 
 - Node.js >= 18
-- npm oder yarn
+- npm
 - [Expo CLI](https://docs.expo.dev/get-started/installation/)
+- [EAS CLI](https://docs.expo.dev/build/setup/): `npm install -g eas-cli`
 - iOS: Xcode 15+ (für natives Build)
 - Android: Android Studio (für natives Build)
-- [EAS CLI](https://docs.expo.dev/build/setup/): `npm install -g eas-cli`
+- Apple Developer Account (für iOS-Builds)
 
 ## Installation
 
@@ -46,116 +46,122 @@ cd euricio-mobile
 npm install
 
 # Umgebungsvariablen einrichten
-cp .env.example .env
-# .env-Datei mit echten Werten befüllen
+cp .env.example .env.local
+# .env.local mit echten Werten befüllen (Supabase Anon Key etc.)
+
+# Expo Dev Server starten
+npx expo start
 ```
 
 ## Umgebungsvariablen
 
 | Variable | Beschreibung |
 |---|---|
-| `EXPO_PUBLIC_SUPABASE_URL` | Supabase Projekt-URL |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anonymous Key |
-| `EXPO_PUBLIC_API_URL` | API-URL (crm.euricio.es) |
+| `EXPO_PUBLIC_SUPABASE_URL` | Supabase Projekt-URL (`https://vddfghfvmnrbotmxhvvi.supabase.co`) |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anonymous Key (aus Supabase Dashboard → Settings → API) |
+| `EXPO_PUBLIC_API_URL` | Backend-API URL (`https://crm.euricio.es`) |
 
-## Entwicklung starten
-
-```bash
-# Expo Dev Server starten
-npx expo start
-
-# iOS Simulator
-npx expo start --ios
-
-# Android Emulator
-npx expo start --android
-```
-
-> **Hinweis**: Für Twilio Voice und Push-Benachrichtigungen wird ein Development Build benötigt (kein Expo Go).
-
-## Build-Anweisungen
-
-### Development Build (zum Testen)
+## iOS Development Build
 
 ```bash
-# iOS
+# Einmalig:
+npm install -g eas-cli
+eas login
+eas build:configure
+
+# Simulator Build:
 eas build --platform ios --profile development
 
-# Android
-eas build --platform android --profile development
+# Geräte-Build (iPhone):
+eas build --platform ios --profile development-device
+# → Installiere die .ipa über den Link von EAS
 ```
 
-### Preview Build (internes Testing)
+## Build-Profile
 
-```bash
-eas build --platform all --profile preview
-```
+| Profil | Zweck | Befehl |
+|---|---|---|
+| `development` | iOS Simulator zum Entwickeln | `eas build --platform ios --profile development` |
+| `development-device` | Auf echtem iPhone testen | `eas build --platform ios --profile development-device` |
+| `preview` | Internes Testing (TestFlight-Äquivalent) | `eas build --platform ios --profile preview` |
+| `production` | App Store Release | `eas build --platform ios --profile production` |
 
-### Production Build
-
-```bash
-# iOS + Android
-eas build --platform all --profile production
-
-# Einreichen bei App Store / Google Play
-eas submit --platform ios
-eas submit --platform android
-```
-
-## Architektur-Übersicht
+## Projektstruktur
 
 ```
 euricio-mobile/
-├── app/                    # Expo Router — Screens & Navigation
-│   ├── (auth)/             # Auth-Flow (Login)
-│   ├── (app)/              # Authentifizierter Bereich
-│   │   ├── (tabs)/         # Tab-Navigation
-│   │   │   ├── dashboard   # Tagesübersicht
-│   │   │   ├── leads/      # Lead-Verwaltung
-│   │   │   ├── properties/ # Immobilien
-│   │   │   ├── tasks/      # Aufgaben
-│   │   │   └── settings    # Einstellungen
-│   │   └── call/           # Anruf-Screen (Modal)
-│   └── _layout.tsx         # Root Layout
-├── components/             # Wiederverwendbare UI-Komponenten
-│   ├── call/               # Anruf-Komponenten
-│   ├── chat/               # Chat-Komponenten
-│   ├── common/             # Allgemeine Komponenten
-│   └── leads/              # Lead-Komponenten
-├── lib/                    # Business Logic & Services
-│   ├── api/                # Supabase Client & API-Funktionen
-│   ├── voice/              # Twilio Voice SDK Wrapper
-│   ├── push/               # Push-Benachrichtigungen
-│   ├── auth/               # Auth Context & Secure Storage
-│   └── offline/            # Offline-Cache
-├── hooks/                  # Custom React Hooks
-├── store/                  # Zustand Stores (State Management)
-├── constants/              # Farben, Konfiguration
-├── app.config.ts           # Expo-Konfiguration
-├── eas.json                # EAS Build-Profile
-└── .env.example            # Umgebungsvariablen-Vorlage
+├── app/                      # Expo Router — Screens & Navigation
+│   ├── _layout.tsx           # Root Layout (QueryClient, AuthProvider)
+│   ├── (auth)/               # Auth-Flow
+│   │   ├── _layout.tsx       # Auth Stack
+│   │   └── login.tsx         # Login-Screen
+│   └── (app)/                # Authentifizierter Bereich
+│       ├── _layout.tsx       # Auth Guard + Loading
+│       ├── (tabs)/           # Tab-Navigation (5 Tabs)
+│       │   ├── _layout.tsx   # Tab-Bar Konfiguration
+│       │   ├── dashboard.tsx # Dashboard
+│       │   ├── leads/        # Leads (Liste + Detail)
+│       │   ├── properties/   # Immobilien (Liste + Detail)
+│       │   ├── tasks/        # Aufgaben (mit Filter-Tabs)
+│       │   └── settings.tsx  # Einstellungen
+│       └── call/[id].tsx     # Anruf-Screen (Modal)
+├── components/ui/            # Design-System Komponenten
+│   ├── Avatar.tsx            # Avatar mit Initialen-Fallback
+│   ├── Badge.tsx             # Status-Badges
+│   ├── Button.tsx            # Button-Varianten
+│   ├── Card.tsx              # Karten mit Shadow
+│   ├── EmptyState.tsx        # "Keine Daten" Platzhalter
+│   ├── Header.tsx            # Screen-Header
+│   ├── Input.tsx             # Eingabefeld mit Label & Icon
+│   ├── LoadingScreen.tsx     # Ladeindikator
+│   └── SearchBar.tsx         # Suchleiste
+├── lib/                      # Business Logic & Services
+│   ├── supabase.ts           # Supabase Client (SecureStore Adapter)
+│   ├── auth/authContext.tsx   # Auth Context Provider
+│   ├── api/                  # React Query Hooks für Supabase
+│   │   ├── leads.ts          # useLeads, useLead, useCreateLead, useUpdateLead
+│   │   ├── tasks.ts          # useTasks, useCompleteTask, useCreateTask
+│   │   ├── properties.ts     # useProperties, useProperty
+│   │   └── dashboard.ts      # useDashboardStats, useRecentActivity
+│   └── voice/                # Twilio Voice (Phase 2)
+│       ├── voiceManager.ts   # SDK-Wrapper (Platzhalter)
+│       └── accessToken.ts    # Token-Fetch vom Backend
+├── store/                    # Zustand Stores
+│   └── authStore.ts          # User, Session, Auth State
+├── constants/                # Design Tokens
+│   └── theme.ts              # Farben, Spacing, Typography, Shadows
+├── app.config.ts             # Expo-Konfiguration (iOS + Android)
+├── eas.json                  # EAS Build-Profile
+└── .env.example              # Umgebungsvariablen-Vorlage
 ```
 
-## Wichtige Konzepte
+## Apple Developer — Manuelle Schritte
 
-### VoIP-Telefonie (Twilio)
+Folgende Schritte müssen im Apple Developer Portal manuell durchgeführt werden:
 
-Die App registriert sich beim Start über den Twilio Voice SDK für eingehende Anrufe. Access Tokens werden vom Backend (`/api/voice/token`) bezogen und automatisch erneuert.
+1. **App ID** `es.euricio.crm` im Apple Developer Portal anlegen
+2. **Push Notification** Capability aktivieren
+3. **VoIP Services** Capability aktivieren (für Twilio Voice in Phase 2)
+4. **Provisioning Profile** für Development erstellen (oder EAS Managed Credentials nutzen)
+5. In **App Store Connect**: Neue App anlegen mit Bundle ID `es.euricio.crm`
 
-- **Ausgehend**: `voiceManager.connect(token, phoneNumber)`
-- **Eingehend**: Wird über `Voice.Event.CallInvite` empfangen
-- **Verpasste Anrufe**: Erzeugen automatisch Rückruf-Aufgaben
+## Design-System
 
-### Authentifizierung
+| Token | Wert | Verwendung |
+|---|---|---|
+| `colors.primary` | `#1E3A5F` | Euricio Dunkelblau — Buttons, aktive Tabs, Akzente |
+| `colors.primaryLight` | `#2D5F8B` | Avatar-Hintergrund, Hover-States |
+| `colors.accent` | `#E8A838` | Warm-Akzent für Aufgaben-Buttons |
+| `colors.background` | `#F5F7FA` | Hintergrund aller Screens |
+| `colors.surface` | `#FFFFFF` | Karten, Tab-Bar, Header |
 
-Supabase Auth mit Session-Persistierung über Expo SecureStore. JWT-Tokens werden automatisch erneuert.
+## Architektur-Entscheidungen
 
-### Realtime
-
-Supabase Realtime-Subscriptions für:
-- Neue Benachrichtigungen
-- Lead-Updates
-- Task-Änderungen
+- **React Query statt useEffect**: Alle API-Aufrufe laufen über `useQuery`/`useMutation` — automatisches Caching, Refetching, Error Handling
+- **Zustand nur für Auth**: Server-State wird via React Query verwaltet, nur Auth-State liegt im Zustand-Store
+- **Supabase direkt**: Die App nutzt den Supabase JS Client direkt (kein Backend-Proxy für CRUD-Operationen), da RLS die Mandantentrennung sicherstellt
+- **Expo Router**: File-based Routing mit typed routes für Typsicherheit bei Navigation
+- **SecureStore für Auth**: Session-Tokens werden im iOS Keychain / Android Keystore gespeichert
 
 ## Lizenz
 
