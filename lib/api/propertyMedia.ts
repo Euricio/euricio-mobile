@@ -2,10 +2,9 @@ import { supabase } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
 import * as FileSystem from 'expo-file-system';
-import { decode as base64Decode } from 'base64-arraybuffer';
 
-const STORAGE_BASE =
-  'https://vddfghfvmnrbotmxhvvi.supabase.co/storage/v1/object/public/property-images';
+const SUPABASE_URL = 'https://vddfghfvmnrbotmxhvvi.supabase.co';
+const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/property-images`;
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -41,10 +40,48 @@ export const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   energy_cert: 'Energieausweis',
   purchase_contract: 'Kaufvertrag',
   land_registry: 'Grundbuchauszug',
-  partition: 'Teilungserkl\u00e4rung',
+  partition: 'Teilungserklärung',
   appraisal: 'Gutachten',
   other: 'Sonstige',
 };
+
+// ─── Direct Storage Upload via REST API ──────────────────────────────
+// The supabase-js client's .upload() produces 0-byte files in React Native
+// because RN's fetch() doesn't correctly serialize ArrayBuffer/Blob bodies.
+// This function uses FileSystem.uploadAsync which handles binary uploads
+// natively and reliably on iOS/Android.
+
+async function uploadToStorage(
+  bucket: string,
+  storagePath: string,
+  fileUri: string,
+  contentType: string,
+): Promise<void> {
+  const session = (await supabase.auth.getSession()).data.session;
+  if (!session) throw new Error('Not authenticated');
+
+  const url = `${SUPABASE_URL}/storage/v1/object/${bucket}/${storagePath}`;
+
+  const result = await FileSystem.uploadAsync(url, fileUri, {
+    httpMethod: 'POST',
+    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': contentType,
+      'cache-control': 'max-age=3600',
+      'x-upsert': 'false',
+    },
+  });
+
+  if (result.status < 200 || result.status >= 300) {
+    let msg = `Storage upload failed (${result.status})`;
+    try {
+      const body = JSON.parse(result.body);
+      msg = body.message || body.error || msg;
+    } catch {}
+    throw new Error(msg);
+  }
+}
 
 // ─── Images ──────────────────────────────────────────────────────────
 
@@ -87,20 +124,12 @@ export function useUploadPropertyImage() {
       const fileName = `${timestamp}-${index}.jpeg`;
       const storagePath = `${propertyId}/${fileName}`;
 
-      // Read file as base64 and decode to ArrayBuffer for reliable Supabase upload
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      const arrayBuffer = base64Decode(base64);
+      // Get file info to record size
+      const fileInfo = await FileSystem.getInfoAsync(uri);
+      const fileSize = fileInfo.exists && 'size' in fileInfo ? fileInfo.size : null;
 
-      const { error: uploadError } = await supabase.storage
-        .from('property-images')
-        .upload(storagePath, arrayBuffer, {
-          contentType: 'image/jpeg',
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
+      // Upload using native FileSystem.uploadAsync (bypasses RN fetch issues)
+      await uploadToStorage('property-images', storagePath, uri, 'image/jpeg');
 
       const { data, error: insertError } = await supabase
         .from('property_images')
@@ -108,7 +137,7 @@ export function useUploadPropertyImage() {
           property_id: propertyId,
           storage_path: storagePath,
           file_name: fileName,
-          file_size: arrayBuffer.byteLength,
+          file_size: fileSize,
           uploaded_by: userId,
         })
         .select()
@@ -250,20 +279,8 @@ export function useUploadPropertyDocument() {
       const timestamp = Date.now();
       const storagePath = `${propertyId}/${timestamp}-${fileName}`;
 
-      // Read file as base64 and decode to ArrayBuffer for reliable Supabase upload
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      const arrayBuffer = base64Decode(base64);
-
-      const { error: uploadError } = await supabase.storage
-        .from('property-documents')
-        .upload(storagePath, arrayBuffer, {
-          contentType: mimeType,
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
+      // Upload using native FileSystem.uploadAsync (bypasses RN fetch issues)
+      await uploadToStorage('property-documents', storagePath, uri, mimeType);
 
       const { data, error: insertError } = await supabase
         .from('property_documents')
@@ -271,7 +288,7 @@ export function useUploadPropertyDocument() {
           property_id: propertyId,
           storage_path: storagePath,
           file_name: fileName,
-          file_size: fileSize ?? arrayBuffer.byteLength,
+          file_size: fileSize,
           document_type: documentType,
           uploaded_by: userId,
         })
