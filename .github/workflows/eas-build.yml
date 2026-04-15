@@ -1,0 +1,63 @@
+# EAS Build — Trigger Expo Application Services builds from GitHub
+#
+# This workflow lets you start EAS builds directly from the GitHub Actions UI
+# without needing a local Mac or any native toolchain installed.
+#
+# ── Setup ──────────────────────────────────────────────────────────────────────
+# 1. Go to https://expo.dev/accounts/euricio/settings/access-tokens
+# 2. Create a new personal access token (or robot token for CI).
+# 3. In this repo, go to Settings → Secrets and variables → Actions.
+# 4. Add a new repository secret named EXPO_TOKEN with the token value.
+# ───────────────────────────────────────────────────────────────────────────────
+
+name: EAS Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Build profile (must match a profile in eas.json)"
+        required: true
+        default: "development"
+        type: choice
+        options:
+          - development
+          - development-device
+          - preview
+          - production
+      platform:
+        description: "Target platform"
+        required: true
+        default: "ios"
+        type: choice
+        options:
+          - ios
+          - android
+          - all
+
+jobs:
+  build:
+    name: EAS Build (${{ inputs.platform }} / ${{ inputs.profile }})
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set up EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Start EAS Build
+        run: eas build --platform ${{ inputs.platform }} --profile ${{ inputs.profile }} --non-interactive --no-wait
