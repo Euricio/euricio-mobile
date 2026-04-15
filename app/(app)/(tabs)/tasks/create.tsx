@@ -11,7 +11,7 @@ import {
   Modal,
   FlatList,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCreateTask } from '../../../../lib/api/tasks';
 import { useLeads, Lead } from '../../../../lib/api/leads';
@@ -50,6 +50,10 @@ function formatDateDE(date: Date): string {
 }
 
 export default function CreateTaskScreen() {
+  const { leadId, leadName } = useLocalSearchParams<{
+    leadId?: string;
+    leadName?: string;
+  }>();
   const createTask = useCreateTask();
 
   const [title, setTitle] = useState('');
@@ -57,7 +61,11 @@ export default function CreateTaskScreen() {
   const [type, setType] = useState('general');
   const [priority, setPriority] = useState('medium');
   const [dueDate, setDueDate] = useState('');
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(
+    leadId && leadName
+      ? ({ id: leadId, full_name: leadName } as Lead)
+      : null,
+  );
   const [leadPickerOpen, setLeadPickerOpen] = useState(false);
   const [leadSearch, setLeadSearch] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});

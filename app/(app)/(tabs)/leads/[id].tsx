@@ -9,13 +9,14 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useLead } from '../../../../lib/api/leads';
+import { useLead, useDeleteLead } from '../../../../lib/api/leads';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Avatar } from '../../../../components/ui/Avatar';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
+import { Button } from '../../../../components/ui/Button';
 import {
   colors,
   spacing,
@@ -37,6 +38,7 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'succes
 export default function LeadDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: lead, isLoading, refetch, isRefetching } = useLead(id!);
+  const deleteLead = useDeleteLead();
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -78,6 +80,44 @@ export default function LeadDetailScreen() {
     }
   };
 
+  const handleEdit = () => {
+    router.push({
+      pathname: '/(app)/(tabs)/leads/edit',
+      params: { id: lead.id },
+    });
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Lead löschen',
+      'Möchten Sie diesen Lead wirklich löschen?',
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Löschen',
+          style: 'destructive',
+          onPress: () => {
+            deleteLead.mutate(lead.id, {
+              onSuccess: () => router.back(),
+              onError: () =>
+                Alert.alert(
+                  'Fehler',
+                  'Lead konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.',
+                ),
+            });
+          },
+        },
+      ],
+    );
+  };
+
+  const handleAddTask = () => {
+    router.push({
+      pathname: '/(app)/(tabs)/tasks/create',
+      params: { leadId: lead.id, leadName: lead.full_name },
+    });
+  };
+
   return (
     <ScrollView
       style={styles.container}
@@ -96,6 +136,11 @@ export default function LeadDetailScreen() {
           headerShown: true,
           headerStyle: { backgroundColor: colors.surface },
           headerShadowVisible: false,
+          headerRight: () => (
+            <TouchableOpacity onPress={handleEdit} style={{ padding: spacing.xs }}>
+              <Ionicons name="create-outline" size={22} color={colors.primary} />
+            </TouchableOpacity>
+          ),
         }}
       />
 
@@ -133,6 +178,7 @@ export default function LeadDetailScreen() {
           icon="add-circle-outline"
           label="Aufgabe"
           color={colors.accent}
+          onPress={handleAddTask}
         />
       </View>
 
@@ -185,6 +231,18 @@ export default function LeadDetailScreen() {
           </Text>
         </View>
       </Card>
+
+      {/* Delete */}
+      <View style={styles.deleteContainer}>
+        <Button
+          title="Löschen"
+          variant="danger"
+          icon="trash-outline"
+          onPress={handleDelete}
+          loading={deleteLead.isPending}
+          disabled={deleteLead.isPending}
+        />
+      </View>
     </ScrollView>
   );
 }
@@ -350,5 +408,10 @@ const styles = StyleSheet.create({
   activityPlaceholderText: {
     fontSize: fontSize.sm,
     color: colors.textTertiary,
+  },
+  deleteContainer: {
+    marginTop: spacing.lg,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.md,
   },
 });
