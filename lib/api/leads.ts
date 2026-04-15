@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuthStore } from '../../store/authStore';
 
 export interface Lead {
   id: string;
@@ -55,11 +56,12 @@ export function useLead(id: string) {
 
 export function useCreateLead() {
   const queryClient = useQueryClient();
+  const user = useAuthStore.getState().user;
   return useMutation({
     mutationFn: async (lead: Partial<Lead>) => {
       const { data, error } = await supabase
         .from('leads')
-        .insert(lead)
+        .insert({ ...lead, created_by: user?.id })
         .select()
         .single();
       if (error) throw error;

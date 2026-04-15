@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuthStore } from '../../store/authStore';
 
 export interface Task {
   id: string;
@@ -74,11 +75,12 @@ export function useCompleteTask() {
 
 export function useCreateTask() {
   const queryClient = useQueryClient();
+  const user = useAuthStore.getState().user;
   return useMutation({
     mutationFn: async (task: Partial<Task>) => {
       const { data, error } = await supabase
         .from('tasks')
-        .insert(task)
+        .insert({ ...task, created_by: user?.id })
         .select()
         .single();
       if (error) throw error;

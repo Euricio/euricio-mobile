@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuthStore } from '../../store/authStore';
 
 export interface Property {
   id: string;
@@ -59,11 +60,12 @@ export function useProperty(id: string) {
 
 export function useCreateProperty() {
   const queryClient = useQueryClient();
+  const user = useAuthStore.getState().user;
   return useMutation({
     mutationFn: async (property: Partial<Property>) => {
       const { data, error } = await supabase
         .from('properties')
-        .insert(property)
+        .insert({ ...property, created_by: user?.id })
         .select()
         .single();
       if (error) throw error;
