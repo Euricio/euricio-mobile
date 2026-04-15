@@ -19,7 +19,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'es.euricio.crm',
+    bundleIdentifier: 'com.euricio.crm',
     infoPlist: {
       NSMicrophoneUsageDescription:
         'Euricio benötigt Zugriff auf das Mikrofon für Telefonate.',
@@ -32,7 +32,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#1E3A5F',
     },
-    package: 'es.euricio.crm',
+    package: 'com.euricio.crm',
     permissions: [
       'RECORD_AUDIO',
       'INTERNET',

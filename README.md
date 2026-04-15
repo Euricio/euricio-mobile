@@ -139,11 +139,11 @@ euricio-mobile/
 
 Folgende Schritte müssen im Apple Developer Portal manuell durchgeführt werden:
 
-1. **App ID** `es.euricio.crm` im Apple Developer Portal anlegen
+1. **App ID** `com.euricio.crm` im Apple Developer Portal anlegen
 2. **Push Notification** Capability aktivieren
 3. **VoIP Services** Capability aktivieren (für Twilio Voice in Phase 2)
 4. **Provisioning Profile** für Development erstellen (oder EAS Managed Credentials nutzen)
-5. In **App Store Connect**: Neue App anlegen mit Bundle ID `es.euricio.crm`
+5. In **App Store Connect**: Neue App anlegen mit Bundle ID `com.euricio.crm`
 
 ## Design-System
 
