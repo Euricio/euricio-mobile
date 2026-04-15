@@ -58,18 +58,20 @@ export default function CreatePropertyScreen() {
   const handleSubmit = () => {
     if (!validate()) return;
 
+    const payload: Record<string, unknown> = {
+      title: title.trim(),
+      status: status || 'available',
+    };
+    if (address.trim()) payload.address = address.trim();
+    if (city.trim()) payload.city = city.trim();
+    if (price) payload.price = parseFloat(price);
+    if (size) payload.size_m2 = parseFloat(size);
+    if (rooms) payload.rooms = parseInt(rooms, 10);
+    if (type) payload.property_type = type;
+    if (description.trim()) payload.description = description.trim();
+
     createProperty.mutate(
-      {
-        title: title.trim(),
-        address: address.trim() || null,
-        city: city.trim() || null,
-        price: price ? parseFloat(price) : null,
-        size_m2: size ? parseFloat(size) : null,
-        rooms: rooms ? parseInt(rooms, 10) : null,
-        property_type: type || null,
-        status: status || 'available',
-        description: description.trim() || null,
-      },
+      payload as any,
       {
         onSuccess: () => {
           router.back();

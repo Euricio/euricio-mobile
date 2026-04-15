@@ -95,16 +95,18 @@ export default function CreateTaskScreen() {
   const handleSubmit = () => {
     if (!validate()) return;
 
+    const payload: Record<string, unknown> = {
+      title: title.trim(),
+      task_type: type,
+      priority,
+      status: 'open',
+    };
+    if (description.trim()) payload.description = description.trim();
+    if (dueDate) payload.due_date = parseDateDE(dueDate);
+    if (selectedLead?.id) payload.lead_id = selectedLead.id;
+
     createTask.mutate(
-      {
-        title: title.trim(),
-        description: description.trim() || null,
-        task_type: type,
-        priority,
-        status: 'open',
-        due_date: parseDateDE(dueDate),
-        lead_id: selectedLead?.id || null,
-      },
+      payload as any,
       {
         onSuccess: () => {
           router.back();

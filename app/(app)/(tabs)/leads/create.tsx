@@ -44,15 +44,17 @@ export default function CreateLeadScreen() {
   const handleSubmit = () => {
     if (!validate()) return;
 
+    const payload: Record<string, unknown> = {
+      full_name: name.trim(),
+      status: 'new',
+    };
+    if (email.trim()) payload.email = email.trim();
+    if (phone.trim()) payload.phone = phone.trim();
+    if (source) payload.source = source;
+    if (notes.trim()) payload.notes = notes.trim();
+
     createLead.mutate(
-      {
-        full_name: name.trim(),
-        email: email.trim() || null,
-        phone: phone.trim() || null,
-        source: source || null,
-        notes: notes.trim() || null,
-        status: 'new',
-      },
+      payload as any,
       {
         onSuccess: () => {
           router.back();
