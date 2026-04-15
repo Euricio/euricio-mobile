@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  Image,
   FlatList,
   StyleSheet,
   RefreshControl,
@@ -10,6 +11,7 @@ import {
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useProperties, Property } from '../../../../lib/api/properties';
+import { usePropertyImages, getCoverImage } from '../../../../lib/api/propertyImages';
 import { SearchBar } from '../../../../components/ui/SearchBar';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
@@ -36,6 +38,8 @@ const propertyTypeLabels: Record<string, string> = {
   apartment: 'Wohnung',
   house: 'Haus',
   villa: 'Villa',
+  chalet: 'Chalet',
+  finca: 'Finca',
   commercial: 'Gewerbe',
   land: 'Grundstück',
   garage: 'Garage',
@@ -49,6 +53,23 @@ function formatPrice(price: number | null): string {
     currency: 'EUR',
     maximumFractionDigits: 0,
   }).format(price);
+}
+
+function PropertyCardImage({ propertyId }: { propertyId: string }) {
+  const { data: images } = usePropertyImages(propertyId);
+  const cover = images ? getCoverImage(images) : undefined;
+
+  if (cover) {
+    return (
+      <Image source={{ uri: cover.url }} style={styles.coverImage} resizeMode="cover" />
+    );
+  }
+
+  return (
+    <View style={styles.imagePlaceholder}>
+      <Ionicons name="image-outline" size={32} color={colors.textTertiary} />
+    </View>
+  );
 }
 
 function PropertyCard({ property }: { property: Property }) {
@@ -65,9 +86,7 @@ function PropertyCard({ property }: { property: Property }) {
     >
       {/* Image */}
       <View style={styles.imageContainer}>
-        <View style={styles.imagePlaceholder}>
-          <Ionicons name="image-outline" size={32} color={colors.textTertiary} />
-        </View>
+        <PropertyCardImage propertyId={property.id} />
         <View style={styles.badgeOverlay}>
           <Badge label={status.label} variant={status.variant} />
         </View>
@@ -193,6 +212,10 @@ const styles = StyleSheet.create({
   imageContainer: {
     height: 180,
     position: 'relative',
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
   },
   imagePlaceholder: {
     width: '100%',

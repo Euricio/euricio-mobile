@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,13 +8,14 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
-import { useCreateProperty } from '../../../../lib/api/properties';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { useProperty, useUpdateProperty } from '../../../../lib/api/properties';
 import { FormInput } from '../../../../components/ui/FormInput';
 import { FormSelect } from '../../../../components/ui/FormSelect';
 import { FormToggle } from '../../../../components/ui/FormToggle';
 import { Button } from '../../../../components/ui/Button';
 import { CollapsibleSection } from '../../../../components/ui/CollapsibleSection';
+import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
 import { colors, spacing, fontSize, fontWeight } from '../../../../constants/theme';
 
 const typeOptions = [
@@ -87,8 +88,10 @@ function SectionLabel({ text }: { text: string }) {
   return <Text style={styles.sectionLabel}>{text}</Text>;
 }
 
-export default function CreatePropertyScreen() {
-  const createProperty = useCreateProperty();
+export default function EditPropertyScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { data: property, isLoading } = useProperty(id!);
+  const updateProperty = useUpdateProperty();
 
   // Grunddaten
   const [title, setTitle] = useState('');
@@ -101,7 +104,7 @@ export default function CreatePropertyScreen() {
   const [city, setCity] = useState('');
   const [province, setProvince] = useState('');
   const [postalCode, setPostalCode] = useState('');
-  const [country, setCountry] = useState('ES');
+  const [country, setCountry] = useState('');
 
   // Preis & Fläche
   const [price, setPrice] = useState('');
@@ -155,6 +158,59 @@ export default function CreatePropertyScreen() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  useEffect(() => {
+    if (!property) return;
+    setTitle(property.title ?? '');
+    setPropertyType(property.property_type ?? '');
+    setOfferType(property.offer_type ?? '');
+    setStatus(property.status ?? 'available');
+    setAddress(property.address ?? '');
+    setCity(property.city ?? '');
+    setProvince(property.province ?? '');
+    setPostalCode(property.postal_code ?? '');
+    setCountry(property.country ?? '');
+    setPrice(property.price != null ? String(property.price) : '');
+    setPriceNegotiable(property.price_negotiable ?? true);
+    setSizeM2(property.size_m2 != null ? String(property.size_m2) : '');
+    setRooms(property.rooms != null ? String(property.rooms) : '');
+    setBathrooms(property.bathrooms != null ? String(property.bathrooms) : '');
+    setFloor(property.floor != null ? String(property.floor) : '');
+    setPropertySubtype(property.property_subtype ?? '');
+    setOrientation(property.orientation ?? '');
+    setCondition(property.condition ?? '');
+    setHasElevator(property.has_elevator ?? false);
+    setHasParking(property.has_parking ?? false);
+    setHasPool(property.has_pool ?? false);
+    setHasGarden(property.has_garden ?? false);
+    setGardenM2(property.garden_m2 != null ? String(property.garden_m2) : '');
+    setIsFurnished(property.is_furnished ?? false);
+    setHasGarage(property.has_garage ?? false);
+    setGarageSpaces(property.garage_spaces != null ? String(property.garage_spaces) : '');
+    setHasTerrace(property.has_terrace ?? false);
+    setTerraceM2(property.terrace_m2 != null ? String(property.terrace_m2) : '');
+    setHasAc(property.has_ac ?? false);
+    setHasHeating(property.has_heating ?? false);
+    setHeatingType(property.heating_type ?? '');
+    setHasStorage(property.has_storage ?? false);
+    setHasSeaView(property.has_sea_view ?? false);
+    setReferenciaCatastral(property.referencia_catastral ?? '');
+    setIbiAnnual(property.ibi_annual != null ? String(property.ibi_annual) : '');
+    setCommunityFeesMonthly(property.community_fees_monthly != null ? String(property.community_fees_monthly) : '');
+    setHasMortgage(property.has_mortgage ?? false);
+    setMortgageOutstanding(property.mortgage_outstanding != null ? String(property.mortgage_outstanding) : '');
+    setLegalStatus(property.legal_status ?? '');
+    setNotaSimpleDate(property.nota_simple_date ?? '');
+    setRentalPrice(property.rental_price != null ? String(property.rental_price) : '');
+    setRentalPeriod(property.rental_period ?? '');
+    setAvailableFrom(property.available_from ?? '');
+    setIsRented(property.is_rented ?? false);
+    setRentalYield(property.rental_yield != null ? String(property.rental_yield) : '');
+    setDescription(property.description ?? '');
+    setNotes(property.notes ?? '');
+  }, [property]);
+
+  if (isLoading) return <LoadingScreen />;
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!title.trim()) newErrors.title = 'Titel ist erforderlich';
@@ -167,79 +223,60 @@ export default function CreatePropertyScreen() {
     if (!validate()) return;
 
     const payload: Record<string, unknown> = {
+      id: id!,
       title: title.trim(),
       property_type: propertyType,
       status: status || 'available',
+      offer_type: offerType || null,
+      address: address.trim() || null,
+      city: city.trim() || null,
+      province: province.trim() || null,
+      postal_code: postalCode.trim() || null,
+      country: country.trim() || null,
+      price: price ? parseFloat(price) : null,
+      price_negotiable: priceNegotiable,
+      size_m2: sizeM2 ? parseFloat(sizeM2) : null,
+      rooms: rooms ? parseInt(rooms, 10) : null,
+      bathrooms: bathrooms ? parseInt(bathrooms, 10) : null,
+      floor: floor ? parseInt(floor, 10) : null,
+      property_subtype: propertySubtype.trim() || null,
+      orientation: orientation || null,
+      condition: condition || null,
+      has_elevator: hasElevator,
+      has_parking: hasParking,
+      has_pool: hasPool,
+      has_garden: hasGarden,
+      garden_m2: hasGarden && gardenM2 ? parseFloat(gardenM2) : null,
+      is_furnished: isFurnished,
+      has_garage: hasGarage,
+      garage_spaces: hasGarage && garageSpaces ? parseInt(garageSpaces, 10) : null,
+      has_terrace: hasTerrace,
+      terrace_m2: hasTerrace && terraceM2 ? parseFloat(terraceM2) : null,
+      has_ac: hasAc,
+      has_heating: hasHeating,
+      heating_type: hasHeating && heatingType ? heatingType : null,
+      has_storage: hasStorage,
+      has_sea_view: hasSeaView,
+      referencia_catastral: referenciaCatastral.trim() || null,
+      ibi_annual: ibiAnnual ? parseFloat(ibiAnnual) : null,
+      community_fees_monthly: communityFeesMonthly ? parseFloat(communityFeesMonthly) : null,
+      has_mortgage: hasMortgage,
+      mortgage_outstanding: hasMortgage && mortgageOutstanding ? parseFloat(mortgageOutstanding) : null,
+      legal_status: legalStatus || null,
+      nota_simple_date: notaSimpleDate.trim() || null,
+      rental_price: rentalPrice ? parseFloat(rentalPrice) : null,
+      rental_period: rentalPeriod || null,
+      available_from: availableFrom.trim() || null,
+      is_rented: isRented,
+      rental_yield: rentalYield ? parseFloat(rentalYield) : null,
+      description: description.trim() || null,
+      notes: notes.trim() || null,
     };
 
-    // Only include fields with values
-    if (offerType) payload.offer_type = offerType;
-    if (address.trim()) payload.address = address.trim();
-    if (city.trim()) payload.city = city.trim();
-    if (province.trim()) payload.province = province.trim();
-    if (postalCode.trim()) payload.postal_code = postalCode.trim();
-    if (country.trim()) payload.country = country.trim();
-    if (price) payload.price = parseFloat(price);
-    payload.price_negotiable = priceNegotiable;
-    if (sizeM2) payload.size_m2 = parseFloat(sizeM2);
-    if (rooms) payload.rooms = parseInt(rooms, 10);
-    if (bathrooms) payload.bathrooms = parseInt(bathrooms, 10);
-    if (floor) payload.floor = parseInt(floor, 10);
-    if (propertySubtype.trim()) payload.property_subtype = propertySubtype.trim();
-    if (orientation) payload.orientation = orientation;
-    if (condition) payload.condition = condition;
-
-    // Features (booleans)
-    if (hasElevator) payload.has_elevator = true;
-    if (hasParking) payload.has_parking = true;
-    if (hasPool) payload.has_pool = true;
-    if (hasGarden) {
-      payload.has_garden = true;
-      if (gardenM2) payload.garden_m2 = parseFloat(gardenM2);
-    }
-    if (isFurnished) payload.is_furnished = true;
-    if (hasGarage) {
-      payload.has_garage = true;
-      if (garageSpaces) payload.garage_spaces = parseInt(garageSpaces, 10);
-    }
-    if (hasTerrace) {
-      payload.has_terrace = true;
-      if (terraceM2) payload.terrace_m2 = parseFloat(terraceM2);
-    }
-    if (hasAc) payload.has_ac = true;
-    if (hasHeating) {
-      payload.has_heating = true;
-      if (heatingType) payload.heating_type = heatingType;
-    }
-    if (hasStorage) payload.has_storage = true;
-    if (hasSeaView) payload.has_sea_view = true;
-
-    // Legal
-    if (referenciaCatastral.trim()) payload.referencia_catastral = referenciaCatastral.trim();
-    if (ibiAnnual) payload.ibi_annual = parseFloat(ibiAnnual);
-    if (communityFeesMonthly) payload.community_fees_monthly = parseFloat(communityFeesMonthly);
-    if (hasMortgage) {
-      payload.has_mortgage = true;
-      if (mortgageOutstanding) payload.mortgage_outstanding = parseFloat(mortgageOutstanding);
-    }
-    if (legalStatus) payload.legal_status = legalStatus;
-    if (notaSimpleDate.trim()) payload.nota_simple_date = notaSimpleDate.trim();
-
-    // Rental
-    if (rentalPrice) payload.rental_price = parseFloat(rentalPrice);
-    if (rentalPeriod) payload.rental_period = rentalPeriod;
-    if (availableFrom.trim()) payload.available_from = availableFrom.trim();
-    if (isRented) payload.is_rented = true;
-    if (rentalYield) payload.rental_yield = parseFloat(rentalYield);
-
-    // Description
-    if (description.trim()) payload.description = description.trim();
-    if (notes.trim()) payload.notes = notes.trim();
-
-    createProperty.mutate(payload as any, {
+    updateProperty.mutate(payload as any, {
       onSuccess: () => router.back(),
       onError: () => {
-        Alert.alert('Fehler', 'Immobilie konnte nicht erstellt werden. Bitte versuchen Sie es erneut.');
+        Alert.alert('Fehler', 'Immobilie konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.');
       },
     });
   };
@@ -251,7 +288,7 @@ export default function CreatePropertyScreen() {
     >
       <Stack.Screen
         options={{
-          headerTitle: 'Neue Immobilie',
+          headerTitle: 'Immobilie bearbeiten',
           headerShown: true,
           headerStyle: { backgroundColor: colors.surface },
           headerShadowVisible: false,
@@ -548,10 +585,10 @@ export default function CreatePropertyScreen() {
 
         <View style={styles.buttonContainer}>
           <Button
-            title="Immobilie erstellen"
+            title="Änderungen speichern"
             onPress={handleSubmit}
-            loading={createProperty.isPending}
-            disabled={createProperty.isPending}
+            loading={updateProperty.isPending}
+            disabled={updateProperty.isPending}
           />
           <Button
             title="Abbrechen"
