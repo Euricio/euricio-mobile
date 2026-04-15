@@ -28,6 +28,17 @@ const statusLabels: Record<string, { label: string; variant: 'default' | 'succes
   reserved: { label: 'Reserviert', variant: 'warning' },
   sold: { label: 'Verkauft', variant: 'error' },
   rented: { label: 'Vermietet', variant: 'info' },
+  withdrawn: { label: 'Zurückgezogen', variant: 'default' },
+};
+
+const propertyTypeLabels: Record<string, string> = {
+  apartment: 'Wohnung',
+  house: 'Haus',
+  villa: 'Villa',
+  commercial: 'Gewerbe',
+  land: 'Grundstück',
+  garage: 'Garage',
+  other: 'Sonstige',
 };
 
 function formatPrice(price: number | null): string {
@@ -127,7 +138,7 @@ export default function PropertyDetailScreen() {
           <FactItem icon="bed-outline" label="Zimmer" value={String(property.rooms)} />
         )}
         {property.property_type && (
-          <FactItem icon="home-outline" label="Typ" value={property.property_type} />
+          <FactItem icon="home-outline" label="Typ" value={propertyTypeLabels[property.property_type] ?? property.property_type} />
         )}
       </View>
 

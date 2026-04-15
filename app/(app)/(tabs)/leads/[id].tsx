@@ -30,8 +30,6 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'succes
   new: { label: 'Neu', variant: 'info' },
   contacted: { label: 'Kontaktiert', variant: 'primary' },
   qualified: { label: 'Qualifiziert', variant: 'warning' },
-  proposal: { label: 'Angebot', variant: 'primary' },
-  won: { label: 'Gewonnen', variant: 'success' },
   lost: { label: 'Verloren', variant: 'error' },
 };
 

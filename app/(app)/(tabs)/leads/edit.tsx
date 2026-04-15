@@ -27,8 +27,6 @@ const statusOptions = [
   { value: 'new', label: 'Neu' },
   { value: 'contacted', label: 'Kontaktiert' },
   { value: 'qualified', label: 'Qualifiziert' },
-  { value: 'proposal', label: 'Angebot' },
-  { value: 'won', label: 'Gewonnen' },
   { value: 'lost', label: 'Verloren' },
 ];
 

@@ -15,16 +15,21 @@ import { Button } from '../../../../components/ui/Button';
 import { colors, spacing } from '../../../../constants/theme';
 
 const typeOptions = [
-  { value: 'wohnung', label: 'Wohnung' },
-  { value: 'haus', label: 'Haus' },
-  { value: 'grundstueck', label: 'Grundstück' },
-  { value: 'gewerbe', label: 'Gewerbe' },
+  { value: 'apartment', label: 'Wohnung' },
+  { value: 'house', label: 'Haus' },
+  { value: 'villa', label: 'Villa' },
+  { value: 'commercial', label: 'Gewerbe' },
+  { value: 'land', label: 'Grundstück' },
+  { value: 'garage', label: 'Garage' },
+  { value: 'other', label: 'Sonstige' },
 ];
 
 const statusOptions = [
   { value: 'available', label: 'Verfügbar' },
   { value: 'reserved', label: 'Reserviert' },
   { value: 'sold', label: 'Verkauft' },
+  { value: 'rented', label: 'Vermietet' },
+  { value: 'withdrawn', label: 'Zurückgezogen' },
 ];
 
 export default function CreatePropertyScreen() {
