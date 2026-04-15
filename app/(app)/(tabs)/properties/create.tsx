@@ -15,73 +15,8 @@ import { FormSelect } from '../../../../components/ui/FormSelect';
 import { FormToggle } from '../../../../components/ui/FormToggle';
 import { Button } from '../../../../components/ui/Button';
 import { CollapsibleSection } from '../../../../components/ui/CollapsibleSection';
+import { useI18n } from '../../../../lib/i18n';
 import { colors, spacing, fontSize, fontWeight } from '../../../../constants/theme';
-
-const typeOptions = [
-  { value: 'apartment', label: 'Wohnung' },
-  { value: 'house', label: 'Haus' },
-  { value: 'villa', label: 'Villa' },
-  { value: 'chalet', label: 'Chalet' },
-  { value: 'finca', label: 'Finca' },
-  { value: 'commercial', label: 'Gewerbe' },
-  { value: 'land', label: 'Grundstück' },
-  { value: 'garage', label: 'Garage' },
-  { value: 'other', label: 'Sonstige' },
-];
-
-const statusOptions = [
-  { value: 'available', label: 'Verfügbar' },
-  { value: 'reserved', label: 'Reserviert' },
-  { value: 'sold', label: 'Verkauft' },
-  { value: 'rented', label: 'Vermietet' },
-  { value: 'withdrawn', label: 'Zurückgezogen' },
-];
-
-const offerTypeOptions = [
-  { value: 'sale', label: 'Verkauf' },
-  { value: 'rent', label: 'Vermietung' },
-];
-
-const orientationOptions = [
-  { value: 'north', label: 'Nord' },
-  { value: 'south', label: 'Süd' },
-  { value: 'east', label: 'Ost' },
-  { value: 'west', label: 'West' },
-  { value: 'southeast', label: 'Südost' },
-  { value: 'southwest', label: 'Südwest' },
-  { value: 'northeast', label: 'Nordost' },
-  { value: 'northwest', label: 'Nordwest' },
-];
-
-const conditionOptions = [
-  { value: 'new', label: 'Neubau' },
-  { value: 'like_new', label: 'Neuwertig' },
-  { value: 'good', label: 'Gut' },
-  { value: 'needs_renovation', label: 'Renovierungsbedürftig' },
-  { value: 'ruin', label: 'Ruine' },
-];
-
-const heatingTypeOptions = [
-  { value: 'electric', label: 'Elektrisch' },
-  { value: 'gas', label: 'Gas' },
-  { value: 'oil', label: 'Öl' },
-  { value: 'heat_pump', label: 'Wärmepumpe' },
-  { value: 'solar', label: 'Solar' },
-  { value: 'none', label: 'Keine' },
-];
-
-const legalStatusOptions = [
-  { value: 'free', label: 'Frei' },
-  { value: 'occupied', label: 'Besetzt' },
-  { value: 'tenant', label: 'Vermietet' },
-  { value: 'legal_dispute', label: 'Rechtsstreit' },
-];
-
-const rentalPeriodOptions = [
-  { value: 'monthly', label: 'Monatlich' },
-  { value: 'weekly', label: 'Wöchentlich' },
-  { value: 'daily', label: 'Täglich' },
-];
 
 function SectionLabel({ text }: { text: string }) {
   return <Text style={styles.sectionLabel}>{text}</Text>;
@@ -89,6 +24,73 @@ function SectionLabel({ text }: { text: string }) {
 
 export default function CreatePropertyScreen() {
   const createProperty = useCreateProperty();
+  const { t } = useI18n();
+
+  const typeOptions = [
+    { value: 'apartment', label: t('propType_apartment') },
+    { value: 'house', label: t('propType_house') },
+    { value: 'villa', label: t('propType_villa') },
+    { value: 'chalet', label: t('propType_chalet') },
+    { value: 'finca', label: t('propType_finca') },
+    { value: 'commercial', label: t('propType_commercial') },
+    { value: 'land', label: t('propType_land') },
+    { value: 'garage', label: t('propType_garage') },
+    { value: 'other', label: t('propType_other') },
+  ];
+
+  const statusOptions = [
+    { value: 'available', label: t('propStatus_available') },
+    { value: 'reserved', label: t('propStatus_reserved') },
+    { value: 'sold', label: t('propStatus_sold') },
+    { value: 'rented', label: t('propStatus_rented') },
+    { value: 'withdrawn', label: t('propStatus_withdrawn') },
+  ];
+
+  const offerTypeOptions = [
+    { value: 'sale', label: t('offerType_sale') },
+    { value: 'rent', label: t('offerType_rent') },
+  ];
+
+  const orientationOptions = [
+    { value: 'north', label: t('orientation_north') },
+    { value: 'south', label: t('orientation_south') },
+    { value: 'east', label: t('orientation_east') },
+    { value: 'west', label: t('orientation_west') },
+    { value: 'southeast', label: t('orientation_southeast') },
+    { value: 'southwest', label: t('orientation_southwest') },
+    { value: 'northeast', label: t('orientation_northeast') },
+    { value: 'northwest', label: t('orientation_northwest') },
+  ];
+
+  const conditionOptions = [
+    { value: 'new', label: t('condition_new') },
+    { value: 'like_new', label: t('condition_like_new') },
+    { value: 'good', label: t('condition_good') },
+    { value: 'needs_renovation', label: t('condition_needs_renovation') },
+    { value: 'ruin', label: t('condition_ruin') },
+  ];
+
+  const heatingTypeOptions = [
+    { value: 'electric', label: t('heating_electric') },
+    { value: 'gas', label: t('heating_gas') },
+    { value: 'oil', label: t('heating_oil') },
+    { value: 'heat_pump', label: t('heating_heat_pump') },
+    { value: 'solar', label: t('heating_solar') },
+    { value: 'none', label: t('heating_none') },
+  ];
+
+  const legalStatusOptions = [
+    { value: 'free', label: t('legalStatus_free') },
+    { value: 'occupied', label: t('legalStatus_occupied') },
+    { value: 'tenant', label: t('legalStatus_tenant') },
+    { value: 'legal_dispute', label: t('legalStatus_legal_dispute') },
+  ];
+
+  const rentalPeriodOptions = [
+    { value: 'monthly', label: t('rentalPeriod_monthly') },
+    { value: 'weekly', label: t('rentalPeriod_weekly') },
+    { value: 'daily', label: t('rentalPeriod_daily') },
+  ];
 
   // Grunddaten
   const [title, setTitle] = useState('');
@@ -157,8 +159,8 @@ export default function CreatePropertyScreen() {
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (!title.trim()) newErrors.title = 'Titel ist erforderlich';
-    if (!propertyType) newErrors.propertyType = 'Immobilientyp ist erforderlich';
+    if (!title.trim()) newErrors.title = t('prop_titleRequired');
+    if (!propertyType) newErrors.propertyType = t('prop_typeRequired');
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -239,7 +241,7 @@ export default function CreatePropertyScreen() {
     createProperty.mutate(payload as any, {
       onSuccess: () => router.back(),
       onError: () => {
-        Alert.alert('Fehler', 'Immobilie konnte nicht erstellt werden. Bitte versuchen Sie es erneut.');
+        Alert.alert(t('error'), t('properties_createError'));
       },
     });
   };
@@ -251,7 +253,7 @@ export default function CreatePropertyScreen() {
     >
       <Stack.Screen
         options={{
-          headerTitle: 'Neue Immobilie',
+          headerTitle: t('properties_new'),
           headerShown: true,
           headerStyle: { backgroundColor: colors.surface },
           headerShadowVisible: false,
@@ -262,299 +264,299 @@ export default function CreatePropertyScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Grunddaten — always visible */}
-        <SectionLabel text="Grunddaten" />
+        <SectionLabel text={t('propSection_basic')} />
         <FormInput
-          label="Titel"
+          label={t('prop_title')}
           required
           value={title}
           onChangeText={setTitle}
-          placeholder="z.B. 3-Zimmer-Wohnung in Mitte"
+          placeholder={t('prop_titlePlaceholder')}
           error={errors.title}
         />
         <FormSelect
-          label="Immobilientyp"
+          label={t('prop_type')}
           required
           options={typeOptions}
           value={propertyType}
           onChange={setPropertyType}
-          placeholder="Typ auswählen..."
+          placeholder={t('prop_typePlaceholder')}
           error={errors.propertyType}
         />
         <FormSelect
-          label="Angebotsart"
+          label={t('prop_offerType')}
           options={offerTypeOptions}
           value={offerType}
           onChange={setOfferType}
-          placeholder="Angebotsart auswählen..."
+          placeholder={t('prop_offerTypePlaceholder')}
         />
         <FormSelect
-          label="Status"
+          label={t('prop_status')}
           options={statusOptions}
           value={status}
           onChange={setStatus}
         />
 
         {/* Adresse */}
-        <SectionLabel text="Adresse" />
+        <SectionLabel text={t('propSection_address')} />
         <FormInput
-          label="Straße"
+          label={t('prop_street')}
           value={address}
           onChangeText={setAddress}
-          placeholder="Straße und Hausnummer"
+          placeholder={t('prop_streetPlaceholder')}
         />
         <FormInput
-          label="Stadt"
+          label={t('prop_city')}
           value={city}
           onChangeText={setCity}
-          placeholder="z.B. Marbella"
+          placeholder={t('prop_cityPlaceholder')}
         />
         <FormInput
-          label="Provinz"
+          label={t('prop_province')}
           value={province}
           onChangeText={setProvince}
-          placeholder="z.B. Málaga"
+          placeholder={t('prop_provincePlaceholder')}
         />
         <FormInput
-          label="PLZ"
+          label={t('prop_postalCode')}
           value={postalCode}
           onChangeText={setPostalCode}
-          placeholder="z.B. 29601"
+          placeholder={t('prop_postalCodePlaceholder')}
           keyboardType="numeric"
         />
         <FormInput
-          label="Land"
+          label={t('prop_country')}
           value={country}
           onChangeText={setCountry}
-          placeholder="z.B. ES"
+          placeholder={t('prop_countryPlaceholder')}
         />
 
         {/* Preis & Fläche */}
-        <SectionLabel text="Preis & Fläche" />
+        <SectionLabel text={t('propSection_priceArea')} />
         <FormInput
-          label="Preis (EUR)"
+          label={t('prop_price')}
           value={price}
           onChangeText={setPrice}
-          placeholder="z.B. 350000"
+          placeholder={t('prop_pricePlaceholder')}
           keyboardType="numeric"
         />
         <FormToggle
-          label="Verhandlungsbasis"
+          label={t('prop_priceNegotiable')}
           value={priceNegotiable}
           onChange={setPriceNegotiable}
         />
         <FormInput
-          label="Fläche (m²)"
+          label={t('prop_area')}
           value={sizeM2}
           onChangeText={setSizeM2}
-          placeholder="z.B. 85"
+          placeholder={t('prop_areaPlaceholder')}
           keyboardType="numeric"
         />
         <FormInput
-          label="Zimmer"
+          label={t('prop_rooms')}
           value={rooms}
           onChangeText={setRooms}
-          placeholder="z.B. 3"
+          placeholder={t('prop_roomsPlaceholder')}
           keyboardType="numeric"
         />
         <FormInput
-          label="Badezimmer"
+          label={t('prop_bathrooms')}
           value={bathrooms}
           onChangeText={setBathrooms}
-          placeholder="z.B. 2"
+          placeholder={t('prop_bathroomsPlaceholder')}
           keyboardType="numeric"
         />
         <FormInput
-          label="Etage"
+          label={t('prop_floor')}
           value={floor}
           onChangeText={setFloor}
-          placeholder="z.B. 3"
+          placeholder={t('prop_floorPlaceholder')}
           keyboardType="numeric"
         />
 
         {/* Typ & Zustand — collapsible */}
-        <CollapsibleSection title="Typ & Zustand">
+        <CollapsibleSection title={t('propSection_typeCondition')}>
           <FormInput
-            label="Untertyp"
+            label={t('prop_subtype')}
             value={propertySubtype}
             onChangeText={setPropertySubtype}
-            placeholder="z.B. Penthouse, Reihenhaus"
+            placeholder={t('prop_subtypePlaceholder')}
           />
           <FormSelect
-            label="Ausrichtung"
+            label={t('prop_orientation')}
             options={orientationOptions}
             value={orientation}
             onChange={setOrientation}
-            placeholder="Ausrichtung auswählen..."
+            placeholder={t('prop_orientationPlaceholder')}
           />
           <FormSelect
-            label="Zustand"
+            label={t('prop_condition')}
             options={conditionOptions}
             value={condition}
             onChange={setCondition}
-            placeholder="Zustand auswählen..."
+            placeholder={t('prop_conditionPlaceholder')}
           />
         </CollapsibleSection>
 
         {/* Ausstattung — collapsible */}
-        <CollapsibleSection title="Ausstattung">
-          <FormToggle label="Aufzug" value={hasElevator} onChange={setHasElevator} />
-          <FormToggle label="Parkplatz" value={hasParking} onChange={setHasParking} />
-          <FormToggle label="Pool" value={hasPool} onChange={setHasPool} />
-          <FormToggle label="Garten" value={hasGarden} onChange={setHasGarden} />
+        <CollapsibleSection title={t('propSection_features')}>
+          <FormToggle label={t('feature_elevator')} value={hasElevator} onChange={setHasElevator} />
+          <FormToggle label={t('feature_parking')} value={hasParking} onChange={setHasParking} />
+          <FormToggle label={t('feature_pool')} value={hasPool} onChange={setHasPool} />
+          <FormToggle label={t('feature_garden')} value={hasGarden} onChange={setHasGarden} />
           {hasGarden && (
             <FormInput
-              label="Gartenfläche (m²)"
+              label={t('feature_gardenArea')}
               value={gardenM2}
               onChangeText={setGardenM2}
-              placeholder="z.B. 50"
+              placeholder={t('prop_areaPlaceholder')}
               keyboardType="numeric"
             />
           )}
-          <FormToggle label="Möbliert" value={isFurnished} onChange={setIsFurnished} />
-          <FormToggle label="Garage" value={hasGarage} onChange={setHasGarage} />
+          <FormToggle label={t('feature_furnished')} value={isFurnished} onChange={setIsFurnished} />
+          <FormToggle label={t('feature_garage')} value={hasGarage} onChange={setHasGarage} />
           {hasGarage && (
             <FormInput
-              label="Stellplätze"
+              label={t('feature_garageSpaces')}
               value={garageSpaces}
               onChangeText={setGarageSpaces}
-              placeholder="z.B. 1"
+              placeholder={t('prop_roomsPlaceholder')}
               keyboardType="numeric"
             />
           )}
-          <FormToggle label="Terrasse" value={hasTerrace} onChange={setHasTerrace} />
+          <FormToggle label={t('feature_terrace')} value={hasTerrace} onChange={setHasTerrace} />
           {hasTerrace && (
             <FormInput
-              label="Terrassenfläche (m²)"
+              label={t('feature_terraceArea')}
               value={terraceM2}
               onChangeText={setTerraceM2}
-              placeholder="z.B. 20"
+              placeholder={t('prop_areaPlaceholder')}
               keyboardType="numeric"
             />
           )}
-          <FormToggle label="Klimaanlage" value={hasAc} onChange={setHasAc} />
-          <FormToggle label="Heizung" value={hasHeating} onChange={setHasHeating} />
+          <FormToggle label={t('feature_ac')} value={hasAc} onChange={setHasAc} />
+          <FormToggle label={t('feature_heating')} value={hasHeating} onChange={setHasHeating} />
           {hasHeating && (
             <FormSelect
-              label="Heizungsart"
+              label={t('feature_heatingType')}
               options={heatingTypeOptions}
               value={heatingType}
               onChange={setHeatingType}
-              placeholder="Heizungsart auswählen..."
+              placeholder={t('feature_heatingTypePlaceholder')}
             />
           )}
-          <FormToggle label="Abstellraum" value={hasStorage} onChange={setHasStorage} />
-          <FormToggle label="Meerblick" value={hasSeaView} onChange={setHasSeaView} />
+          <FormToggle label={t('feature_storage')} value={hasStorage} onChange={setHasStorage} />
+          <FormToggle label={t('feature_seaView')} value={hasSeaView} onChange={setHasSeaView} />
         </CollapsibleSection>
 
         {/* Rechtliches — collapsible */}
-        <CollapsibleSection title="Rechtliches & Kosten">
+        <CollapsibleSection title={t('propSection_legal')}>
           <FormInput
-            label="Katasterreferenz"
+            label={t('legal_cadastralRef')}
             value={referenciaCatastral}
             onChangeText={setReferenciaCatastral}
-            placeholder="Referencia catastral"
+            placeholder={t('legal_cadastralRefPlaceholder')}
           />
           <FormInput
-            label="IBI jährlich (EUR)"
+            label={t('legal_ibiAnnual')}
             value={ibiAnnual}
             onChangeText={setIbiAnnual}
-            placeholder="z.B. 800"
+            placeholder={t('legal_ibiAnnualPlaceholder')}
             keyboardType="numeric"
           />
           <FormInput
-            label="Gemeinschaftskosten monatlich (EUR)"
+            label={t('legal_communityFees')}
             value={communityFeesMonthly}
             onChangeText={setCommunityFeesMonthly}
-            placeholder="z.B. 150"
+            placeholder={t('legal_communityFeesPlaceholder')}
             keyboardType="numeric"
           />
-          <FormToggle label="Hypothek vorhanden" value={hasMortgage} onChange={setHasMortgage} />
+          <FormToggle label={t('legal_mortgage')} value={hasMortgage} onChange={setHasMortgage} />
           {hasMortgage && (
             <FormInput
-              label="Offene Hypothek (EUR)"
+              label={t('legal_mortgageOutstanding')}
               value={mortgageOutstanding}
               onChangeText={setMortgageOutstanding}
-              placeholder="z.B. 150000"
+              placeholder={t('legal_mortgageOutstandingPlaceholder')}
               keyboardType="numeric"
             />
           )}
           <FormSelect
-            label="Rechtsstatus"
+            label={t('legal_legalStatus')}
             options={legalStatusOptions}
             value={legalStatus}
             onChange={setLegalStatus}
-            placeholder="Status auswählen..."
+            placeholder={t('legal_legalStatusPlaceholder')}
           />
           <FormInput
-            label="Nota Simple Datum"
+            label={t('legal_notaSimple')}
             value={notaSimpleDate}
             onChangeText={setNotaSimpleDate}
-            placeholder="JJJJ-MM-TT"
+            placeholder={t('legal_notaSimplePlaceholder')}
           />
         </CollapsibleSection>
 
         {/* Vermietung — collapsible, show if offer_type=rent */}
         {offerType === 'rent' && (
-          <CollapsibleSection title="Vermietung" defaultOpen>
+          <CollapsibleSection title={t('propSection_rental')} defaultOpen>
             <FormInput
-              label="Mietpreis (EUR)"
+              label={t('rental_price')}
               value={rentalPrice}
               onChangeText={setRentalPrice}
-              placeholder="z.B. 1200"
+              placeholder={t('rental_pricePlaceholder')}
               keyboardType="numeric"
             />
             <FormSelect
-              label="Mietzeitraum"
+              label={t('rental_period')}
               options={rentalPeriodOptions}
               value={rentalPeriod}
               onChange={setRentalPeriod}
-              placeholder="Zeitraum auswählen..."
+              placeholder={t('rental_periodPlaceholder')}
             />
             <FormInput
-              label="Verfügbar ab"
+              label={t('rental_availableFrom')}
               value={availableFrom}
               onChangeText={setAvailableFrom}
-              placeholder="JJJJ-MM-TT"
+              placeholder={t('rental_availableFromPlaceholder')}
             />
-            <FormToggle label="Aktuell vermietet" value={isRented} onChange={setIsRented} />
+            <FormToggle label={t('rental_currentlyRented')} value={isRented} onChange={setIsRented} />
             <FormInput
-              label="Mietrendite (%)"
+              label={t('rental_yield')}
               value={rentalYield}
               onChangeText={setRentalYield}
-              placeholder="z.B. 5.5"
+              placeholder={t('rental_yieldPlaceholder')}
               keyboardType="numeric"
             />
           </CollapsibleSection>
         )}
 
         {/* Beschreibung */}
-        <SectionLabel text="Beschreibung & Notizen" />
+        <SectionLabel text={t('propSection_description')} />
         <FormInput
-          label="Beschreibung"
+          label={t('prop_description')}
           value={description}
           onChangeText={setDescription}
-          placeholder="Beschreibung der Immobilie..."
+          placeholder={t('prop_descriptionPlaceholder')}
           multiline
           numberOfLines={4}
         />
         <FormInput
-          label="Interne Notizen"
+          label={t('prop_internalNotes')}
           value={notes}
           onChangeText={setNotes}
-          placeholder="Notizen für interne Verwendung..."
+          placeholder={t('prop_internalNotesPlaceholder')}
           multiline
           numberOfLines={3}
         />
 
         <View style={styles.buttonContainer}>
           <Button
-            title="Immobilie erstellen"
+            title={t('prop_createButton')}
             onPress={handleSubmit}
             loading={createProperty.isPending}
             disabled={createProperty.isPending}
           />
           <Button
-            title="Abbrechen"
+            title={t('cancel')}
             variant="outline"
             onPress={() => router.back()}
           />

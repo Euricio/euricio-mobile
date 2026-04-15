@@ -13,17 +13,19 @@ import { FormInput } from '../../../../components/ui/FormInput';
 import { FormSelect } from '../../../../components/ui/FormSelect';
 import { Button } from '../../../../components/ui/Button';
 import { colors, spacing } from '../../../../constants/theme';
-
-const sourceOptions = [
-  { value: 'website', label: 'Website' },
-  { value: 'telefon', label: 'Telefon' },
-  { value: 'empfehlung', label: 'Empfehlung' },
-  { value: 'portal', label: 'Portal' },
-  { value: 'sonstige', label: 'Sonstige' },
-];
+import { useI18n } from '../../../../lib/i18n';
 
 export default function CreateLeadScreen() {
+  const { t } = useI18n();
   const createLead = useCreateLead();
+
+  const sourceOptions = [
+    { value: 'website', label: t('leadSource_website') },
+    { value: 'telefon', label: t('leadSource_telefon') },
+    { value: 'empfehlung', label: t('leadSource_empfehlung') },
+    { value: 'portal', label: t('leadSource_portal') },
+    { value: 'sonstige', label: t('leadSource_sonstige') },
+  ];
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -35,7 +37,7 @@ export default function CreateLeadScreen() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!name.trim()) {
-      newErrors.name = 'Name ist erforderlich';
+      newErrors.name = t('lead_nameRequired');
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -60,7 +62,7 @@ export default function CreateLeadScreen() {
           router.back();
         },
         onError: (error) => {
-          Alert.alert('Fehler', 'Lead konnte nicht erstellt werden. Bitte versuchen Sie es erneut.');
+          Alert.alert(t('error'), t('leads_createError'));
         },
       },
     );
@@ -73,7 +75,7 @@ export default function CreateLeadScreen() {
     >
       <Stack.Screen
         options={{
-          headerTitle: 'Neuer Lead',
+          headerTitle: t('leads_new'),
           headerShown: true,
           headerStyle: { backgroundColor: colors.surface },
           headerShadowVisible: false,
@@ -84,54 +86,54 @@ export default function CreateLeadScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <FormInput
-          label="Name"
+          label={t('lead_name')}
           required
           value={name}
           onChangeText={setName}
-          placeholder="Vor- und Nachname"
+          placeholder={t('lead_namePlaceholder')}
           error={errors.name}
           autoCapitalize="words"
         />
         <FormInput
-          label="E-Mail"
+          label={t('lead_email')}
           value={email}
           onChangeText={setEmail}
-          placeholder="email@beispiel.de"
+          placeholder={t('lead_emailPlaceholder')}
           keyboardType="email-address"
           autoCapitalize="none"
         />
         <FormInput
-          label="Telefon"
+          label={t('lead_phone')}
           value={phone}
           onChangeText={setPhone}
-          placeholder="+49 123 456789"
+          placeholder={t('lead_phonePlaceholder')}
           keyboardType="phone-pad"
         />
         <FormSelect
-          label="Quelle"
+          label={t('lead_source')}
           options={sourceOptions}
           value={source}
           onChange={setSource}
-          placeholder="Quelle auswählen..."
+          placeholder={t('lead_sourcePlaceholder')}
         />
         <FormInput
-          label="Notizen"
+          label={t('lead_notes')}
           value={notes}
           onChangeText={setNotes}
-          placeholder="Zusätzliche Informationen..."
+          placeholder={t('lead_notesPlaceholder')}
           multiline
           numberOfLines={4}
         />
 
         <View style={styles.buttonContainer}>
           <Button
-            title="Lead erstellen"
+            title={t('lead_create')}
             onPress={handleSubmit}
             loading={createLead.isPending}
             disabled={createLead.isPending}
           />
           <Button
-            title="Abbrechen"
+            title={t('cancel')}
             variant="outline"
             onPress={() => router.back()}
           />

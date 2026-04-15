@@ -33,6 +33,7 @@ import {
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { LoadingScreen } from '../../components/ui/LoadingScreen';
+import { useI18n } from '../../lib/i18n';
 import {
   colors,
   spacing,
@@ -57,12 +58,13 @@ export default function PropertyMediaScreen() {
     propertyTitle?: string;
   }>();
   const [activeTab, setActiveTab] = useState<TabKey>('photos');
+  const { t } = useI18n();
 
   if (!propertyId) {
     return (
       <View style={styles.errorContainer}>
-        <Stack.Screen options={{ headerTitle: 'Medien', headerShown: true }} />
-        <Text style={styles.errorText}>Keine Immobilie ausgewählt</Text>
+        <Stack.Screen options={{ headerTitle: t('media_title'), headerShown: true }} />
+        <Text style={styles.errorText}>{t('media_noPropertySelected')}</Text>
       </View>
     );
   }
@@ -71,7 +73,7 @@ export default function PropertyMediaScreen() {
     <View style={styles.container}>
       <Stack.Screen
         options={{
-          headerTitle: propertyTitle || 'Medien verwalten',
+          headerTitle: propertyTitle || t('media_title'),
           headerShown: true,
           headerStyle: { backgroundColor: colors.surface },
           headerShadowVisible: false,
@@ -95,7 +97,7 @@ export default function PropertyMediaScreen() {
               activeTab === 'photos' && styles.tabTextActive,
             ]}
           >
-            Fotos
+            {t('media_photos')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -113,7 +115,7 @@ export default function PropertyMediaScreen() {
               activeTab === 'documents' && styles.tabTextActive,
             ]}
           >
-            Dokumente
+            {t('media_documents')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -136,14 +138,15 @@ function PhotosTab({ propertyId }: { propertyId: string }) {
   const setCover = useSetCoverImage();
   const [uploading, setUploading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<PropertyImage | null>(null);
+  const { t } = useI18n();
 
   const handleAddPhoto = () => {
-    const options = ['Kamera', 'Fotobibliothek', 'Abbrechen'];
+    const options = [t('media_camera'), t('media_library'), t('cancel')];
     const cancelIndex = 2;
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
-        { options, cancelButtonIndex: cancelIndex, title: 'Foto hinzufügen' },
+        { options, cancelButtonIndex: cancelIndex, title: t('media_addPhoto') },
         (buttonIndex) => {
           if (buttonIndex === 0) launchCamera();
           else if (buttonIndex === 1) launchLibrary();
@@ -151,10 +154,10 @@ function PhotosTab({ propertyId }: { propertyId: string }) {
       );
     } else {
       // Android fallback with Alert
-      Alert.alert('Foto hinzufügen', undefined, [
-        { text: 'Kamera', onPress: launchCamera },
-        { text: 'Fotobibliothek', onPress: launchLibrary },
-        { text: 'Abbrechen', style: 'cancel' },
+      Alert.alert(t('media_addPhoto'), undefined, [
+        { text: t('media_camera'), onPress: launchCamera },
+        { text: t('media_library'), onPress: launchLibrary },
+        { text: t('cancel'), style: 'cancel' },
       ]);
     }
   };
@@ -162,7 +165,7 @@ function PhotosTab({ propertyId }: { propertyId: string }) {
   const launchCamera = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Berechtigung benötigt', 'Bitte erlauben Sie den Kamerazugriff in den Einstellungen.');
+      Alert.alert(t('media_permissionRequired'), t('media_cameraPermission'));
       return;
     }
 
@@ -180,7 +183,7 @@ function PhotosTab({ propertyId }: { propertyId: string }) {
   const launchLibrary = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Berechtigung benötigt', 'Bitte erlauben Sie den Zugriff auf die Fotobibliothek.');
+      Alert.alert(t('media_permissionRequired'), t('media_libraryPermission'));
       return;
     }
 
@@ -207,17 +210,17 @@ function PhotosTab({ propertyId }: { propertyId: string }) {
         });
       }
     } catch (e: any) {
-      Alert.alert('Fehler', e.message || 'Foto konnte nicht hochgeladen werden.');
+      Alert.alert(t('error'), e.message || t('media_uploadError'));
     } finally {
       setUploading(false);
     }
   };
 
   const handleDeleteImage = (image: PropertyImage) => {
-    Alert.alert('Foto löschen', 'Möchten Sie dieses Foto wirklich löschen?', [
-      { text: 'Abbrechen', style: 'cancel' },
+    Alert.alert(t('media_deletePhoto'), t('media_deletePhotoConfirm'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Löschen',
+        text: t('delete'),
         style: 'destructive',
         onPress: () => {
           deleteImage.mutate(
@@ -228,7 +231,7 @@ function PhotosTab({ propertyId }: { propertyId: string }) {
             },
             {
               onError: () =>
-                Alert.alert('Fehler', 'Foto konnte nicht gelöscht werden.'),
+                Alert.alert(t('error'), t('media_deletePhotoError')),
             },
           );
           setSelectedImage(null);
@@ -242,7 +245,7 @@ function PhotosTab({ propertyId }: { propertyId: string }) {
       { imageId: image.id, propertyId },
       {
         onError: () =>
-          Alert.alert('Fehler', 'Titelbild konnte nicht gesetzt werden.'),
+          Alert.alert(t('error'), t('media_setCoverError')),
       },
     );
     setSelectedImage(null);
@@ -263,7 +266,7 @@ function PhotosTab({ propertyId }: { propertyId: string }) {
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Ionicons name="images-outline" size={48} color={colors.textTertiary} />
-            <Text style={styles.emptyText}>Noch keine Fotos vorhanden</Text>
+            <Text style={styles.emptyText}>{t('media_noPhotos')}</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -286,7 +289,7 @@ function PhotosTab({ propertyId }: { propertyId: string }) {
       {/* Upload button */}
       <View style={styles.addButtonContainer}>
         <Button
-          title={uploading ? 'Wird hochgeladen...' : 'Foto hinzufügen'}
+          title={uploading ? t('media_uploading') : t('media_addPhoto')}
           onPress={handleAddPhoto}
           loading={uploading}
           icon={
@@ -324,14 +327,14 @@ function PhotosTab({ propertyId }: { propertyId: string }) {
                       onPress={() => handleSetCover(selectedImage)}
                     >
                       <Ionicons name="star-outline" size={22} color={colors.accent} />
-                      <Text style={styles.imageActionText}>Als Titelbild setzen</Text>
+                      <Text style={styles.imageActionText}>{t('media_setCover')}</Text>
                     </TouchableOpacity>
                   )}
                   {selectedImage.is_cover && (
                     <View style={styles.imageActionRow}>
                       <Ionicons name="star" size={22} color={colors.accent} />
                       <Text style={[styles.imageActionText, { color: colors.accent }]}>
-                        Aktuelles Titelbild
+                        {t('media_currentCover')}
                       </Text>
                     </View>
                   )}
@@ -341,7 +344,7 @@ function PhotosTab({ propertyId }: { propertyId: string }) {
                   >
                     <Ionicons name="trash-outline" size={22} color={colors.error} />
                     <Text style={[styles.imageActionText, { color: colors.error }]}>
-                      Foto löschen
+                      {t('media_deletePhoto')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -349,7 +352,7 @@ function PhotosTab({ propertyId }: { propertyId: string }) {
                     onPress={() => setSelectedImage(null)}
                   >
                     <Ionicons name="close-outline" size={22} color={colors.textSecondary} />
-                    <Text style={styles.imageActionText}>Schließen</Text>
+                    <Text style={styles.imageActionText}>{t('close')}</Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -380,6 +383,7 @@ function DocumentsTab({ propertyId }: { propertyId: string }) {
     size: number | null;
     mimeType: string;
   } | null>(null);
+  const { t, formatDate } = useI18n();
 
   const handleAddDocument = async () => {
     try {
@@ -399,7 +403,7 @@ function DocumentsTab({ propertyId }: { propertyId: string }) {
         setTypeModalVisible(true);
       }
     } catch (e: any) {
-      Alert.alert('Fehler', 'Dokument konnte nicht ausgewählt werden.');
+      Alert.alert(t('error'), t('media_docSelectError'));
     }
   };
 
@@ -418,7 +422,7 @@ function DocumentsTab({ propertyId }: { propertyId: string }) {
         documentType,
       });
     } catch (e: any) {
-      Alert.alert('Fehler', e.message || 'Dokument konnte nicht hochgeladen werden.');
+      Alert.alert(t('error'), e.message || t('media_docUploadError'));
     } finally {
       setUploading(false);
       setPendingFile(null);
@@ -426,10 +430,10 @@ function DocumentsTab({ propertyId }: { propertyId: string }) {
   };
 
   const handleDeleteDocument = (doc: PropertyDocument) => {
-    Alert.alert('Dokument löschen', `"${doc.file_name}" wirklich löschen?`, [
-      { text: 'Abbrechen', style: 'cancel' },
+    Alert.alert(t('media_deleteDoc'), t('media_deleteDocConfirm', { name: doc.file_name }), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Löschen',
+        text: t('delete'),
         style: 'destructive',
         onPress: () => {
           deleteDocument.mutate(
@@ -440,7 +444,7 @@ function DocumentsTab({ propertyId }: { propertyId: string }) {
             },
             {
               onError: () =>
-                Alert.alert('Fehler', 'Dokument konnte nicht gelöscht werden.'),
+                Alert.alert(t('error'), t('media_deleteDocError')),
             },
           );
         },
@@ -453,10 +457,6 @@ function DocumentsTab({ propertyId }: { propertyId: string }) {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
-
-  const formatDate = (dateStr: string): string => {
-    return new Date(dateStr).toLocaleDateString('de-DE');
   };
 
   const getDocumentIcon = (type: string): keyof typeof Ionicons.glyphMap => {
@@ -493,7 +493,7 @@ function DocumentsTab({ propertyId }: { propertyId: string }) {
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Ionicons name="folder-open-outline" size={48} color={colors.textTertiary} />
-            <Text style={styles.emptyText}>Noch keine Dokumente vorhanden</Text>
+            <Text style={styles.emptyText}>{t('media_noDocuments')}</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -534,7 +534,7 @@ function DocumentsTab({ propertyId }: { propertyId: string }) {
       {/* Upload button */}
       <View style={styles.addButtonContainer}>
         <Button
-          title={uploading ? 'Wird hochgeladen...' : 'Dokument hinzufügen'}
+          title={uploading ? t('media_uploading') : t('media_addDocument')}
           onPress={handleAddDocument}
           loading={uploading}
           icon={
@@ -564,7 +564,7 @@ function DocumentsTab({ propertyId }: { propertyId: string }) {
           }}
         >
           <View style={styles.typeSelector}>
-            <Text style={styles.typeSelectorTitle}>Dokumenttyp wählen</Text>
+            <Text style={styles.typeSelectorTitle}>{t('media_selectDocType')}</Text>
             {pendingFile && (
               <Text style={styles.typeSelectorFile} numberOfLines={1}>
                 {pendingFile.name}

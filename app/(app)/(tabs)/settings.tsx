@@ -15,6 +15,8 @@ import { useAuthStore } from '../../../store/authStore';
 import { Card } from '../../../components/ui/Card';
 import { Avatar } from '../../../components/ui/Avatar';
 import { Button } from '../../../components/ui/Button';
+import { useI18n, LOCALE_LABELS } from '../../../lib/i18n';
+import type { Locale } from '../../../lib/i18n';
 import {
   colors,
   spacing,
@@ -26,12 +28,13 @@ import {
 export default function SettingsScreen() {
   const { signOut } = useAuth();
   const user = useAuthStore((s) => s.user);
+  const { t, locale, setLocale } = useI18n();
 
   const handleSignOut = () => {
-    Alert.alert('Abmelden', 'Möchten Sie sich wirklich abmelden?', [
-      { text: 'Abbrechen', style: 'cancel' },
+    Alert.alert(t('settings_logout'), t('settings_logoutConfirm'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Abmelden',
+        text: t('settings_logout'),
         style: 'destructive',
         onPress: signOut,
       },
@@ -59,54 +62,73 @@ export default function SettingsScreen() {
       </Card>
 
       {/* Telefonie Section */}
-      <Text style={styles.sectionHeader}>Telefonie</Text>
+      <Text style={styles.sectionHeader}>{t('settings_telephony')}</Text>
       <Card>
         <SettingRow
           icon="call-outline"
-          label="Verfügbarkeit"
+          label={t('settings_availability')}
           right={<Switch value={true} trackColor={{ true: colors.success }} />}
         />
       </Card>
 
       {/* Benachrichtigungen Section */}
-      <Text style={styles.sectionHeader}>Benachrichtigungen</Text>
+      <Text style={styles.sectionHeader}>{t('settings_notifications')}</Text>
       <Card>
         <SettingRow
           icon="notifications-outline"
-          label="Push-Benachrichtigungen"
+          label={t('settings_pushNotifications')}
           right={<Switch value={true} trackColor={{ true: colors.primary }} />}
         />
         <SettingRow
           icon="call-outline"
-          label="Verpasste Anrufe"
+          label={t('settings_missedCalls')}
           right={<Switch value={true} trackColor={{ true: colors.primary }} />}
           showBorder
         />
         <SettingRow
           icon="person-add-outline"
-          label="Neue Leads"
+          label={t('settings_newLeads')}
           right={<Switch value={true} trackColor={{ true: colors.primary }} />}
           showBorder
         />
       </Card>
 
+      {/* Language Section */}
+      <Text style={styles.sectionHeader}>{t('settings_language')}</Text>
+      <Card>
+        {(['de', 'es', 'en'] as Locale[]).map((loc, index) => (
+          <SettingRow
+            key={loc}
+            icon="language-outline"
+            label={LOCALE_LABELS[loc]}
+            showBorder={index > 0}
+            right={
+              locale === loc ? (
+                <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
+              ) : undefined
+            }
+            onPress={() => setLocale(loc)}
+          />
+        ))}
+      </Card>
+
       {/* Über Euricio Section */}
-      <Text style={styles.sectionHeader}>Über Euricio</Text>
+      <Text style={styles.sectionHeader}>{t('settings_about')}</Text>
       <Card>
         <SettingRow
           icon="information-circle-outline"
-          label="App-Version"
+          label={t('settings_appVersion')}
           value={appVersion}
         />
         <SettingRow
           icon="document-text-outline"
-          label="Datenschutz"
+          label={t('settings_privacy')}
           showBorder
           showChevron
         />
         <SettingRow
           icon="shield-outline"
-          label="Impressum"
+          label={t('settings_imprint')}
           showBorder
           showChevron
         />
@@ -115,7 +137,7 @@ export default function SettingsScreen() {
       {/* Logout */}
       <View style={styles.logoutSection}>
         <Button
-          title="Abmelden"
+          title={t('settings_logout')}
           onPress={handleSignOut}
           variant="danger"
           icon={<Ionicons name="log-out-outline" size={18} color={colors.white} />}
@@ -133,6 +155,7 @@ function SettingRow({
   right,
   showBorder,
   showChevron,
+  onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
@@ -140,8 +163,9 @@ function SettingRow({
   right?: React.ReactNode;
   showBorder?: boolean;
   showChevron?: boolean;
+  onPress?: () => void;
 }) {
-  return (
+  const content = (
     <View
       style={[
         styles.settingRow,
@@ -157,6 +181,16 @@ function SettingRow({
       )}
     </View>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return content;
 }
 
 const styles = StyleSheet.create({

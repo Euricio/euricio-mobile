@@ -12,6 +12,7 @@ import { useAuth } from '../../lib/auth/authContext';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Ionicons } from '@expo/vector-icons';
+import { useI18n } from '../../lib/i18n';
 import { colors, spacing, fontSize, fontWeight, shadow } from '../../constants/theme';
 
 export default function LoginScreen() {
@@ -20,10 +21,11 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { signIn } = useAuth();
+  const { t } = useI18n();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      setError('Bitte E-Mail und Passwort eingeben.');
+      setError(t('login_errorEmpty'));
       return;
     }
 
@@ -33,13 +35,13 @@ export default function LoginScreen() {
       await signIn(email.trim(), password);
     } catch (err: unknown) {
       const message =
-        err instanceof Error ? err.message : 'Unbekannter Fehler';
+        err instanceof Error ? err.message : t('login_errorUnknown');
       if (message.includes('Invalid login credentials')) {
-        setError('E-Mail oder Passwort ist falsch.');
+        setError(t('login_errorCredentials'));
       } else if (message.includes('fetch') || message.includes('network')) {
-        setError('Netzwerkfehler. Bitte Verbindung prüfen.');
+        setError(t('login_errorNetwork'));
       } else {
-        setError('Anmeldung fehlgeschlagen. Bitte erneut versuchen.');
+        setError(t('login_errorGeneric'));
       }
     } finally {
       setLoading(false);
@@ -59,13 +61,13 @@ export default function LoginScreen() {
           <View style={styles.logoContainer}>
             <Text style={styles.logo}>EURICIO</Text>
           </View>
-          <Text style={styles.subtitle}>Immobilien CRM</Text>
+          <Text style={styles.subtitle}>{t('login_subtitle')}</Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.welcomeTitle}>Willkommen</Text>
+          <Text style={styles.welcomeTitle}>{t('login_welcome')}</Text>
           <Text style={styles.welcomeSubtitle}>
-            Melden Sie sich mit Ihrem Konto an
+            {t('login_welcomeSubtitle')}
           </Text>
 
           {error ? (
@@ -76,13 +78,13 @@ export default function LoginScreen() {
           ) : null}
 
           <Input
-            label="E-Mail"
+            label={t('login_email')}
             value={email}
             onChangeText={(text) => {
               setEmail(text);
               setError('');
             }}
-            placeholder="name@euricio.es"
+            placeholder={t('login_emailPlaceholder')}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
@@ -92,13 +94,13 @@ export default function LoginScreen() {
           />
 
           <Input
-            label="Passwort"
+            label={t('login_password')}
             value={password}
             onChangeText={(text) => {
               setPassword(text);
               setError('');
             }}
-            placeholder="Passwort eingeben"
+            placeholder={t('login_passwordPlaceholder')}
             secureTextEntry
             autoComplete="password"
             icon={
@@ -111,7 +113,7 @@ export default function LoginScreen() {
           />
 
           <Button
-            title={loading ? 'Wird angemeldet...' : 'Anmelden'}
+            title={loading ? t('login_loading') : t('login_button')}
             onPress={handleLogin}
             loading={loading}
             disabled={!email.trim() || !password.trim()}

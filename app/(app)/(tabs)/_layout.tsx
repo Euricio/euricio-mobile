@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fontWeight } from '../../../constants/theme';
+import { useI18n } from '../../../lib/i18n';
 
 type TabIconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -9,6 +10,8 @@ function TabIcon({ name, color, size }: { name: TabIconName; color: string; size
 }
 
 export default function TabLayout() {
+  const { t } = useI18n();
+
   return (
     <Tabs
       screenOptions={{
@@ -38,8 +41,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: 'Dashboard',
-          headerTitle: 'Dashboard',
+          title: t('tab_dashboard'),
+          headerTitle: t('tab_dashboard'),
           tabBarIcon: ({ color, size }) => (
             <TabIcon name="home-outline" color={color} size={size} />
           ),
@@ -48,7 +51,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="leads"
         options={{
-          title: 'Leads',
+          title: t('tab_leads'),
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <TabIcon name="people-outline" color={color} size={size} />
@@ -58,7 +61,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="properties"
         options={{
-          title: 'Immobilien',
+          title: t('tab_properties'),
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <TabIcon name="business-outline" color={color} size={size} />
@@ -68,7 +71,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="tasks"
         options={{
-          title: 'Aufgaben',
+          title: t('tab_tasks'),
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <TabIcon name="checkbox-outline" color={color} size={size} />
@@ -78,8 +81,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Mehr',
-          headerTitle: 'Einstellungen',
+          title: t('tab_more'),
+          headerTitle: t('settings_title'),
           tabBarIcon: ({ color, size }) => (
             <TabIcon name="settings-outline" color={color} size={size} />
           ),

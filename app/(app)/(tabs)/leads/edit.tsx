@@ -14,26 +14,28 @@ import { FormSelect } from '../../../../components/ui/FormSelect';
 import { Button } from '../../../../components/ui/Button';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
 import { colors, spacing } from '../../../../constants/theme';
-
-const sourceOptions = [
-  { value: 'website', label: 'Website' },
-  { value: 'telefon', label: 'Telefon' },
-  { value: 'empfehlung', label: 'Empfehlung' },
-  { value: 'portal', label: 'Portal' },
-  { value: 'sonstige', label: 'Sonstige' },
-];
-
-const statusOptions = [
-  { value: 'new', label: 'Neu' },
-  { value: 'contacted', label: 'Kontaktiert' },
-  { value: 'qualified', label: 'Qualifiziert' },
-  { value: 'lost', label: 'Verloren' },
-];
+import { useI18n } from '../../../../lib/i18n';
 
 export default function EditLeadScreen() {
+  const { t } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: lead, isLoading } = useLead(id!);
   const updateLead = useUpdateLead();
+
+  const sourceOptions = [
+    { value: 'website', label: t('leadSource_website') },
+    { value: 'telefon', label: t('leadSource_telefon') },
+    { value: 'empfehlung', label: t('leadSource_empfehlung') },
+    { value: 'portal', label: t('leadSource_portal') },
+    { value: 'sonstige', label: t('leadSource_sonstige') },
+  ];
+
+  const statusOptions = [
+    { value: 'new', label: t('leadStatus_new') },
+    { value: 'contacted', label: t('leadStatus_contacted') },
+    { value: 'qualified', label: t('leadStatus_qualified') },
+    { value: 'lost', label: t('leadStatus_lost') },
+  ];
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -61,7 +63,7 @@ export default function EditLeadScreen() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!name.trim()) {
-      newErrors.name = 'Name ist erforderlich';
+      newErrors.name = t('lead_nameRequired');
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -86,8 +88,8 @@ export default function EditLeadScreen() {
         },
         onError: () => {
           Alert.alert(
-            'Fehler',
-            'Lead konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.',
+            t('error'),
+            t('leads_updateError'),
           );
         },
       },
@@ -101,7 +103,7 @@ export default function EditLeadScreen() {
     >
       <Stack.Screen
         options={{
-          headerTitle: 'Lead bearbeiten',
+          headerTitle: t('leads_edit'),
           headerShown: true,
           headerStyle: { backgroundColor: colors.surface },
           headerShadowVisible: false,
@@ -112,60 +114,60 @@ export default function EditLeadScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <FormInput
-          label="Name"
+          label={t('lead_name')}
           required
           value={name}
           onChangeText={setName}
-          placeholder="Vor- und Nachname"
+          placeholder={t('lead_namePlaceholder')}
           error={errors.name}
           autoCapitalize="words"
         />
         <FormInput
-          label="E-Mail"
+          label={t('lead_email')}
           value={email}
           onChangeText={setEmail}
-          placeholder="email@beispiel.de"
+          placeholder={t('lead_emailPlaceholder')}
           keyboardType="email-address"
           autoCapitalize="none"
         />
         <FormInput
-          label="Telefon"
+          label={t('lead_phone')}
           value={phone}
           onChangeText={setPhone}
-          placeholder="+49 123 456789"
+          placeholder={t('lead_phonePlaceholder')}
           keyboardType="phone-pad"
         />
         <FormSelect
-          label="Status"
+          label={t('prop_status')}
           options={statusOptions}
           value={status}
           onChange={setStatus}
         />
         <FormSelect
-          label="Quelle"
+          label={t('lead_source')}
           options={sourceOptions}
           value={source}
           onChange={setSource}
-          placeholder="Quelle auswählen..."
+          placeholder={t('lead_sourcePlaceholder')}
         />
         <FormInput
-          label="Notizen"
+          label={t('lead_notes')}
           value={notes}
           onChangeText={setNotes}
-          placeholder="Zusätzliche Informationen..."
+          placeholder={t('lead_notesPlaceholder')}
           multiline
           numberOfLines={4}
         />
 
         <View style={styles.buttonContainer}>
           <Button
-            title="Speichern"
+            title={t('save')}
             onPress={handleSubmit}
             loading={updateLead.isPending}
             disabled={updateLead.isPending}
           />
           <Button
-            title="Abbrechen"
+            title={t('cancel')}
             variant="outline"
             onPress={() => router.back()}
           />

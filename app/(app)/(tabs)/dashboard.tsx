@@ -23,20 +23,13 @@ import {
   borderRadius,
   shadow,
 } from '../../../constants/theme';
+import { useI18n } from '../../../lib/i18n';
 
-function getGreeting(): string {
+function getGreeting(t: (key: string) => string): string {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Guten Morgen';
-  if (hour < 18) return 'Guten Tag';
-  return 'Guten Abend';
-}
-
-function formatDate(): string {
-  return new Date().toLocaleDateString('de-DE', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  });
+  if (hour < 12) return t('greeting_morning');
+  if (hour < 18) return t('greeting_afternoon');
+  return t('greeting_evening');
 }
 
 function getActivityIcon(type: string): keyof typeof Ionicons.glyphMap {
@@ -52,15 +45,16 @@ function getActivityIcon(type: string): keyof typeof Ionicons.glyphMap {
   }
 }
 
-const typeLabels: Record<string, string> = {
-  callback: 'Rückruf',
-  follow_up: 'Nachfassen',
-  meeting: 'Termin',
-  general: 'Aufgabe',
-};
-
 export default function DashboardScreen() {
+  const { t, formatDate: fmtDate } = useI18n();
   const user = useAuthStore((s) => s.user);
+
+  const typeLabels: Record<string, string> = {
+    callback: t('taskType_callback'),
+    follow_up: t('taskType_follow_up'),
+    meeting: t('taskType_meeting'),
+    general: t('taskType_general'),
+  };
   const { data: profile } = useProfile();
   const stats = useDashboardStats();
   const activity = useRecentActivity();
@@ -89,59 +83,59 @@ export default function DashboardScreen() {
       {/* Greeting */}
       <View style={styles.greetingSection}>
         <Text style={styles.greeting}>
-          {getGreeting()}, {userName}
+          {getGreeting(t)}, {userName}
         </Text>
-        <Text style={styles.date}>{formatDate()}</Text>
+        <Text style={styles.date}>{fmtDate(new Date(), { weekday: 'long', day: 'numeric', month: 'long' })}</Text>
       </View>
 
       {/* Stats Cards */}
       <View style={styles.statsRow}>
         <StatCard
           icon="checkbox-outline"
-          label="Offene Aufgaben"
+          label={t('stat_openTasks')}
           value={stats.data?.openTasks ?? 0}
           color={colors.primary}
           onPress={() => router.push('/(app)/(tabs)/tasks')}
         />
         <StatCard
           icon="person-add-outline"
-          label="Neue Leads"
+          label={t('stat_newLeads')}
           value={stats.data?.newLeadsToday ?? 0}
           color={colors.success}
           onPress={() => router.push('/(app)/(tabs)/leads')}
         />
         <StatCard
           icon="call-outline"
-          label="Verpasste Anrufe"
+          label={t('stat_missedCalls')}
           value={stats.data?.missedCalls ?? 0}
           color={colors.error}
         />
       </View>
 
       {/* Quick Actions */}
-      <Text style={styles.sectionTitle}>Schnellzugriff</Text>
+      <Text style={styles.sectionTitle}>{t('quickAccess')}</Text>
       <View style={styles.quickActionsRow}>
         <QuickAction
           icon="call-outline"
-          label="Anrufen"
+          label={t('quick_call')}
           color={colors.success}
         />
         <QuickAction
           icon="person-add-outline"
-          label="Lead anlegen"
+          label={t('quick_newLead')}
           color={colors.primary}
           onPress={() => router.push('/(app)/(tabs)/leads')}
         />
         <QuickAction
           icon="add-circle-outline"
-          label="Aufgabe"
+          label={t('quick_newTask')}
           color={colors.accent}
           onPress={() => router.push('/(app)/(tabs)/tasks')}
         />
       </View>
 
       {/* Recent Activity */}
-      <Text style={styles.sectionTitle}>Letzte Aktivitäten</Text>
+      <Text style={styles.sectionTitle}>{t('recentActivity')}</Text>
       {activity.data && activity.data.length > 0 ? (
         <Card padded={false}>
           {activity.data.map((item, index) => (
@@ -174,7 +168,7 @@ export default function DashboardScreen() {
                 </View>
               </View>
               <Text style={styles.activityTime}>
-                {new Date(item.created_at).toLocaleDateString('de-DE', {
+                {fmtDate(item.created_at, {
                   day: '2-digit',
                   month: '2-digit',
                 })}
@@ -184,7 +178,7 @@ export default function DashboardScreen() {
         </Card>
       ) : (
         <Card>
-          <Text style={styles.emptyText}>Noch keine Aktivitäten</Text>
+          <Text style={styles.emptyText}>{t('noActivity')}</Text>
         </Card>
       )}
     </ScrollView>

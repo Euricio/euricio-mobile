@@ -24,15 +24,20 @@ import {
   borderRadius,
   shadow,
 } from '../../../../constants/theme';
+import { useI18n } from '../../../../lib/i18n';
 
-const statusConfig: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'error' | 'info' | 'primary' }> = {
-  new: { label: 'Neu', variant: 'info' },
-  contacted: { label: 'Kontaktiert', variant: 'primary' },
-  qualified: { label: 'Qualifiziert', variant: 'warning' },
-  lost: { label: 'Verloren', variant: 'error' },
-};
+function getStatusConfig(t: (key: string) => string): Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'error' | 'info' | 'primary' }> {
+  return {
+    new: { label: t('leadStatus_new'), variant: 'info' },
+    contacted: { label: t('leadStatus_contacted'), variant: 'primary' },
+    qualified: { label: t('leadStatus_qualified'), variant: 'warning' },
+    lost: { label: t('leadStatus_lost'), variant: 'error' },
+  };
+}
 
 function LeadCard({ lead }: { lead: Lead }) {
+  const { t, formatDate } = useI18n();
+  const statusConfig = getStatusConfig(t);
   const status = statusConfig[lead.status] ?? {
     label: lead.status,
     variant: 'default' as const,
@@ -44,7 +49,7 @@ function LeadCard({ lead }: { lead: Lead }) {
       onPress={() => router.push(`/(app)/(tabs)/leads/${lead.id}`)}
     >
       <View style={styles.leadRow}>
-        <Avatar name={lead.full_name || 'Unbekannt'} size={44} />
+        <Avatar name={lead.full_name || t('unknown')} size={44} />
         <View style={styles.leadInfo}>
           <Text style={styles.leadName} numberOfLines={1}>
             {lead.full_name}
@@ -65,7 +70,7 @@ function LeadCard({ lead }: { lead: Lead }) {
         <View style={styles.leadRight}>
           <Badge label={status.label} variant={status.variant} />
           <Text style={styles.leadDate}>
-            {new Date(lead.created_at).toLocaleDateString('de-DE', {
+            {formatDate(lead.created_at, {
               day: '2-digit',
               month: '2-digit',
             })}
@@ -77,6 +82,7 @@ function LeadCard({ lead }: { lead: Lead }) {
 }
 
 export default function LeadsListScreen() {
+  const { t } = useI18n();
   const [search, setSearch] = useState('');
   const { data: leads, isLoading, refetch, isRefetching } = useLeads(search);
 
@@ -84,7 +90,7 @@ export default function LeadsListScreen() {
     <View style={styles.container}>
       <Stack.Screen
         options={{
-          headerTitle: 'Leads',
+          headerTitle: t('leads_title'),
           headerShown: true,
           headerStyle: { backgroundColor: colors.surface },
           headerShadowVisible: false,
@@ -95,7 +101,7 @@ export default function LeadsListScreen() {
         <SearchBar
           value={search}
           onChangeText={setSearch}
-          placeholder="Lead suchen..."
+          placeholder={t('leads_search')}
         />
       </View>
 
@@ -117,11 +123,11 @@ export default function LeadsListScreen() {
           ListEmptyComponent={
             <EmptyState
               icon="people-outline"
-              title="Keine Leads gefunden"
+              title={t('leads_empty')}
               message={
                 search
-                  ? 'Versuchen Sie eine andere Suche'
-                  : 'Noch keine Leads vorhanden'
+                  ? t('leads_emptySearch')
+                  : t('leads_emptyDefault')
               }
             />
           }

@@ -19,6 +19,7 @@ import { FormInput } from '../../../../components/ui/FormInput';
 import { FormSelect } from '../../../../components/ui/FormSelect';
 import { Button } from '../../../../components/ui/Button';
 import { SearchBar } from '../../../../components/ui/SearchBar';
+import { useI18n } from '../../../../lib/i18n';
 import {
   colors,
   spacing,
@@ -28,33 +29,26 @@ import {
   shadow,
 } from '../../../../constants/theme';
 
-const typeOptions = [
-  { value: 'callback', label: 'Rückruf' },
-  { value: 'follow_up', label: 'Nachfassen' },
-  { value: 'meeting', label: 'Termin' },
-  { value: 'general', label: 'Allgemein' },
-];
-
-const priorityOptions = [
-  { value: 'low', label: 'Niedrig' },
-  { value: 'medium', label: 'Mittel' },
-  { value: 'high', label: 'Hoch' },
-];
-
-function formatDateDE(date: Date): string {
-  return date.toLocaleDateString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
-
 export default function CreateTaskScreen() {
   const { leadId, leadName } = useLocalSearchParams<{
     leadId?: string;
     leadName?: string;
   }>();
   const createTask = useCreateTask();
+  const { t, formatDate } = useI18n();
+
+  const typeOptions = [
+    { value: 'callback', label: t('task_type_callback') },
+    { value: 'follow_up', label: t('task_type_follow_up') },
+    { value: 'meeting', label: t('task_type_meeting') },
+    { value: 'general', label: t('task_type_general') },
+  ];
+
+  const priorityOptions = [
+    { value: 'low', label: t('priority_low') },
+    { value: 'medium', label: t('priority_medium') },
+    { value: 'high', label: t('priority_high') },
+  ];
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -75,10 +69,10 @@ export default function CreateTaskScreen() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!title.trim()) {
-      newErrors.title = 'Titel ist erforderlich';
+      newErrors.title = t('task_titleRequired');
     }
     if (dueDate && !/^\d{2}\.\d{2}\.\d{4}$/.test(dueDate)) {
-      newErrors.dueDate = 'Format: TT.MM.JJJJ';
+      newErrors.dueDate = t('task_dueDateFormat');
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -112,7 +106,7 @@ export default function CreateTaskScreen() {
           router.back();
         },
         onError: () => {
-          Alert.alert('Fehler', 'Aufgabe konnte nicht erstellt werden. Bitte versuchen Sie es erneut.');
+          Alert.alert(t('error'), t('tasks_createError'));
         },
       },
     );
@@ -125,7 +119,7 @@ export default function CreateTaskScreen() {
     >
       <Stack.Screen
         options={{
-          headerTitle: 'Neue Aufgabe',
+          headerTitle: t('tasks_new'),
           headerShown: true,
           headerStyle: { backgroundColor: colors.surface },
           headerShadowVisible: false,
@@ -136,45 +130,45 @@ export default function CreateTaskScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <FormInput
-          label="Titel"
+          label={t('task_title')}
           required
           value={title}
           onChangeText={setTitle}
-          placeholder="Aufgabe beschreiben..."
+          placeholder={t('task_titlePlaceholder')}
           error={errors.title}
         />
         <FormInput
-          label="Beschreibung"
+          label={t('task_description')}
           value={description}
           onChangeText={setDescription}
-          placeholder="Details zur Aufgabe..."
+          placeholder={t('task_descriptionPlaceholder')}
           multiline
           numberOfLines={4}
         />
         <FormSelect
-          label="Typ"
+          label={t('task_type')}
           options={typeOptions}
           value={type}
           onChange={setType}
         />
         <FormSelect
-          label="Priorität"
+          label={t('task_priority')}
           options={priorityOptions}
           value={priority}
           onChange={setPriority}
         />
         <FormInput
-          label="Fälligkeitsdatum"
+          label={t('task_dueDate')}
           value={dueDate}
           onChangeText={setDueDate}
-          placeholder="TT.MM.JJJJ"
+          placeholder={t('task_dueDatePlaceholder')}
           keyboardType="numeric"
           error={errors.dueDate}
         />
 
         {/* Lead Selector */}
         <View style={styles.fieldContainer}>
-          <Text style={styles.label}>Kontakt (optional)</Text>
+          <Text style={styles.label}>{t('task_contact')}</Text>
           <TouchableOpacity
             style={styles.leadSelector}
             activeOpacity={0.7}
@@ -186,7 +180,7 @@ export default function CreateTaskScreen() {
                 !selectedLead && styles.placeholder,
               ]}
             >
-              {selectedLead ? selectedLead.full_name : 'Lead auswählen...'}
+              {selectedLead ? selectedLead.full_name : t('task_contactPlaceholder')}
             </Text>
             {selectedLead ? (
               <TouchableOpacity
@@ -203,13 +197,13 @@ export default function CreateTaskScreen() {
 
         <View style={styles.buttonContainer}>
           <Button
-            title="Aufgabe erstellen"
+            title={t('task_createButton')}
             onPress={handleSubmit}
             loading={createTask.isPending}
             disabled={createTask.isPending}
           />
           <Button
-            title="Abbrechen"
+            title={t('cancel')}
             variant="outline"
             onPress={() => router.back()}
           />
@@ -224,12 +218,12 @@ export default function CreateTaskScreen() {
           onPress={() => setLeadPickerOpen(false)}
         >
           <View style={styles.leadPickerModal}>
-            <Text style={styles.leadPickerTitle}>Kontakt auswählen</Text>
+            <Text style={styles.leadPickerTitle}>{t('task_contactSelect')}</Text>
             <View style={styles.leadPickerSearch}>
               <SearchBar
                 value={leadSearch}
                 onChangeText={setLeadSearch}
-                placeholder="Lead suchen..."
+                placeholder={t('task_contactSearch')}
               />
             </View>
             <FlatList
@@ -259,7 +253,7 @@ export default function CreateTaskScreen() {
                 </TouchableOpacity>
               )}
               ListEmptyComponent={
-                <Text style={styles.emptyText}>Keine Leads gefunden</Text>
+                <Text style={styles.emptyText}>{t('task_contactEmpty')}</Text>
               }
               style={styles.leadList}
             />

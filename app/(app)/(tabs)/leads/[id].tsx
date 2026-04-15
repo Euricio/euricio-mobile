@@ -25,18 +25,23 @@ import {
   borderRadius,
   shadow,
 } from '../../../../constants/theme';
+import { useI18n } from '../../../../lib/i18n';
 
-const statusConfig: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'error' | 'info' | 'primary' }> = {
-  new: { label: 'Neu', variant: 'info' },
-  contacted: { label: 'Kontaktiert', variant: 'primary' },
-  qualified: { label: 'Qualifiziert', variant: 'warning' },
-  lost: { label: 'Verloren', variant: 'error' },
-};
+function getStatusConfig(t: (key: string) => string): Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'error' | 'info' | 'primary' }> {
+  return {
+    new: { label: t('leadStatus_new'), variant: 'info' },
+    contacted: { label: t('leadStatus_contacted'), variant: 'primary' },
+    qualified: { label: t('leadStatus_qualified'), variant: 'warning' },
+    lost: { label: t('leadStatus_lost'), variant: 'error' },
+  };
+}
 
 export default function LeadDetailScreen() {
+  const { t, formatDate } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: lead, isLoading, refetch, isRefetching } = useLead(id!);
   const deleteLead = useDeleteLead();
+  const statusConfig = getStatusConfig(t);
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -47,7 +52,7 @@ export default function LeadDetailScreen() {
       <View style={styles.errorContainer}>
         <Stack.Screen options={{ headerTitle: 'Lead', headerShown: true }} />
         <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
-        <Text style={styles.errorText}>Lead nicht gefunden</Text>
+        <Text style={styles.errorText}>{t('leads_notFound')}</Text>
       </View>
     );
   }
@@ -67,7 +72,7 @@ export default function LeadDetailScreen() {
     if (lead.phone) {
       const phone = lead.phone.replace(/\D/g, '');
       Linking.openURL(`https://wa.me/${phone}`).catch(() =>
-        Alert.alert('Fehler', 'WhatsApp konnte nicht geöffnet werden.'),
+        Alert.alert(t('error'), t('whatsapp_error')),
       );
     }
   };
@@ -87,20 +92,20 @@ export default function LeadDetailScreen() {
 
   const handleDelete = () => {
     Alert.alert(
-      'Lead löschen',
-      'Möchten Sie diesen Lead wirklich löschen?',
+      t('leads_delete'),
+      t('leads_deleteConfirm'),
       [
-        { text: 'Abbrechen', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Löschen',
+          text: t('delete'),
           style: 'destructive',
           onPress: () => {
             deleteLead.mutate(lead.id, {
               onSuccess: () => router.back(),
               onError: () =>
                 Alert.alert(
-                  'Fehler',
-                  'Lead konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.',
+                  t('error'),
+                  t('leads_deleteError'),
                 ),
             });
           },
@@ -153,28 +158,28 @@ export default function LeadDetailScreen() {
       <View style={styles.actionsRow}>
         <ActionButton
           icon="call-outline"
-          label="Anrufen"
+          label={t('lead_callAction')}
           color={colors.success}
           disabled={!lead.phone}
           onPress={handleCall}
         />
         <ActionButton
           icon="logo-whatsapp"
-          label="WhatsApp"
+          label={t('lead_whatsappAction')}
           color="#25D366"
           disabled={!lead.phone}
           onPress={handleWhatsApp}
         />
         <ActionButton
           icon="mail-outline"
-          label="E-Mail"
+          label={t('lead_emailAction')}
           color={colors.info}
           disabled={!lead.email}
           onPress={handleEmail}
         />
         <ActionButton
           icon="add-circle-outline"
-          label="Aufgabe"
+          label={t('lead_taskAction')}
           color={colors.accent}
           onPress={handleAddTask}
         />
@@ -182,24 +187,24 @@ export default function LeadDetailScreen() {
 
       {/* Contact Info */}
       <Card>
-        <Text style={styles.cardTitle}>Kontaktdaten</Text>
+        <Text style={styles.cardTitle}>{t('lead_contactData')}</Text>
         {lead.phone && (
           <TouchableOpacity onPress={handleCall}>
-            <DetailRow icon="call-outline" label="Telefon" value={lead.phone} />
+            <DetailRow icon="call-outline" label={t('lead_phone_label')} value={lead.phone} />
           </TouchableOpacity>
         )}
         {lead.email && (
           <TouchableOpacity onPress={handleEmail}>
-            <DetailRow icon="mail-outline" label="E-Mail" value={lead.email} />
+            <DetailRow icon="mail-outline" label={t('lead_email_label')} value={lead.email} />
           </TouchableOpacity>
         )}
         {lead.source && (
-          <DetailRow icon="earth-outline" label="Quelle" value={lead.source} />
+          <DetailRow icon="earth-outline" label={t('lead_source_label')} value={lead.source} />
         )}
         <DetailRow
           icon="calendar-outline"
-          label="Erstellt"
-          value={new Date(lead.created_at).toLocaleDateString('de-DE', {
+          label={t('lead_created_label')}
+          value={formatDate(lead.created_at, {
             day: '2-digit',
             month: 'long',
             year: 'numeric',
@@ -210,14 +215,14 @@ export default function LeadDetailScreen() {
       {/* Notes */}
       {lead.notes && (
         <Card style={styles.notesCard}>
-          <Text style={styles.cardTitle}>Notizen</Text>
+          <Text style={styles.cardTitle}>{t('lead_notes_label')}</Text>
           <Text style={styles.notesText}>{lead.notes}</Text>
         </Card>
       )}
 
       {/* Activity placeholder */}
       <Card style={styles.activityCard}>
-        <Text style={styles.cardTitle}>Aktivitäten</Text>
+        <Text style={styles.cardTitle}>{t('lead_activities')}</Text>
         <View style={styles.activityPlaceholder}>
           <Ionicons
             name="time-outline"
@@ -225,7 +230,7 @@ export default function LeadDetailScreen() {
             color={colors.textTertiary}
           />
           <Text style={styles.activityPlaceholderText}>
-            Aktivitäts-Timeline wird hier angezeigt
+            {t('lead_activityTimeline')}
           </Text>
         </View>
       </Card>
@@ -233,7 +238,7 @@ export default function LeadDetailScreen() {
       {/* Delete */}
       <View style={styles.deleteContainer}>
         <Button
-          title="Löschen"
+          title={t('delete')}
           variant="danger"
           icon="trash-outline"
           onPress={handleDelete}

@@ -21,6 +21,7 @@ import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
+import { useI18n } from '../../../../lib/i18n';
 import {
   colors,
   spacing,
@@ -31,85 +32,79 @@ import {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const statusLabels: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'error' | 'info' | 'primary' }> = {
-  available: { label: 'Verfügbar', variant: 'success' },
-  reserved: { label: 'Reserviert', variant: 'warning' },
-  sold: { label: 'Verkauft', variant: 'error' },
-  rented: { label: 'Vermietet', variant: 'info' },
-  withdrawn: { label: 'Zurückgezogen', variant: 'default' },
+const statusVariants: Record<string, 'default' | 'success' | 'warning' | 'error' | 'info' | 'primary'> = {
+  available: 'success',
+  reserved: 'warning',
+  sold: 'error',
+  rented: 'info',
+  withdrawn: 'default',
 };
 
-const propertyTypeLabels: Record<string, string> = {
-  apartment: 'Wohnung',
-  house: 'Haus',
-  villa: 'Villa',
-  chalet: 'Chalet',
-  finca: 'Finca',
-  commercial: 'Gewerbe',
-  land: 'Grundstück',
-  garage: 'Garage',
-  other: 'Sonstige',
+const statusKeys: Record<string, string> = {
+  available: 'propStatus_available',
+  reserved: 'propStatus_reserved',
+  sold: 'propStatus_sold',
+  rented: 'propStatus_rented',
+  withdrawn: 'propStatus_withdrawn',
 };
 
-const orientationLabels: Record<string, string> = {
-  north: 'Nord',
-  south: 'Süd',
-  east: 'Ost',
-  west: 'West',
-  southeast: 'Südost',
-  southwest: 'Südwest',
-  northeast: 'Nordost',
-  northwest: 'Nordwest',
+const propertyTypeKeys: Record<string, string> = {
+  apartment: 'propType_apartment',
+  house: 'propType_house',
+  villa: 'propType_villa',
+  chalet: 'propType_chalet',
+  finca: 'propType_finca',
+  commercial: 'propType_commercial',
+  land: 'propType_land',
+  garage: 'propType_garage',
+  other: 'propType_other',
 };
 
-const conditionLabels: Record<string, string> = {
-  new: 'Neubau',
-  like_new: 'Neuwertig',
-  good: 'Gut',
-  needs_renovation: 'Renovierungsbedürftig',
-  ruin: 'Ruine',
+const orientationKeys: Record<string, string> = {
+  north: 'orientation_north',
+  south: 'orientation_south',
+  east: 'orientation_east',
+  west: 'orientation_west',
+  southeast: 'orientation_southeast',
+  southwest: 'orientation_southwest',
+  northeast: 'orientation_northeast',
+  northwest: 'orientation_northwest',
 };
 
-const heatingTypeLabels: Record<string, string> = {
-  electric: 'Elektrisch',
-  gas: 'Gas',
-  oil: 'Öl',
-  heat_pump: 'Wärmepumpe',
-  solar: 'Solar',
-  none: 'Keine',
+const conditionKeys: Record<string, string> = {
+  new: 'condition_new',
+  like_new: 'condition_like_new',
+  good: 'condition_good',
+  needs_renovation: 'condition_needs_renovation',
+  ruin: 'condition_ruin',
 };
 
-const legalStatusLabels: Record<string, string> = {
-  free: 'Frei',
-  occupied: 'Besetzt',
-  tenant: 'Vermietet',
-  legal_dispute: 'Rechtsstreit',
+const heatingTypeKeys: Record<string, string> = {
+  electric: 'heating_electric',
+  gas: 'heating_gas',
+  oil: 'heating_oil',
+  heat_pump: 'heating_heat_pump',
+  solar: 'heating_solar',
+  none: 'heating_none',
 };
 
-const rentalPeriodLabels: Record<string, string> = {
-  monthly: 'Monatlich',
-  weekly: 'Wöchentlich',
-  daily: 'Täglich',
+const legalStatusKeys: Record<string, string> = {
+  free: 'legalStatus_free',
+  occupied: 'legalStatus_occupied',
+  tenant: 'legalStatus_tenant',
+  legal_dispute: 'legalStatus_legal_dispute',
 };
 
-const offerTypeLabels: Record<string, string> = {
-  sale: 'Verkauf',
-  rent: 'Vermietung',
+const rentalPeriodKeys: Record<string, string> = {
+  monthly: 'rentalPeriod_monthly',
+  weekly: 'rentalPeriod_weekly',
+  daily: 'rentalPeriod_daily',
 };
 
-function formatPrice(price: number | null): string {
-  if (!price) return '—';
-  return new Intl.NumberFormat('de-DE', {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  }).format(price);
-}
-
-function formatDate(date: string | null): string {
-  if (!date) return '—';
-  return new Date(date).toLocaleDateString('de-DE');
-}
+const offerTypeKeys: Record<string, string> = {
+  sale: 'offerType_sale',
+  rent: 'offerType_rent',
+};
 
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -118,22 +113,30 @@ export default function PropertyDetailScreen() {
   const { data: documents } = usePropertyDocuments(id!);
   const deleteProperty = useDeleteProperty();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const { t, formatPrice, formatDate } = useI18n();
 
   if (isLoading) return <LoadingScreen />;
 
   if (!property) {
     return (
       <View style={styles.errorContainer}>
-        <Stack.Screen options={{ headerTitle: 'Objekt', headerShown: true }} />
+        <Stack.Screen options={{ headerTitle: t('tab_properties'), headerShown: true }} />
         <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
-        <Text style={styles.errorText}>Immobilie nicht gefunden</Text>
+        <Text style={styles.errorText}>{t('properties_notFound')}</Text>
       </View>
     );
   }
 
-  const status = statusLabels[property.status ?? ''] ?? {
-    label: property.status ?? '',
-    variant: 'default' as const,
+  const statusKey = statusKeys[property.status ?? ''];
+  const status = {
+    label: statusKey ? t(statusKey) : (property.status ?? ''),
+    variant: statusVariants[property.status ?? ''] ?? ('default' as const),
+  };
+
+  const tKey = (map: Record<string, string>, val: string | null | undefined) => {
+    if (!val) return '';
+    const key = map[val];
+    return key ? t(key) : val;
   };
 
   const handleMaps = () => {
@@ -147,17 +150,17 @@ export default function PropertyDetailScreen() {
 
   const handleDelete = () => {
     Alert.alert(
-      'Immobilie löschen',
-      'Möchten Sie diese Immobilie wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.',
+      t('properties_delete'),
+      t('properties_deleteConfirm'),
       [
-        { text: 'Abbrechen', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Löschen',
+          text: t('delete'),
           style: 'destructive',
           onPress: () => {
             deleteProperty.mutate(property.id, {
               onSuccess: () => router.back(),
-              onError: () => Alert.alert('Fehler', 'Immobilie konnte nicht gelöscht werden.'),
+              onError: () => Alert.alert(t('error'), t('properties_deleteError')),
             });
           },
         },
@@ -167,17 +170,17 @@ export default function PropertyDetailScreen() {
 
   // Collect active features as chips
   const featureChips: string[] = [];
-  if (property.has_elevator) featureChips.push('Aufzug');
-  if (property.has_parking) featureChips.push('Parkplatz');
-  if (property.has_pool) featureChips.push('Pool');
-  if (property.has_garden) featureChips.push(property.garden_m2 ? `Garten (${property.garden_m2} m²)` : 'Garten');
-  if (property.is_furnished) featureChips.push('Möbliert');
-  if (property.has_garage) featureChips.push(property.garage_spaces ? `Garage (${property.garage_spaces} Plätze)` : 'Garage');
-  if (property.has_terrace) featureChips.push(property.terrace_m2 ? `Terrasse (${property.terrace_m2} m²)` : 'Terrasse');
-  if (property.has_ac) featureChips.push('Klimaanlage');
-  if (property.has_heating) featureChips.push(property.heating_type ? `Heizung (${heatingTypeLabels[property.heating_type] ?? property.heating_type})` : 'Heizung');
-  if (property.has_storage) featureChips.push('Abstellraum');
-  if (property.has_sea_view) featureChips.push('Meerblick');
+  if (property.has_elevator) featureChips.push(t('feature_elevator'));
+  if (property.has_parking) featureChips.push(t('feature_parking'));
+  if (property.has_pool) featureChips.push(t('feature_pool'));
+  if (property.has_garden) featureChips.push(property.garden_m2 ? `${t('feature_garden')} (${property.garden_m2} m²)` : t('feature_garden'));
+  if (property.is_furnished) featureChips.push(t('feature_furnished'));
+  if (property.has_garage) featureChips.push(property.garage_spaces ? `${t('feature_garage')} (${property.garage_spaces})` : t('feature_garage'));
+  if (property.has_terrace) featureChips.push(property.terrace_m2 ? `${t('feature_terrace')} (${property.terrace_m2} m²)` : t('feature_terrace'));
+  if (property.has_ac) featureChips.push(t('feature_ac'));
+  if (property.has_heating) featureChips.push(property.heating_type ? `${t('feature_heating')} (${tKey(heatingTypeKeys, property.heating_type)})` : t('feature_heating'));
+  if (property.has_storage) featureChips.push(t('feature_storage'));
+  if (property.has_sea_view) featureChips.push(t('feature_seaView'));
 
   const hasAddress = property.address || property.city || property.province || property.postal_code;
   const hasLegalInfo = property.referencia_catastral || property.ibi_annual || property.community_fees_monthly || property.has_mortgage || property.legal_status || property.nota_simple_date;
@@ -251,7 +254,7 @@ export default function PropertyDetailScreen() {
         <View style={styles.imageSection}>
           <View style={styles.imagePlaceholder}>
             <Ionicons name="image-outline" size={48} color={colors.textTertiary} />
-            <Text style={styles.imagePlaceholderText}>Kein Bild vorhanden</Text>
+            <Text style={styles.imagePlaceholderText}>{t('properties_noImage')}</Text>
           </View>
         </View>
       )}
@@ -266,11 +269,11 @@ export default function PropertyDetailScreen() {
         </View>
         <Text style={styles.price}>{formatPrice(property.price)}</Text>
         {property.price_negotiable && (
-          <Text style={styles.negotiableText}>Verhandlungsbasis</Text>
+          <Text style={styles.negotiableText}>{t('properties_negotiable')}</Text>
         )}
         {property.offer_type && (
           <Badge
-            label={offerTypeLabels[property.offer_type] ?? property.offer_type}
+            label={tKey(offerTypeKeys, property.offer_type)}
             variant="primary"
             size="sm"
           />
@@ -289,47 +292,47 @@ export default function PropertyDetailScreen() {
       {/* Key Facts */}
       <View style={styles.factsRow}>
         {property.size_m2 != null && (
-          <FactItem icon="resize-outline" label="Fläche" value={`${property.size_m2} m²`} />
+          <FactItem icon="resize-outline" label={t('propDetail_area')} value={`${property.size_m2} m²`} />
         )}
         {property.rooms != null && (
-          <FactItem icon="bed-outline" label="Zimmer" value={String(property.rooms)} />
+          <FactItem icon="bed-outline" label={t('propDetail_rooms')} value={String(property.rooms)} />
         )}
         {property.bathrooms != null && (
-          <FactItem icon="water-outline" label="Bäder" value={String(property.bathrooms)} />
+          <FactItem icon="water-outline" label={t('propDetail_bathrooms')} value={String(property.bathrooms)} />
         )}
         {property.property_type && (
-          <FactItem icon="home-outline" label="Typ" value={propertyTypeLabels[property.property_type] ?? property.property_type} />
+          <FactItem icon="home-outline" label={t('propDetail_type')} value={tKey(propertyTypeKeys, property.property_type)} />
         )}
       </View>
 
       {/* Address Details Card */}
       {hasAddress && (
         <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>Adresse</Text>
-          {property.address && <DetailRow label="Straße" value={property.address} />}
-          {property.city && <DetailRow label="Stadt" value={property.city} />}
-          {property.province && <DetailRow label="Provinz" value={property.province} />}
-          {property.postal_code && <DetailRow label="PLZ" value={property.postal_code} />}
-          {property.country && <DetailRow label="Land" value={property.country} />}
+          <Text style={styles.sectionTitle}>{t('propSection_address')}</Text>
+          {property.address && <DetailRow label={t('propDetail_street')} value={property.address} />}
+          {property.city && <DetailRow label={t('propDetail_city')} value={property.city} />}
+          {property.province && <DetailRow label={t('propDetail_province')} value={property.province} />}
+          {property.postal_code && <DetailRow label={t('propDetail_postalCode')} value={property.postal_code} />}
+          {property.country && <DetailRow label={t('propDetail_country')} value={property.country} />}
         </Card>
       )}
 
       {/* Type & Condition Card */}
       {(property.property_subtype || property.orientation || property.condition || property.floor != null || property.year_built) && (
         <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>Typ & Zustand</Text>
-          {property.property_subtype && <DetailRow label="Untertyp" value={property.property_subtype} />}
-          {property.orientation && <DetailRow label="Ausrichtung" value={orientationLabels[property.orientation] ?? property.orientation} />}
-          {property.condition && <DetailRow label="Zustand" value={conditionLabels[property.condition] ?? property.condition} />}
-          {property.floor != null && <DetailRow label="Etage" value={String(property.floor)} />}
-          {property.year_built != null && <DetailRow label="Baujahr" value={String(property.year_built)} />}
+          <Text style={styles.sectionTitle}>{t('propSection_typeCondition')}</Text>
+          {property.property_subtype && <DetailRow label={t('prop_subtype')} value={property.property_subtype} />}
+          {property.orientation && <DetailRow label={t('prop_orientation')} value={tKey(orientationKeys, property.orientation)} />}
+          {property.condition && <DetailRow label={t('prop_condition')} value={tKey(conditionKeys, property.condition)} />}
+          {property.floor != null && <DetailRow label={t('prop_floor')} value={String(property.floor)} />}
+          {property.year_built != null && <DetailRow label={t('prop_yearBuilt')} value={String(property.year_built)} />}
         </Card>
       )}
 
       {/* Features as chips */}
       {featureChips.length > 0 && (
         <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>Ausstattung</Text>
+          <Text style={styles.sectionTitle}>{t('propSection_features')}</Text>
           <View style={styles.chipContainer}>
             {featureChips.map((chip) => (
               <View key={chip} style={styles.chip}>
@@ -344,37 +347,37 @@ export default function PropertyDetailScreen() {
       {/* Legal & Costs Card */}
       {hasLegalInfo && (
         <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>Rechtliches & Kosten</Text>
-          {property.referencia_catastral && <DetailRow label="Katasterreferenz" value={property.referencia_catastral} />}
-          {property.ibi_annual != null && <DetailRow label="IBI jährlich" value={formatPrice(property.ibi_annual)} />}
-          {property.community_fees_monthly != null && <DetailRow label="Gemeinschaftskosten/Monat" value={formatPrice(property.community_fees_monthly)} />}
+          <Text style={styles.sectionTitle}>{t('propSection_legal')}</Text>
+          {property.referencia_catastral && <DetailRow label={t('legal_cadastralRef')} value={property.referencia_catastral} />}
+          {property.ibi_annual != null && <DetailRow label={t('legal_ibiAnnual')} value={formatPrice(property.ibi_annual)} />}
+          {property.community_fees_monthly != null && <DetailRow label={t('legal_communityFees')} value={formatPrice(property.community_fees_monthly)} />}
           {property.has_mortgage && (
             <>
-              <DetailRow label="Hypothek" value="Ja" />
-              {property.mortgage_outstanding != null && <DetailRow label="Offene Hypothek" value={formatPrice(property.mortgage_outstanding)} />}
+              <DetailRow label={t('legal_mortgage')} value={t('yes')} />
+              {property.mortgage_outstanding != null && <DetailRow label={t('legal_mortgageOutstanding')} value={formatPrice(property.mortgage_outstanding)} />}
             </>
           )}
-          {property.legal_status && <DetailRow label="Rechtsstatus" value={legalStatusLabels[property.legal_status] ?? property.legal_status} />}
-          {property.nota_simple_date && <DetailRow label="Nota Simple" value={formatDate(property.nota_simple_date)} />}
+          {property.legal_status && <DetailRow label={t('legal_legalStatus')} value={tKey(legalStatusKeys, property.legal_status)} />}
+          {property.nota_simple_date && <DetailRow label={t('legal_notaSimple')} value={formatDate(property.nota_simple_date)} />}
         </Card>
       )}
 
       {/* Rental Info Card */}
       {hasRentalInfo && (
         <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>Vermietung</Text>
-          {property.rental_price != null && <DetailRow label="Mietpreis" value={formatPrice(property.rental_price)} />}
-          {property.rental_period && <DetailRow label="Mietzeitraum" value={rentalPeriodLabels[property.rental_period] ?? property.rental_period} />}
-          {property.available_from && <DetailRow label="Verfügbar ab" value={formatDate(property.available_from)} />}
-          {property.is_rented && <DetailRow label="Aktuell vermietet" value="Ja" />}
-          {property.rental_yield != null && <DetailRow label="Mietrendite" value={`${property.rental_yield}%`} />}
+          <Text style={styles.sectionTitle}>{t('propSection_rental')}</Text>
+          {property.rental_price != null && <DetailRow label={t('rental_price')} value={formatPrice(property.rental_price)} />}
+          {property.rental_period && <DetailRow label={t('rental_period')} value={tKey(rentalPeriodKeys, property.rental_period)} />}
+          {property.available_from && <DetailRow label={t('rental_availableFrom')} value={formatDate(property.available_from)} />}
+          {property.is_rented && <DetailRow label={t('rental_currentlyRented')} value={t('yes')} />}
+          {property.rental_yield != null && <DetailRow label={t('rental_yield')} value={`${property.rental_yield}%`} />}
         </Card>
       )}
 
       {/* Description */}
       {property.description && (
         <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>Beschreibung</Text>
+          <Text style={styles.sectionTitle}>{t('propDetail_description')}</Text>
           <Text style={styles.descriptionText}>{property.description}</Text>
         </Card>
       )}
@@ -382,7 +385,7 @@ export default function PropertyDetailScreen() {
       {/* Notes */}
       {property.notes && (
         <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>Interne Notizen</Text>
+          <Text style={styles.sectionTitle}>{t('propDetail_internalNotes')}</Text>
           <Text style={styles.descriptionText}>{property.notes}</Text>
         </Card>
       )}
@@ -400,9 +403,9 @@ export default function PropertyDetailScreen() {
           <View style={styles.mediaCardLeft}>
             <Ionicons name="images-outline" size={24} color={colors.primary} />
             <View>
-              <Text style={styles.sectionTitle}>Medien verwalten</Text>
+              <Text style={styles.sectionTitle}>{t('media_title')}</Text>
               <Text style={styles.mediaCardCount}>
-                {images?.length ?? 0} Fotos · {documents?.length ?? 0} Dokumente
+                {t('media_photoCount', { count: images?.length ?? 0 })} · {t('media_docCount', { count: documents?.length ?? 0 })}
               </Text>
             </View>
           </View>
@@ -413,27 +416,27 @@ export default function PropertyDetailScreen() {
       {/* Actions */}
       <View style={styles.actions}>
         <Button
-          title="Bearbeiten"
+          title={t('edit')}
           onPress={() => router.push(`/(app)/(tabs)/properties/edit?id=${property.id}`)}
           icon={<Ionicons name="pencil-outline" size={18} color={colors.white} />}
           style={styles.actionButton}
         />
         <Button
-          title="Exposé senden"
+          title={t('properties_sendExpose')}
           onPress={() => {}}
           variant="outline"
           icon={<Ionicons name="document-text-outline" size={18} color={colors.primary} />}
           style={styles.actionButton}
         />
         <Button
-          title="Auf Karte anzeigen"
+          title={t('properties_showOnMap')}
           onPress={handleMaps}
           variant="outline"
           icon={<Ionicons name="map-outline" size={18} color={colors.primary} />}
           style={styles.actionButton}
         />
         <Button
-          title="Immobilie löschen"
+          title={t('properties_delete')}
           onPress={handleDelete}
           variant="danger"
           loading={deleteProperty.isPending}

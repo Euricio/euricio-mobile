@@ -7,24 +7,26 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useI18n } from '../../../lib/i18n';
 import { colors, spacing, fontSize, fontWeight } from '../../../constants/theme';
 
 export default function CallScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { t } = useI18n();
 
   return (
     <View style={styles.container}>
       {/* Call Info */}
       <View style={styles.header}>
-        <Text style={styles.callerName}>Anruf</Text>
-        <Text style={styles.status}>Verbindung wird hergestellt...</Text>
+        <Text style={styles.callerName}>{t('call_title')}</Text>
+        <Text style={styles.status}>{t('call_connecting')}</Text>
       </View>
 
       {/* Call Controls */}
       <View style={styles.controls}>
-        <ControlButton icon="mic-off-outline" label="Stumm" />
-        <ControlButton icon="volume-high-outline" label="Lautspr." />
-        <ControlButton icon="pause-outline" label="Halten" />
+        <ControlButton icon="mic-off-outline" label={t('call_mute')} />
+        <ControlButton icon="volume-high-outline" label={t('call_speaker')} />
+        <ControlButton icon="pause-outline" label={t('call_hold')} />
       </View>
 
       {/* Hangup */}

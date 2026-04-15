@@ -17,6 +17,7 @@ import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { EmptyState } from '../../../../components/ui/EmptyState';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
+import { useI18n } from '../../../../lib/i18n';
 import {
   colors,
   spacing,
@@ -26,34 +27,33 @@ import {
   shadow,
 } from '../../../../constants/theme';
 
-const statusLabels: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'error' | 'info' | 'primary' }> = {
-  available: { label: 'Verfügbar', variant: 'success' },
-  reserved: { label: 'Reserviert', variant: 'warning' },
-  sold: { label: 'Verkauft', variant: 'error' },
-  rented: { label: 'Vermietet', variant: 'info' },
-  withdrawn: { label: 'Zurückgezogen', variant: 'default' },
+const statusVariants: Record<string, 'default' | 'success' | 'warning' | 'error' | 'info' | 'primary'> = {
+  available: 'success',
+  reserved: 'warning',
+  sold: 'error',
+  rented: 'info',
+  withdrawn: 'default',
 };
 
-const propertyTypeLabels: Record<string, string> = {
-  apartment: 'Wohnung',
-  house: 'Haus',
-  villa: 'Villa',
-  chalet: 'Chalet',
-  finca: 'Finca',
-  commercial: 'Gewerbe',
-  land: 'Grundstück',
-  garage: 'Garage',
-  other: 'Sonstige',
+const statusKeys: Record<string, string> = {
+  available: 'propStatus_available',
+  reserved: 'propStatus_reserved',
+  sold: 'propStatus_sold',
+  rented: 'propStatus_rented',
+  withdrawn: 'propStatus_withdrawn',
 };
 
-function formatPrice(price: number | null): string {
-  if (!price) return '—';
-  return new Intl.NumberFormat('de-DE', {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  }).format(price);
-}
+const propertyTypeKeys: Record<string, string> = {
+  apartment: 'propType_apartment',
+  house: 'propType_house',
+  villa: 'propType_villa',
+  chalet: 'propType_chalet',
+  finca: 'propType_finca',
+  commercial: 'propType_commercial',
+  land: 'propType_land',
+  garage: 'propType_garage',
+  other: 'propType_other',
+};
 
 function PropertyCardImage({ propertyId }: { propertyId: string }) {
   const { data: images } = usePropertyImages(propertyId);
@@ -73,9 +73,11 @@ function PropertyCardImage({ propertyId }: { propertyId: string }) {
 }
 
 function PropertyCard({ property }: { property: Property }) {
-  const status = statusLabels[property.status ?? ''] ?? {
-    label: property.status ?? 'Unbekannt',
-    variant: 'default' as const,
+  const { t, formatPrice } = useI18n();
+  const statusKey = statusKeys[property.status ?? ''];
+  const status = {
+    label: statusKey ? t(statusKey) : (property.status ?? t('unknown')),
+    variant: statusVariants[property.status ?? ''] ?? ('default' as const),
   };
 
   return (
@@ -113,7 +115,7 @@ function PropertyCard({ property }: { property: Property }) {
               <Text style={styles.metaText}>{property.size_m2} m²</Text>
             )}
             {property.rooms && (
-              <Text style={styles.metaText}>{property.rooms} Zi.</Text>
+              <Text style={styles.metaText}>{property.rooms} {t('properties_rooms')}</Text>
             )}
           </View>
         </View>
@@ -124,6 +126,7 @@ function PropertyCard({ property }: { property: Property }) {
 
 export default function PropertiesListScreen() {
   const [search, setSearch] = useState('');
+  const { t } = useI18n();
   const {
     data: properties,
     isLoading,
@@ -135,7 +138,7 @@ export default function PropertiesListScreen() {
     <View style={styles.container}>
       <Stack.Screen
         options={{
-          headerTitle: 'Immobilien',
+          headerTitle: t('properties_title'),
           headerShown: true,
           headerStyle: { backgroundColor: colors.surface },
           headerShadowVisible: false,
@@ -146,7 +149,7 @@ export default function PropertiesListScreen() {
         <SearchBar
           value={search}
           onChangeText={setSearch}
-          placeholder="Immobilie suchen..."
+          placeholder={t('properties_search')}
         />
       </View>
 
@@ -168,11 +171,11 @@ export default function PropertiesListScreen() {
           ListEmptyComponent={
             <EmptyState
               icon="business-outline"
-              title="Keine Immobilien gefunden"
+              title={t('properties_empty')}
               message={
                 search
-                  ? 'Versuchen Sie eine andere Suche'
-                  : 'Noch keine Immobilien vorhanden'
+                  ? t('properties_emptySearch')
+                  : t('properties_emptyDefault')
               }
             />
           }

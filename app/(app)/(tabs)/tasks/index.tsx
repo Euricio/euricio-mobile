@@ -14,6 +14,7 @@ import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { EmptyState } from '../../../../components/ui/EmptyState';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
+import { useI18n } from '../../../../lib/i18n';
 import {
   colors,
   spacing,
@@ -23,25 +24,25 @@ import {
   shadow,
 } from '../../../../constants/theme';
 
-const filters = [
-  { key: 'alle', label: 'Alle' },
-  { key: 'open', label: 'Offen' },
-  { key: 'in_progress', label: 'In Arbeit' },
-  { key: 'done', label: 'Erledigt' },
-];
-
-const priorityConfig: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'error' | 'info' }> = {
-  urgent: { label: 'Dringend', variant: 'error' },
-  high: { label: 'Hoch', variant: 'warning' },
-  medium: { label: 'Mittel', variant: 'info' },
-  low: { label: 'Niedrig', variant: 'default' },
+const priorityVariants: Record<string, 'default' | 'success' | 'warning' | 'error' | 'info'> = {
+  urgent: 'error',
+  high: 'warning',
+  medium: 'info',
+  low: 'default',
 };
 
-const typeLabels: Record<string, string> = {
-  callback: 'Rückruf',
-  follow_up: 'Nachfassen',
-  meeting: 'Termin',
-  general: 'Allgemein',
+const priorityKeys: Record<string, string> = {
+  urgent: 'priority_urgent',
+  high: 'priority_high',
+  medium: 'priority_medium',
+  low: 'priority_low',
+};
+
+const typeKeys: Record<string, string> = {
+  callback: 'task_type_callback',
+  follow_up: 'task_type_follow_up',
+  meeting: 'task_type_meeting',
+  general: 'task_type_general',
 };
 
 function isOverdue(dueDate: string | null): boolean {
@@ -56,9 +57,11 @@ function TaskCard({
   task: Task;
   onComplete: () => void;
 }) {
-  const priority = priorityConfig[task.priority] ?? {
-    label: task.priority,
-    variant: 'default' as const,
+  const { t, formatDate } = useI18n();
+  const priorityKey = priorityKeys[task.priority];
+  const priority = {
+    label: priorityKey ? t(priorityKey) : task.priority,
+    variant: priorityVariants[task.priority] ?? ('default' as const),
   };
   const overdue = isOverdue(task.due_date) && task.status !== 'done';
   const isCallback = task.task_type === 'callback';
@@ -99,7 +102,7 @@ function TaskCard({
             <View style={styles.taskMeta}>
               <Badge label={priority.label} variant={priority.variant} />
               <Text style={styles.taskType}>
-                {typeLabels[task.task_type] ?? task.task_type}
+                {typeKeys[task.task_type] ? t(typeKeys[task.task_type]) : task.task_type}
               </Text>
             </View>
           </View>
@@ -121,8 +124,8 @@ function TaskCard({
                 overdue && styles.dueDateOverdue,
               ]}
             >
-              {overdue ? 'Überfällig: ' : ''}
-              {new Date(task.due_date).toLocaleDateString('de-DE', {
+              {overdue ? t('tasks_overdue') : ''}
+              {formatDate(task.due_date, {
                 day: '2-digit',
                 month: '2-digit',
                 year: '2-digit',
@@ -146,12 +149,20 @@ export default function TasksScreen() {
   const { data: tasks, isLoading, refetch, isRefetching } =
     useTasks(activeFilter);
   const completeTask = useCompleteTask();
+  const { t } = useI18n();
+
+  const filters = [
+    { key: 'alle', label: t('tasks_filter_all') },
+    { key: 'open', label: t('tasks_filter_open') },
+    { key: 'in_progress', label: t('tasks_filter_inProgress') },
+    { key: 'done', label: t('tasks_filter_done') },
+  ];
 
   return (
     <View style={styles.container}>
       <Stack.Screen
         options={{
-          headerTitle: 'Aufgaben',
+          headerTitle: t('tasks_title'),
           headerShown: true,
           headerStyle: { backgroundColor: colors.surface },
           headerShadowVisible: false,
@@ -206,12 +217,12 @@ export default function TasksScreen() {
               icon="checkbox-outline"
               title={
                 activeFilter === 'done'
-                  ? 'Keine erledigten Aufgaben'
-                  : 'Keine offenen Aufgaben'
+                  ? t('tasks_emptyDone')
+                  : t('tasks_emptyOpen')
               }
               message={
                 activeFilter === 'open'
-                  ? 'Gut gemacht! Alles erledigt.'
+                  ? t('tasks_allDone')
                   : undefined
               }
             />
