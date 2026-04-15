@@ -1,6 +1,8 @@
 import { supabase } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
+import * as FileSystem from 'expo-file-system';
+import { decode as base64Decode } from 'base64-arraybuffer';
 
 const STORAGE_BASE =
   'https://vddfghfvmnrbotmxhvvi.supabase.co/storage/v1/object/public/property-images';
@@ -85,18 +87,16 @@ export function useUploadPropertyImage() {
       const fileName = `${timestamp}-${index}.jpeg`;
       const storagePath = `${propertyId}/${fileName}`;
 
-      // Use FormData approach for reliable uploads on React Native (iOS HEIC, etc.)
-      const formData = new FormData();
-      formData.append('', {
-        uri,
-        name: fileName,
-        type: 'image/jpeg',
-      } as any);
+      // Read file as base64 and decode to ArrayBuffer for reliable Supabase upload
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const arrayBuffer = base64Decode(base64);
 
       const { error: uploadError } = await supabase.storage
         .from('property-images')
-        .upload(storagePath, formData, {
-          contentType: 'multipart/form-data',
+        .upload(storagePath, arrayBuffer, {
+          contentType: 'image/jpeg',
           upsert: false,
         });
 
@@ -108,7 +108,7 @@ export function useUploadPropertyImage() {
           property_id: propertyId,
           storage_path: storagePath,
           file_name: fileName,
-          file_size: null,
+          file_size: arrayBuffer.byteLength,
           uploaded_by: userId,
         })
         .select()
@@ -250,18 +250,16 @@ export function useUploadPropertyDocument() {
       const timestamp = Date.now();
       const storagePath = `${propertyId}/${timestamp}-${fileName}`;
 
-      // Use FormData approach for reliable uploads on React Native
-      const formData = new FormData();
-      formData.append('', {
-        uri,
-        name: fileName,
-        type: mimeType,
-      } as any);
+      // Read file as base64 and decode to ArrayBuffer for reliable Supabase upload
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const arrayBuffer = base64Decode(base64);
 
       const { error: uploadError } = await supabase.storage
         .from('property-documents')
-        .upload(storagePath, formData, {
-          contentType: 'multipart/form-data',
+        .upload(storagePath, arrayBuffer, {
+          contentType: mimeType,
           upsert: false,
         });
 
@@ -273,7 +271,7 @@ export function useUploadPropertyDocument() {
           property_id: propertyId,
           storage_path: storagePath,
           file_name: fileName,
-          file_size: fileSize,
+          file_size: fileSize ?? arrayBuffer.byteLength,
           document_type: documentType,
           uploaded_by: userId,
         })
