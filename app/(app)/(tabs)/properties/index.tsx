@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: spacing.md,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 120,
   },
   propertyCard: {
     marginBottom: spacing.md,

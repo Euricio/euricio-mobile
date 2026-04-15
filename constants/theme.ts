@@ -34,6 +34,8 @@ export const spacing = {
   xxl: 48,
 };
 
+export const TAB_BAR_HEIGHT = 88;
+
 export const borderRadius = {
   sm: 6,
   md: 10,

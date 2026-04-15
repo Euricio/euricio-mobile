@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    paddingBottom: spacing.xxl,
+    paddingBottom: 120,
   },
   errorContainer: {
     flex: 1,
