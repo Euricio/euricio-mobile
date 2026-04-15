@@ -4,7 +4,7 @@ import { useAuthStore } from '../../store/authStore';
 
 export interface Lead {
   id: string;
-  name: string;
+  full_name: string;
   email: string | null;
   phone: string | null;
   status: string;
@@ -27,7 +27,7 @@ export function useLeads(search?: string) {
 
       if (search && search.length >= 2) {
         query = query.or(
-          `name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`,
+          `full_name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`,
         );
       }
 

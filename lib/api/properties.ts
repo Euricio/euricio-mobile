@@ -8,13 +8,11 @@ export interface Property {
   address: string | null;
   city: string | null;
   price: number | null;
-  size: number | null;
+  size_m2: number | null;
   rooms: number | null;
-  type: string | null;
+  property_type: string | null;
   status: string | null;
   description: string | null;
-  image_url: string | null;
-  images: string[] | null;
   created_at: string;
   updated_at: string;
 }

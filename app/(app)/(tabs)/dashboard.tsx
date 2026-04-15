@@ -154,7 +154,7 @@ export default function DashboardScreen() {
             >
               <View style={styles.activityIcon}>
                 <Ionicons
-                  name={getActivityIcon(item.type)}
+                  name={getActivityIcon(item.task_type)}
                   size={20}
                   color={colors.primary}
                 />
@@ -168,7 +168,7 @@ export default function DashboardScreen() {
                     <Text style={styles.activityLead}>{item.lead_name}</Text>
                   )}
                   <Badge
-                    label={typeLabels[item.type] ?? item.type}
+                    label={typeLabels[item.task_type] ?? item.task_type}
                     variant="default"
                   />
                 </View>

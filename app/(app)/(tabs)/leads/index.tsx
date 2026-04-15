@@ -46,10 +46,10 @@ function LeadCard({ lead }: { lead: Lead }) {
       onPress={() => router.push(`/(app)/(tabs)/leads/${lead.id}`)}
     >
       <View style={styles.leadRow}>
-        <Avatar name={lead.name || 'Unbekannt'} size={44} />
+        <Avatar name={lead.full_name || 'Unbekannt'} size={44} />
         <View style={styles.leadInfo}>
           <Text style={styles.leadName} numberOfLines={1}>
-            {lead.name}
+            {lead.full_name}
           </Text>
           <View style={styles.leadMeta}>
             {lead.phone && (

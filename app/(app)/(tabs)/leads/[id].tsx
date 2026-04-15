@@ -92,7 +92,7 @@ export default function LeadDetailScreen() {
     >
       <Stack.Screen
         options={{
-          headerTitle: lead.name,
+          headerTitle: lead.full_name,
           headerShown: true,
           headerStyle: { backgroundColor: colors.surface },
           headerShadowVisible: false,
@@ -101,8 +101,8 @@ export default function LeadDetailScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Avatar name={lead.name} size={72} />
-        <Text style={styles.name}>{lead.name}</Text>
+        <Avatar name={lead.full_name} size={72} />
+        <Text style={styles.name}>{lead.full_name}</Text>
         <Badge label={status.label} variant={status.variant} size="md" />
       </View>
 

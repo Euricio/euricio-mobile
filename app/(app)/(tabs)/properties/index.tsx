@@ -5,7 +5,6 @@ import {
   FlatList,
   StyleSheet,
   RefreshControl,
-  Image,
   TouchableOpacity,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
@@ -55,17 +54,9 @@ function PropertyCard({ property }: { property: Property }) {
     >
       {/* Image */}
       <View style={styles.imageContainer}>
-        {property.image_url ? (
-          <Image
-            source={{ uri: property.image_url }}
-            style={styles.image}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.imagePlaceholder}>
-            <Ionicons name="image-outline" size={32} color={colors.textTertiary} />
-          </View>
-        )}
+        <View style={styles.imagePlaceholder}>
+          <Ionicons name="image-outline" size={32} color={colors.textTertiary} />
+        </View>
         <View style={styles.badgeOverlay}>
           <Badge label={status.label} variant={status.variant} />
         </View>
@@ -88,8 +79,8 @@ function PropertyCard({ property }: { property: Property }) {
         <View style={styles.statsRow}>
           <Text style={styles.priceText}>{formatPrice(property.price)}</Text>
           <View style={styles.propertyMeta}>
-            {property.size && (
-              <Text style={styles.metaText}>{property.size} m²</Text>
+            {property.size_m2 && (
+              <Text style={styles.metaText}>{property.size_m2} m²</Text>
             )}
             {property.rooms && (
               <Text style={styles.metaText}>{property.rooms} Zi.</Text>
@@ -191,10 +182,6 @@ const styles = StyleSheet.create({
   imageContainer: {
     height: 180,
     position: 'relative',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
   },
   imagePlaceholder: {
     width: '100%',

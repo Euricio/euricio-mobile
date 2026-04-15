@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  Image,
   TouchableOpacity,
   Linking,
   RefreshControl,
@@ -93,18 +92,10 @@ export default function PropertyDetailScreen() {
 
       {/* Image Gallery */}
       <View style={styles.imageSection}>
-        {property.image_url ? (
-          <Image
-            source={{ uri: property.image_url }}
-            style={styles.mainImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.imagePlaceholder}>
-            <Ionicons name="image-outline" size={48} color={colors.textTertiary} />
-            <Text style={styles.imagePlaceholderText}>Kein Bild vorhanden</Text>
-          </View>
-        )}
+        <View style={styles.imagePlaceholder}>
+          <Ionicons name="image-outline" size={48} color={colors.textTertiary} />
+          <Text style={styles.imagePlaceholderText}>Kein Bild vorhanden</Text>
+        </View>
       </View>
 
       {/* Title & Price */}
@@ -129,14 +120,14 @@ export default function PropertyDetailScreen() {
 
       {/* Key Facts */}
       <View style={styles.factsRow}>
-        {property.size != null && (
-          <FactItem icon="resize-outline" label="Fläche" value={`${property.size} m²`} />
+        {property.size_m2 != null && (
+          <FactItem icon="resize-outline" label="Fläche" value={`${property.size_m2} m²`} />
         )}
         {property.rooms != null && (
           <FactItem icon="bed-outline" label="Zimmer" value={String(property.rooms)} />
         )}
-        {property.type && (
-          <FactItem icon="home-outline" label="Typ" value={property.type} />
+        {property.property_type && (
+          <FactItem icon="home-outline" label="Typ" value={property.property_type} />
         )}
       </View>
 
@@ -207,10 +198,6 @@ const styles = StyleSheet.create({
   },
   imageSection: {
     height: 250,
-  },
-  mainImage: {
-    width: '100%',
-    height: '100%',
   },
   imagePlaceholder: {
     width: '100%',

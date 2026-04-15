@@ -9,7 +9,7 @@ interface DashboardStats {
 
 interface Activity {
   id: string;
-  type: string;
+  task_type: string;
   title: string;
   description: string | null;
   created_at: string;
@@ -56,7 +56,7 @@ export function useRecentActivity() {
       // Fetch recent tasks as activities
       const { data: tasks } = await supabase
         .from('tasks')
-        .select('id, type, title, created_at, lead:leads(name)')
+        .select('id, task_type, title, created_at, lead:leads(full_name)')
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -64,11 +64,11 @@ export function useRecentActivity() {
 
       return tasks.map((t: Record<string, unknown>) => ({
         id: t.id as string,
-        type: t.type as string,
+        task_type: t.task_type as string,
         title: t.title as string,
         description: null,
         created_at: t.created_at as string,
-        lead_name: (t.lead as Record<string, unknown> | null)?.name as string | null,
+        lead_name: (t.lead as Record<string, unknown> | null)?.full_name as string | null,
       }));
     },
   });

@@ -6,7 +6,7 @@ export interface Task {
   id: string;
   title: string;
   description: string | null;
-  type: string;
+  task_type: string;
   status: string;
   priority: string;
   due_date: string | null;
@@ -15,7 +15,7 @@ export interface Task {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
-  lead?: { id: string; name: string } | null;
+  lead?: { id: string; full_name: string } | null;
 }
 
 export function useTasks(statusFilter?: string) {
@@ -24,7 +24,7 @@ export function useTasks(statusFilter?: string) {
     queryFn: async () => {
       let query = supabase
         .from('tasks')
-        .select('*, lead:leads(id, name)')
+        .select('*, lead:leads(id, full_name)')
         .order('due_date', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: false })
         .limit(50);
@@ -46,7 +46,7 @@ export function useTask(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tasks')
-        .select('*, lead:leads(id, name)')
+        .select('*, lead:leads(id, full_name)')
         .eq('id', id)
         .single();
       if (error) throw error;

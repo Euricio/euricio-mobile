@@ -61,7 +61,7 @@ function TaskCard({
     variant: 'default' as const,
   };
   const overdue = isOverdue(task.due_date) && task.status !== 'done';
-  const isCallback = task.type === 'callback';
+  const isCallback = task.task_type === 'callback';
   const isDone = task.status === 'done';
 
   return (
@@ -99,7 +99,7 @@ function TaskCard({
             <View style={styles.taskMeta}>
               <Badge label={priority.label} variant={priority.variant} />
               <Text style={styles.taskType}>
-                {typeLabels[task.type] ?? task.type}
+                {typeLabels[task.task_type] ?? task.task_type}
               </Text>
             </View>
           </View>
@@ -130,10 +130,10 @@ function TaskCard({
             </Text>
           </View>
         )}
-        {task.lead?.name && (
+        {task.lead?.full_name && (
           <View style={styles.linkedContact}>
             <Ionicons name="person-outline" size={13} color={colors.textSecondary} />
-            <Text style={styles.linkedContactText}>{task.lead.name}</Text>
+            <Text style={styles.linkedContactText}>{task.lead.full_name}</Text>
           </View>
         )}
       </View>

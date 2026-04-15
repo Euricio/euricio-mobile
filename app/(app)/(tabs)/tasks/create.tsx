@@ -91,7 +91,7 @@ export default function CreateTaskScreen() {
       {
         title: title.trim(),
         description: description.trim() || null,
-        type,
+        task_type: type,
         priority,
         status: 'open',
         due_date: parseDateDE(dueDate),
@@ -176,7 +176,7 @@ export default function CreateTaskScreen() {
                 !selectedLead && styles.placeholder,
               ]}
             >
-              {selectedLead ? selectedLead.name : 'Lead auswählen...'}
+              {selectedLead ? selectedLead.full_name : 'Lead auswählen...'}
             </Text>
             {selectedLead ? (
               <TouchableOpacity
@@ -238,7 +238,7 @@ export default function CreateTaskScreen() {
                   }}
                 >
                   <View>
-                    <Text style={styles.leadOptionName}>{item.name}</Text>
+                    <Text style={styles.leadOptionName}>{item.full_name}</Text>
                     {item.phone && (
                       <Text style={styles.leadOptionPhone}>{item.phone}</Text>
                     )}

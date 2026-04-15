@@ -46,7 +46,7 @@ export default function CreateLeadScreen() {
 
     createLead.mutate(
       {
-        name: name.trim(),
+        full_name: name.trim(),
         email: email.trim() || null,
         phone: phone.trim() || null,
         source: source || null,
