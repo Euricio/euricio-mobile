@@ -23,6 +23,13 @@ export default function AppLayout() {
           animation: 'slide_from_bottom',
         }}
       />
+      <Stack.Screen
+        name="property-media"
+        options={{
+          headerShown: true,
+          animation: 'slide_from_right',
+        }}
+      />
     </Stack>
   );
 }

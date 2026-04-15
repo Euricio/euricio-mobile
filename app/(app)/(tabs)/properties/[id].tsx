@@ -16,6 +16,7 @@ import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useProperty, useDeleteProperty } from '../../../../lib/api/properties';
 import { usePropertyImages } from '../../../../lib/api/propertyImages';
+import { usePropertyDocuments } from '../../../../lib/api/propertyMedia';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
@@ -114,6 +115,7 @@ export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: property, isLoading, refetch, isRefetching } = useProperty(id!);
   const { data: images } = usePropertyImages(id!);
+  const { data: documents } = usePropertyDocuments(id!);
   const deleteProperty = useDeleteProperty();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
@@ -385,6 +387,29 @@ export default function PropertyDetailScreen() {
         </Card>
       )}
 
+      {/* Media Management */}
+      <Card
+        style={styles.section}
+        onPress={() =>
+          router.push(
+            `/(app)/property-media?propertyId=${property.id}&propertyTitle=${encodeURIComponent(property.title)}`,
+          )
+        }
+      >
+        <View style={styles.mediaCardRow}>
+          <View style={styles.mediaCardLeft}>
+            <Ionicons name="images-outline" size={24} color={colors.primary} />
+            <View>
+              <Text style={styles.sectionTitle}>Medien verwalten</Text>
+              <Text style={styles.mediaCardCount}>
+                {images?.length ?? 0} Fotos · {documents?.length ?? 0} Dokumente
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        </View>
+      </Card>
+
       {/* Actions */}
       <View style={styles.actions}>
         <Button
@@ -622,6 +647,22 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textSecondary,
     lineHeight: 22,
+  },
+  // Media card
+  mediaCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  mediaCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  mediaCardCount: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   // Actions
   actions: {
