@@ -131,7 +131,11 @@ export default function LeadsListScreen() {
       )}
 
       {/* FAB */}
-      <TouchableOpacity style={styles.fab} activeOpacity={0.8}>
+      <TouchableOpacity
+        style={styles.fab}
+        activeOpacity={0.8}
+        onPress={() => router.push('/(app)/(tabs)/leads/create')}
+      >
         <Ionicons name="add" size={28} color={colors.white} />
       </TouchableOpacity>
     </View>

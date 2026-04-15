@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export interface Property {
   id: string;
@@ -54,5 +54,23 @@ export function useProperty(id: string) {
       return data as Property;
     },
     enabled: !!id,
+  });
+}
+
+export function useCreateProperty() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (property: Partial<Property>) => {
+      const { data, error } = await supabase
+        .from('properties')
+        .insert(property)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Property;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['properties'] });
+    },
   });
 }

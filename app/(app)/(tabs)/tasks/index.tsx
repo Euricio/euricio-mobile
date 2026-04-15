@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTasks, useCompleteTask, Task } from '../../../../lib/api/tasks';
 import { Card } from '../../../../components/ui/Card';
@@ -20,6 +20,7 @@ import {
   fontSize,
   fontWeight,
   borderRadius,
+  shadow,
 } from '../../../../constants/theme';
 
 const filters = [
@@ -217,6 +218,15 @@ export default function TasksScreen() {
           }
         />
       )}
+
+      {/* FAB */}
+      <TouchableOpacity
+        style={styles.fab}
+        activeOpacity={0.8}
+        onPress={() => router.push('/(app)/(tabs)/tasks/create')}
+      >
+        <Ionicons name="add" size={28} color={colors.white} />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -341,5 +351,17 @@ const styles = StyleSheet.create({
   linkedContactText: {
     fontSize: fontSize.xs,
     color: colors.textSecondary,
+  },
+  fab: {
+    position: 'absolute',
+    right: spacing.md,
+    bottom: spacing.md,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadow.lg,
   },
 });

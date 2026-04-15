@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDashboardStats, useRecentActivity } from '../../../lib/api/dashboard';
+import { useProfile } from '../../../lib/api/profile';
 import { useAuthStore } from '../../../store/authStore';
 import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
@@ -60,6 +61,7 @@ const typeLabels: Record<string, string> = {
 
 export default function DashboardScreen() {
   const user = useAuthStore((s) => s.user);
+  const { data: profile } = useProfile();
   const stats = useDashboardStats();
   const activity = useRecentActivity();
 
@@ -70,7 +72,7 @@ export default function DashboardScreen() {
     activity.refetch();
   };
 
-  const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || '';
+  const userName = profile?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
 
   return (
     <ScrollView
