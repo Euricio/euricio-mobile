@@ -8,6 +8,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/auth/authContext';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
@@ -22,6 +23,7 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const { signIn } = useAuth();
   const { t } = useI18n();
+  const router = useRouter();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -33,6 +35,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await signIn(email.trim(), password);
+      router.replace('/(app)/(tabs)/dashboard');
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : t('login_errorUnknown');
