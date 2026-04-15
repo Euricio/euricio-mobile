@@ -12,6 +12,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: 'light',
   newArchEnabled: true,
 
+  runtimeVersion: {
+    policy: 'appVersion',
+  },
+
+  updates: {
+    url: 'https://u.expo.dev/4ba0629a-d808-4d1d-a26f-5ffe8909c66e',
+  },
+
   splash: {
     image: './assets/splash-icon.png',
     resizeMode: 'contain',
@@ -47,7 +55,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundler: 'metro',
   },
 
-  plugins: ['expo-router', 'expo-secure-store'],
+  plugins: ['expo-router', 'expo-secure-store', 'expo-updates'],
 
   experiments: {
     typedRoutes: true,
