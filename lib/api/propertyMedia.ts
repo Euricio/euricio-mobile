@@ -45,42 +45,51 @@ export const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   other: 'Sonstige',
 };
 
-// ─── Direct Storage Upload via REST API ──────────────────────────────
-// The supabase-js client's .upload() produces 0-byte files in React Native
-// because RN's fetch() doesn't correctly serialize ArrayBuffer/Blob bodies.
-// This function uses FileSystem.uploadAsync which handles binary uploads
-// natively and reliably on iOS/Android.
+// ─── Upload via Edge Function ────────────────────────────────────────
+// React Native's fetch() cannot correctly send binary data (ArrayBuffer,
+// Blob, FormData all produce 0-byte files with supabase-js).
+// Solution: read file as base64, send as JSON to an Edge Function that
+// decodes and uploads server-side. JSON fetch works 100% in RN.
 
-async function uploadToStorage(
+async function uploadViaEdgeFunction(
   bucket: string,
   storagePath: string,
   fileUri: string,
   contentType: string,
-): Promise<void> {
+): Promise<{ size: number }> {
   const session = (await supabase.auth.getSession()).data.session;
   if (!session) throw new Error('Not authenticated');
 
-  const url = `${SUPABASE_URL}/storage/v1/object/${bucket}/${storagePath}`;
-
-  const result = await FileSystem.uploadAsync(url, fileUri, {
-    httpMethod: 'POST',
-    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      'Content-Type': contentType,
-      'cache-control': 'max-age=3600',
-      'x-upsert': 'false',
-    },
+  // Read file as base64 — this always works reliably in RN
+  const base64Data = await FileSystem.readAsStringAsync(fileUri, {
+    encoding: FileSystem.EncodingType.Base64,
   });
 
-  if (result.status < 200 || result.status >= 300) {
-    let msg = `Storage upload failed (${result.status})`;
-    try {
-      const body = JSON.parse(result.body);
-      msg = body.message || body.error || msg;
-    } catch {}
-    throw new Error(msg);
+  if (!base64Data || base64Data.length === 0) {
+    throw new Error('Could not read file');
   }
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/upload-media`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      bucket,
+      path: storagePath,
+      base64Data,
+      contentType,
+    }),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error || `Upload failed (${response.status})`);
+  }
+
+  return { size: result.size ?? 0 };
 }
 
 // ─── Images ──────────────────────────────────────────────────────────
@@ -124,12 +133,13 @@ export function useUploadPropertyImage() {
       const fileName = `${timestamp}-${index}.jpeg`;
       const storagePath = `${propertyId}/${fileName}`;
 
-      // Get file info to record size
-      const fileInfo = await FileSystem.getInfoAsync(uri);
-      const fileSize = fileInfo.exists && 'size' in fileInfo ? fileInfo.size : null;
-
-      // Upload using native FileSystem.uploadAsync (bypasses RN fetch issues)
-      await uploadToStorage('property-images', storagePath, uri, 'image/jpeg');
+      // Upload via Edge Function (sends base64 as JSON — works in RN)
+      const { size } = await uploadViaEdgeFunction(
+        'property-images',
+        storagePath,
+        uri,
+        'image/jpeg',
+      );
 
       const { data, error: insertError } = await supabase
         .from('property_images')
@@ -137,7 +147,7 @@ export function useUploadPropertyImage() {
           property_id: propertyId,
           storage_path: storagePath,
           file_name: fileName,
-          file_size: fileSize,
+          file_size: size,
           uploaded_by: userId,
         })
         .select()
@@ -199,7 +209,6 @@ export function useSetCoverImage() {
       imageId: string;
       propertyId: string | number;
     }) => {
-      // Reset all cover flags for this property
       const { error: resetError } = await supabase
         .from('property_images')
         .update({ is_cover: false })
@@ -207,7 +216,6 @@ export function useSetCoverImage() {
 
       if (resetError) throw resetError;
 
-      // Set new cover
       const { error: setError } = await supabase
         .from('property_images')
         .update({ is_cover: true })
@@ -236,13 +244,12 @@ export function usePropertyDocuments(propertyId: string | number) {
         .order('created_at', { ascending: false });
       if (error) throw error;
 
-      // Get signed URLs for the private bucket
       const docs = data ?? [];
       const withUrls = await Promise.all(
         docs.map(async (doc: any) => {
           const { data: urlData } = await supabase.storage
             .from('property-documents')
-            .createSignedUrl(doc.storage_path, 3600); // 1 hour
+            .createSignedUrl(doc.storage_path, 3600);
           return {
             ...doc,
             signed_url: urlData?.signedUrl ?? undefined,
@@ -279,8 +286,13 @@ export function useUploadPropertyDocument() {
       const timestamp = Date.now();
       const storagePath = `${propertyId}/${timestamp}-${fileName}`;
 
-      // Upload using native FileSystem.uploadAsync (bypasses RN fetch issues)
-      await uploadToStorage('property-documents', storagePath, uri, mimeType);
+      // Upload via Edge Function (sends base64 as JSON — works in RN)
+      const { size } = await uploadViaEdgeFunction(
+        'property-documents',
+        storagePath,
+        uri,
+        mimeType,
+      );
 
       const { data, error: insertError } = await supabase
         .from('property_documents')
@@ -288,7 +300,7 @@ export function useUploadPropertyDocument() {
           property_id: propertyId,
           storage_path: storagePath,
           file_name: fileName,
-          file_size: fileSize,
+          file_size: fileSize ?? size,
           document_type: documentType,
           uploaded_by: userId,
         })
