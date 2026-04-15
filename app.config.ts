@@ -30,6 +30,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supportsTablet: true,
     bundleIdentifier: 'com.euricio.crm',
     infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
       NSMicrophoneUsageDescription:
         'Euricio benötigt Zugriff auf das Mikrofon für Telefonate.',
       UIBackgroundModes: ['voip', 'audio', 'fetch', 'remote-notification'],
