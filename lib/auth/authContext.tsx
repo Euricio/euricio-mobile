@@ -38,14 +38,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = useCallback(
     async (email: string, password: string) => {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+      if (error) {
+        setLoading(false);
+        throw error;
+      }
+      // Set session immediately so isAuthenticated is true before isLoading becomes false
+      if (data.session) {
+        setSession(data.session);
+      }
       setLoading(false);
-      if (error) throw error;
     },
-    [setLoading],
+    [setLoading, setSession],
   );
 
   const signOut = useCallback(async () => {
