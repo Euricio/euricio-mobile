@@ -1,6 +1,5 @@
-import { ExpoConfig, ConfigContext } from 'expo/config';
-
-export default ({ config }: ConfigContext): ExpoConfig => ({
+/** @type {import('expo/config').ExpoConfig} */
+module.exports = ({ config }) => ({
   ...config,
   name: 'Euricio',
   slug: 'euricio',
