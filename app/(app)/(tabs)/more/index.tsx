@@ -14,6 +14,7 @@ import Constants from 'expo-constants';
 import { useAuth } from '../../../../lib/auth/authContext';
 import { useAuthStore } from '../../../../store/authStore';
 import { useTeamSummary } from '../../../../lib/api/hr';
+import { useEmailSettings } from '../../../../lib/api/email';
 import { useVoicePermissions } from '../../../../lib/voice/useVoicePermissions';
 import { useQuery } from '@tanstack/react-query';
 import { fetchVoiceStatus } from '../../../../lib/voice/voiceApi';
@@ -35,6 +36,7 @@ export default function MoreScreen() {
   const user = useAuthStore((s) => s.user);
   const { t, locale, setLocale } = useI18n();
   const { data: teamSummary } = useTeamSummary();
+  const { data: emailSettings } = useEmailSettings();
   const { data: voicePerms } = useVoicePermissions();
   const { data: voiceStatus } = useQuery({
     queryKey: ['voice-status'],
@@ -126,6 +128,32 @@ export default function MoreScreen() {
           <View style={[
             styles.statusDot,
             { backgroundColor: voiceStatus?.connected ? colors.success : colors.textTertiary },
+          ]} />
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        </View>
+      </Card>
+
+      {/* E-Mail Section */}
+      <Text style={styles.sectionHeader}>{t('email_title')}</Text>
+      <Card
+        onPress={() => router.push('/(app)/email/')}
+        style={styles.hrCard}
+      >
+        <View style={styles.hrRow}>
+          <View style={[styles.hrIcon, { backgroundColor: colors.info + '15' }]}>
+            <Ionicons name="mail-outline" size={24} color={colors.info} />
+          </View>
+          <View style={styles.hrInfo}>
+            <Text style={styles.hrTitle}>{t('email_settings')}</Text>
+            <Text style={styles.hrSubtitle}>
+              {emailSettings?.smtp_host
+                ? t('email_configured')
+                : t('email_notConfigured')}
+            </Text>
+          </View>
+          <View style={[
+            styles.statusDot,
+            { backgroundColor: emailSettings?.smtp_host ? colors.success : colors.textTertiary },
           ]} />
           <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
         </View>
