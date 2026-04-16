@@ -1,6 +1,9 @@
 import { supabase } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
+import * as FileSystem from 'expo-file-system';
+
+const SUPABASE_URL = 'https://vddfghfvmnrbotmxhvvi.supabase.co';
 
 export interface SavedClause {
   key: string;
@@ -28,6 +31,7 @@ export interface Contract {
   signature_status: string | null;
   pdf_url: string | null;
   pdf_stored_url: string | null;
+  signed_pdf_url: string | null;
   contract_date: string | null;
   signing_location: string | null;
   created_at: string;
@@ -190,5 +194,128 @@ export function useProperties() {
       return data ?? [];
     },
     enabled: !!user,
+  });
+}
+
+// ─── Signed PDF Upload ──────────────────────────────────────────────
+
+async function uploadViaEdgeFunction(
+  bucket: string,
+  storagePath: string,
+  fileUri: string,
+  contentType: string,
+): Promise<{ size: number }> {
+  const session = (await supabase.auth.getSession()).data.session;
+  if (!session) throw new Error('Not authenticated');
+
+  const base64Data = await FileSystem.readAsStringAsync(fileUri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+
+  if (!base64Data || base64Data.length === 0) {
+    throw new Error('Could not read file');
+  }
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/upload-media`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      bucket,
+      path: storagePath,
+      base64Data,
+      contentType,
+    }),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error || `Upload failed (${response.status})`);
+  }
+
+  return { size: result.size ?? 0 };
+}
+
+export interface SignedPdfUploadParams {
+  contractId: string;
+  fileUris: string[];
+  mode: 'images' | 'pdf';
+}
+
+export function useUploadSignedPdf() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ contractId, fileUris, mode }: SignedPdfUploadParams) => {
+      const userId = useAuthStore.getState().user?.id;
+      if (!userId) throw new Error('Not authenticated');
+
+      const storagePath = `${userId}/contracts/${contractId}/signed.pdf`;
+
+      if (mode === 'pdf') {
+        await uploadViaEdgeFunction(
+          'contract-uploads',
+          storagePath,
+          fileUris[0],
+          'application/pdf',
+        );
+      } else {
+        const session = (await supabase.auth.getSession()).data.session;
+        if (!session) throw new Error('Not authenticated');
+
+        const imagePayloads: { base64Data: string; index: number }[] = [];
+        for (let i = 0; i < fileUris.length; i++) {
+          const base64Data = await FileSystem.readAsStringAsync(fileUris[i], {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          imagePayloads.push({ base64Data, index: i });
+        }
+
+        const response = await fetch(
+          `${SUPABASE_URL}/functions/v1/upload-media`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              bucket: 'contract-uploads',
+              path: storagePath,
+              base64Data: imagePayloads[0].base64Data,
+              contentType: 'image/jpeg',
+              additionalPages: imagePayloads.slice(1).map((p) => p.base64Data),
+            }),
+          },
+        );
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || `Upload failed (${response.status})`);
+        }
+      }
+
+      const { data: urlData } = await supabase.storage
+        .from('contract-uploads')
+        .createSignedUrl(storagePath, 60 * 60 * 24 * 365);
+
+      const signedUrl = urlData?.signedUrl;
+
+      const { error: updateError } = await supabase
+        .from('contracts')
+        .update({ signed_pdf_url: signedUrl ?? storagePath })
+        .eq('id', contractId);
+
+      if (updateError) throw updateError;
+
+      return { url: signedUrl ?? storagePath };
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['contract', variables.contractId] });
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+    },
   });
 }

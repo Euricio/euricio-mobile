@@ -752,6 +752,32 @@ const en: Record<string, string> = {
   email_signatureSent: 'Signature request sent!',
   email_signatureError: 'Could not send signature request.',
   email_signatureNoToken: 'Contract has no signature token. Please prepare the signature in the web CRM.',
+
+  // ─── Signed PDF Upload ────────────────────────────────────────────
+  signedPdf_uploadTitle: 'Upload signed contract',
+  signedPdf_camera: 'Camera',
+  signedPdf_cameraDesc: 'Take photos of pages',
+  signedPdf_gallery: 'Gallery',
+  signedPdf_galleryDesc: 'Pick existing photos',
+  signedPdf_file: 'PDF file',
+  signedPdf_fileDesc: 'Pick existing PDF',
+  signedPdf_pages: 'Pages',
+  signedPdf_addMore: 'Add page',
+  signedPdf_reorder: 'Reorder pages',
+  signedPdf_uploading: 'Uploading...',
+  signedPdf_uploadSuccess: 'Signed contract uploaded successfully!',
+  signedPdf_uploadError: 'Upload failed. Please try again.',
+  signedPdf_replace: 'Replace',
+  signedPdf_replaceConfirm: 'Do you want to replace the existing document?',
+  signedPdf_view: 'View signed contract',
+  signedPdf_share: 'Share',
+  signedPdf_generatedPdf: 'Generated contract',
+  signedPdf_signedPdf: 'Signed contract',
+  signedPdf_noPages: 'No pages added yet',
+  signedPdf_deletePage: 'Remove page',
+  signedPdf_permissionRequired: 'Permission required',
+  signedPdf_cameraPermission: 'Please allow camera access in settings.',
+  signedPdf_galleryPermission: 'Please allow gallery access in settings.',
 };
 
 export default en;
