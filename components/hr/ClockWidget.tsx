@@ -13,7 +13,14 @@ import {
   borderRadius,
 } from '../../constants/theme';
 
-function formatDuration(minutes: number): string {
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return `${h}h ${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`;
+}
+
+function formatDurationShort(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return `${h}h ${m.toString().padStart(2, '0')}m`;
@@ -29,10 +36,10 @@ function useElapsedTimer(startedAt: string | null) {
     }
     const start = new Date(startedAt).getTime();
     const update = () => {
-      setElapsed(Math.floor((Date.now() - start) / 60000));
+      setElapsed(Math.max(0, Math.floor((Date.now() - start) / 1000)));
     };
     update();
-    const interval = setInterval(update, 15000);
+    const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
   }, [startedAt]);
 
@@ -49,11 +56,12 @@ export function ClockWidget() {
   const elapsed = useElapsedTimer(activeEntry?.started_at ?? null);
   const isClockedIn = !!activeEntry;
 
-  // Calculate today's total
+  // Calculate today's total (in minutes for the summary row)
   const completedMinutes = (todayEntries ?? [])
     .filter((e) => e.status === 'completed' && e.duration_minutes)
     .reduce((sum, e) => sum + (e.duration_minutes ?? 0), 0);
-  const totalMinutes = completedMinutes + (isClockedIn ? elapsed : 0);
+  const elapsedMinutes = Math.floor(elapsed / 60);
+  const totalMinutes = completedMinutes + (isClockedIn ? elapsedMinutes : 0);
 
   const handleClockIn = () => {
     clockIn.mutate();
@@ -82,7 +90,7 @@ export function ClockWidget() {
 
       <View style={styles.totalRow}>
         <Text style={styles.totalLabel}>{t('hr_workedToday')}</Text>
-        <Text style={styles.totalValue}>{formatDuration(totalMinutes)}</Text>
+        <Text style={styles.totalValue}>{formatDurationShort(totalMinutes)}</Text>
       </View>
 
       <View style={styles.buttonSection}>
