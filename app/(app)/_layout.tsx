@@ -1,6 +1,23 @@
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
 import { Redirect, Stack } from 'expo-router';
 import { useAuth } from '../../lib/auth/authContext';
 import { LoadingScreen } from '../../components/ui/LoadingScreen';
+import { VoiceProvider } from '../../lib/voice/VoiceContext';
+import { useVoicePermissions } from '../../lib/voice/useVoicePermissions';
+import FloatingDialer from '../../components/voice/FloatingDialer';
+import IncomingCallOverlay from '../../components/voice/IncomingCallOverlay';
+
+function VoiceOverlay() {
+  const { data: perms } = useVoicePermissions();
+  if (!perms?.hasPermission || !perms?.isConnected) return null;
+  return (
+    <>
+      <FloatingDialer />
+      <IncomingCallOverlay />
+    </>
+  );
+}
 
 export default function AppLayout() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -14,28 +31,43 @@ export default function AppLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen
-        name="hr"
-        options={{
-          animation: 'slide_from_right',
-        }}
-      />
-      <Stack.Screen
-        name="call/[id]"
-        options={{
-          presentation: 'fullScreenModal',
-          animation: 'slide_from_bottom',
-        }}
-      />
-      <Stack.Screen
-        name="property-media"
-        options={{
-          headerShown: true,
-          animation: 'slide_from_right',
-        }}
-      />
-    </Stack>
+    <VoiceProvider>
+      <View style={styles.root}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen
+            name="hr"
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="voice"
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="call/[id]"
+            options={{
+              presentation: 'fullScreenModal',
+              animation: 'slide_from_bottom',
+            }}
+          />
+          <Stack.Screen
+            name="property-media"
+            options={{
+              headerShown: true,
+              animation: 'slide_from_right',
+            }}
+          />
+        </Stack>
+        <VoiceOverlay />
+      </View>
+    </VoiceProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});

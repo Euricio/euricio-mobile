@@ -14,6 +14,9 @@ import Constants from 'expo-constants';
 import { useAuth } from '../../../../lib/auth/authContext';
 import { useAuthStore } from '../../../../store/authStore';
 import { useTeamSummary } from '../../../../lib/api/hr';
+import { useVoicePermissions } from '../../../../lib/voice/useVoicePermissions';
+import { useQuery } from '@tanstack/react-query';
+import { fetchVoiceStatus } from '../../../../lib/voice/voiceApi';
 import { Card } from '../../../../components/ui/Card';
 import { Avatar } from '../../../../components/ui/Avatar';
 import { Button } from '../../../../components/ui/Button';
@@ -32,6 +35,13 @@ export default function MoreScreen() {
   const user = useAuthStore((s) => s.user);
   const { t, locale, setLocale } = useI18n();
   const { data: teamSummary } = useTeamSummary();
+  const { data: voicePerms } = useVoicePermissions();
+  const { data: voiceStatus } = useQuery({
+    queryKey: ['voice-status'],
+    queryFn: fetchVoiceStatus,
+    enabled: !!voicePerms?.hasPermission,
+    staleTime: 60_000,
+  });
 
   const handleSignOut = () => {
     Alert.alert(t('settings_logout'), t('settings_logoutConfirm'), [
@@ -97,12 +107,28 @@ export default function MoreScreen() {
 
       {/* Telefonie Section */}
       <Text style={styles.sectionHeader}>{t('settings_telephony')}</Text>
-      <Card>
-        <SettingRow
-          icon="call-outline"
-          label={t('settings_availability')}
-          right={<Switch value={true} trackColor={{ true: colors.success }} />}
-        />
+      <Card
+        onPress={() => router.push('/(app)/voice/')}
+        style={styles.hrCard}
+      >
+        <View style={styles.hrRow}>
+          <View style={[styles.hrIcon, { backgroundColor: colors.success + '15' }]}>
+            <Ionicons name="call-outline" size={24} color={colors.success} />
+          </View>
+          <View style={styles.hrInfo}>
+            <Text style={styles.hrTitle}>{t('settings_telephony')}</Text>
+            <Text style={styles.hrSubtitle}>
+              {voiceStatus?.connected
+                ? t('voice_connected')
+                : t('voice_disconnected')}
+            </Text>
+          </View>
+          <View style={[
+            styles.statusDot,
+            { backgroundColor: voiceStatus?.connected ? colors.success : colors.textTertiary },
+          ]} />
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        </View>
       </Card>
 
       {/* Benachrichtigungen Section */}
@@ -316,5 +342,11 @@ const styles = StyleSheet.create({
   },
   logoutSection: {
     marginTop: spacing.xl,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 4,
   },
 });

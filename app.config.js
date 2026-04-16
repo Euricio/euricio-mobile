@@ -55,7 +55,11 @@ module.exports = ({ config }) => ({
     bundler: 'metro',
   },
 
-  plugins: ['expo-router', 'expo-secure-store', 'expo-updates'],
+  plugins: [
+    'expo-router',
+    'expo-secure-store',
+    'expo-updates',
+  ],
 
   experiments: {
     typedRoutes: true,
