@@ -1,5 +1,11 @@
-import { Voice, Call, CallInvite } from '@twilio/voice-react-native-sdk';
-import { getVoiceAccessToken } from './accessToken';
+/**
+ * Twilio Voice React Native SDK integration.
+ *
+ * The SDK is imported dynamically so the app can still run in Expo Go
+ * (where native modules are unavailable). When running in Expo Go,
+ * the manager enters a "no-native" fallback mode — voice features are
+ * simply hidden and the FAB never appears.
+ */
 
 export type VoiceStatus =
   | 'idle'
@@ -25,24 +31,42 @@ export interface VoiceEvent {
 
 type Listener = (event: VoiceEvent) => void;
 
-/**
- * Singleton that wraps @twilio/voice-react-native-sdk.
- * Manages device registration, call lifecycle, and emits events
- * consumed by useTwilioVoice hook.
- */
+/* ── Lazy SDK references (set after dynamic import) ───────── */
+let TwilioVoice: typeof import('@twilio/voice-react-native-sdk').Voice | null = null;
+let TwilioCall: typeof import('@twilio/voice-react-native-sdk').Call | null = null;
+let sdkAvailable: boolean | null = null; // null = not checked yet
+
+function loadSdkSync(): boolean {
+  if (sdkAvailable !== null) return sdkAvailable;
+  try {
+    // Use require() so Metro can tree-shake in Expo Go where the
+    // native module won't resolve at runtime.
+    const mod = require('@twilio/voice-react-native-sdk');
+    TwilioVoice = mod.Voice;
+    TwilioCall = mod.Call;
+    sdkAvailable = true;
+  } catch {
+    console.log('[VoiceManager] Twilio SDK not available (Expo Go?)');
+    sdkAvailable = false;
+  }
+  return sdkAvailable;
+}
+
+async function loadSdk(): Promise<boolean> {
+  return loadSdkSync();
+}
+
 export class VoiceManager {
   private static instance: VoiceManager;
-  private voice: Voice;
-  private activeCall: Call | null = null;
-  private pendingInvite: CallInvite | null = null;
+  private voice: InstanceType<typeof import('@twilio/voice-react-native-sdk').Voice> | null = null;
+  private activeCall: InstanceType<typeof import('@twilio/voice-react-native-sdk').Call> | null = null;
+  private pendingInvite: InstanceType<typeof import('@twilio/voice-react-native-sdk').CallInvite> | null = null;
   private listeners: Set<Listener> = new Set();
   private registered = false;
   private tokenRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private nativeAvailable = false;
 
-  private constructor() {
-    this.voice = new Voice();
-    this.setupVoiceListeners();
-  }
+  private constructor() {}
 
   static getInstance(): VoiceManager {
     if (!VoiceManager.instance) {
@@ -65,54 +89,58 @@ export class VoiceManager {
   /* ── Voice SDK listeners ───────────────────────────────────── */
 
   private setupVoiceListeners() {
-    this.voice.on(Voice.Event.CallInvite, (invite: CallInvite) => {
+    if (!this.voice || !TwilioVoice) return;
+
+    this.voice.on(TwilioVoice.Event.CallInvite, (invite: any) => {
       this.pendingInvite = invite;
       this.emit({
         type: 'incoming',
         payload: {
-          callSid: invite.getCallSid(),
-          from: invite.getFrom(),
-          to: invite.getTo(),
+          callSid: invite.getCallSid?.() || '',
+          from: invite.getFrom?.() || '',
+          to: invite.getTo?.() || '',
         },
       });
       this.emit({ type: 'status', payload: 'ringing' });
     });
 
-    this.voice.on(Voice.Event.CancelledCallInvite, () => {
+    this.voice.on(TwilioVoice.Event.CancelledCallInvite, () => {
       this.pendingInvite = null;
       this.emit({ type: 'status', payload: 'ready' });
     });
 
-    this.voice.on(Voice.Event.Registered, () => {
+    this.voice.on(TwilioVoice.Event.Registered, () => {
       this.registered = true;
       this.emit({ type: 'status', payload: 'ready' });
     });
 
-    this.voice.on(Voice.Event.Unregistered, () => {
+    this.voice.on(TwilioVoice.Event.Unregistered, () => {
       this.registered = false;
       this.emit({ type: 'status', payload: 'idle' });
     });
   }
 
-  private attachCallListeners(call: Call) {
-    call.on(Call.Event.Connected, () => {
+  private attachCallListeners(call: any) {
+    if (!TwilioCall) return;
+
+    call.on(TwilioCall.Event.Connected, () => {
       this.emit({ type: 'callConnected' });
       this.emit({ type: 'status', payload: 'connected' });
     });
 
-    call.on(Call.Event.Ringing, () => {
+    call.on(TwilioCall.Event.Ringing, () => {
       this.emit({ type: 'callRinging' });
       this.emit({ type: 'status', payload: 'ringing' });
     });
 
-    call.on(Call.Event.Disconnected, () => {
+    call.on(TwilioCall.Event.Disconnected, () => {
       this.activeCall = null;
       this.emit({ type: 'callDisconnected' });
       this.emit({ type: 'status', payload: 'disconnected' });
       setTimeout(() => this.emit({ type: 'status', payload: 'ready' }), 1500);
     });
 
-    call.on(Call.Event.ConnectFailure, (error: unknown) => {
+    call.on(TwilioCall.Event.ConnectFailure, (error: unknown) => {
       this.activeCall = null;
       this.emit({ type: 'error', payload: error });
       this.emit({ type: 'status', payload: 'error' });
@@ -122,7 +150,23 @@ export class VoiceManager {
   /* ── Registration ──────────────────────────────────────────── */
 
   async register(): Promise<void> {
+    // Load SDK on first register attempt
+    const available = await loadSdk();
+    if (!available || !TwilioVoice) {
+      this.nativeAvailable = false;
+      // Silently remain in idle — no error for Expo Go
+      return;
+    }
+
+    this.nativeAvailable = true;
+
+    if (!this.voice) {
+      this.voice = new TwilioVoice();
+      this.setupVoiceListeners();
+    }
+
     try {
+      const { getVoiceAccessToken } = await import('./accessToken');
       const token = await getVoiceAccessToken();
       await this.voice.register(token);
       this.scheduleTokenRefresh();
@@ -133,7 +177,9 @@ export class VoiceManager {
   }
 
   async unregister(): Promise<void> {
+    if (!this.voice || !this.nativeAvailable) return;
     try {
+      const { getVoiceAccessToken } = await import('./accessToken');
       await this.voice.unregister(await getVoiceAccessToken());
       this.registered = false;
       if (this.tokenRefreshTimer) clearTimeout(this.tokenRefreshTimer);
@@ -144,11 +190,13 @@ export class VoiceManager {
 
   private scheduleTokenRefresh() {
     if (this.tokenRefreshTimer) clearTimeout(this.tokenRefreshTimer);
-    // Refresh 5 min before expiry (token TTL = 1 hour → refresh at 55 min)
     this.tokenRefreshTimer = setTimeout(async () => {
       try {
+        const { getVoiceAccessToken } = await import('./accessToken');
         const token = await getVoiceAccessToken();
-        await this.voice.register(token);
+        if (this.voice) {
+          await this.voice.register(token);
+        }
         this.scheduleTokenRefresh();
       } catch {
         /* will retry on next call */
@@ -160,13 +208,18 @@ export class VoiceManager {
     return this.registered;
   }
 
+  isNativeAvailable(): boolean {
+    return this.nativeAvailable;
+  }
+
   /* ── Outbound calls ────────────────────────────────────────── */
 
   async makeCall(to: string): Promise<void> {
-    if (this.activeCall) return;
+    if (!this.nativeAvailable || !this.voice || this.activeCall) return;
     this.emit({ type: 'status', payload: 'connecting' });
 
     try {
+      const { getVoiceAccessToken } = await import('./accessToken');
       const token = await getVoiceAccessToken();
       const call = await this.voice.connect(token, { params: { To: to } });
       this.activeCall = call;
@@ -230,11 +283,11 @@ export class VoiceManager {
     }
   }
 
-  getActiveCall(): Call | null {
+  getActiveCall() {
     return this.activeCall;
   }
 
-  getPendingInvite(): CallInvite | null {
+  getPendingInvite() {
     return this.pendingInvite;
   }
 }
