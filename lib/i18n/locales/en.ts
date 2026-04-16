@@ -807,6 +807,17 @@ const en: Record<string, string> = {
   scanner_permissionRequired: 'Permission required',
   scanner_cameraPermission: 'Please allow camera access in settings.',
   scanner_galleryPermission: 'Please allow gallery access in settings.',
+
+  // ─── Upgrade / Plan-Gating ────────────────────────────────────────
+  upgrade_contracts_title: 'Unlock Contract Generator',
+  upgrade_contracts_description: 'Create, manage and digitally sign contracts directly in the app. Available on Business and Enterprise plans.',
+  upgrade_scanner_title: 'Unlock PDF Scanner',
+  upgrade_scanner_description: 'Scan and digitise signed contracts directly with your smartphone. Available on Business and Enterprise plans.',
+  upgrade_feature_1: 'Create and manage unlimited contracts',
+  upgrade_feature_2: 'PDF scanner for signed documents',
+  upgrade_feature_3: 'Digital signatures and archiving',
+  upgrade_cta: 'Upgrade to Business',
+  upgrade_hint: 'You can change your plan anytime in the web settings.',
 };
 
 export default en;
