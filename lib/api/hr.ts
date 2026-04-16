@@ -4,6 +4,15 @@ import { useAuthStore } from '../../store/authStore';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+export interface TimeCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
 export interface TeamMember {
   id: string;
   full_name: string;
@@ -175,6 +184,23 @@ export function useMyShiftToday() {
   });
 }
 
+// ─── Time Categories ────────────────────────────────────────────────────────
+
+export function useTimeCategories() {
+  return useQuery({
+    queryKey: ['time-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('time_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      return data as TimeCategory[];
+    },
+  });
+}
+
 // ─── Time Entries (Clock In/Out) ─────────────────────────────────────────────
 
 export function useMyActiveTimeEntry() {
@@ -184,13 +210,13 @@ export function useMyActiveTimeEntry() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('time_entries')
-        .select('*')
+        .select('*, category:time_categories(*)')
         .eq('user_id', user!.id)
         .eq('status', 'running')
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return (data as TimeEntry) ?? null;
+      return (data as TimeEntry & { category: TimeCategory | null }) ?? null;
     },
     enabled: !!user?.id,
     refetchInterval: 30000, // Refresh every 30s for timer accuracy
@@ -201,7 +227,7 @@ export function useClockIn() {
   const queryClient = useQueryClient();
   const user = useAuthStore.getState().user;
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (categoryId: string) => {
       const now = new Date().toISOString();
       const today = now.split('T')[0];
       const { data, error } = await supabase
@@ -211,6 +237,7 @@ export function useClockIn() {
           date: today,
           started_at: now,
           status: 'running',
+          category_id: categoryId,
           short_break_minutes: 0,
           lunch_break_minutes: 0,
         })
@@ -263,6 +290,68 @@ export function useClockOut() {
   });
 }
 
+export function useChangeActivity() {
+  const queryClient = useQueryClient();
+  const user = useAuthStore.getState().user;
+  return useMutation({
+    mutationFn: async ({ currentEntryId, newCategoryId }: { currentEntryId: number; newCategoryId: string }) => {
+      const now = new Date();
+      const nowIso = now.toISOString();
+      const today = nowIso.split('T')[0];
+
+      // 1. Fetch the current entry to calculate duration
+      const { data: entry, error: fetchError } = await supabase
+        .from('time_entries')
+        .select('started_at')
+        .eq('id', currentEntryId)
+        .single();
+      if (fetchError) throw fetchError;
+
+      const startedAt = new Date(entry.started_at);
+      const durationMs = now.getTime() - startedAt.getTime();
+      const durationMinutes = Math.round(durationMs / 60000);
+      const totalHours = parseFloat((durationMinutes / 60).toFixed(2));
+
+      // 2. Close the current running entry
+      const { error: closeError } = await supabase
+        .from('time_entries')
+        .update({
+          ended_at: nowIso,
+          status: 'completed',
+          duration_minutes: durationMinutes,
+          total_hours: totalHours,
+        })
+        .eq('id', currentEntryId);
+      if (closeError) throw closeError;
+
+      // 3. Open a new entry with the new category
+      const { data: newEntry, error: insertError } = await supabase
+        .from('time_entries')
+        .insert({
+          user_id: user!.id,
+          date: today,
+          started_at: nowIso,
+          status: 'running',
+          category_id: newCategoryId,
+          short_break_minutes: 0,
+          lunch_break_minutes: 0,
+        })
+        .select()
+        .single();
+      if (insertError) throw insertError;
+
+      return newEntry as TimeEntry;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-active-time-entry'] });
+      queryClient.invalidateQueries({ queryKey: ['my-time-entries-today'] });
+      queryClient.invalidateQueries({ queryKey: ['team-availability'] });
+    },
+  });
+}
+
+export type TimeEntryWithCategory = TimeEntry & { category: TimeCategory | null };
+
 export function useMyTimeEntriesToday() {
   const user = useAuthStore((s) => s.user);
   const today = new Date().toISOString().split('T')[0];
@@ -272,12 +361,12 @@ export function useMyTimeEntriesToday() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('time_entries')
-        .select('*')
+        .select('*, category:time_categories(*)')
         .eq('user_id', user!.id)
         .eq('date', today)
         .order('started_at', { ascending: true });
       if (error) throw error;
-      return (data ?? []) as TimeEntry[];
+      return (data ?? []) as TimeEntryWithCategory[];
     },
     enabled: !!user?.id,
   });

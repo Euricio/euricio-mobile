@@ -489,6 +489,14 @@ const es: Record<string, string> = {
   hr_overdueTeamTasks: 'Tareas vencidas del equipo',
   hr_teamSummary: 'Equipo',
 
+  // Activity Tracking
+  hr_selectActivity: 'Seleccionar actividad',
+  hr_changeActivity: 'Cambiar actividad',
+  hr_currentActivity: 'Actividad actual',
+  hr_todayTimeline: 'Hoy',
+  hr_noEntriesToday: 'Sin registros hoy',
+  hr_addNote: 'Añadir nota',
+
   // Member Detail
   hr_memberDetail: 'Miembro',
   hr_position: 'Puesto',

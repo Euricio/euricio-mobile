@@ -10,7 +10,7 @@ import {
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../../store/authStore';
-import { useMyShiftToday, useTeamSummary } from '../../../lib/api/hr';
+import { useMyShiftToday, useTeamSummary, useMyTimeEntriesToday, TimeEntryWithCategory } from '../../../lib/api/hr';
 import { useTasks, Task } from '../../../lib/api/tasks';
 import { useProfile } from '../../../lib/api/profile';
 import { ClockWidget } from '../../../components/hr/ClockWidget';
@@ -33,6 +33,7 @@ export default function HRHomeScreen() {
   const { data: shiftInfo, refetch: refetchShift } = useMyShiftToday();
   const { data: tasks, refetch: refetchTasks } = useTasks();
   const { data: summary, refetch: refetchSummary } = useTeamSummary();
+  const { data: todayEntries = [], refetch: refetchEntries } = useMyTimeEntriesToday();
 
   const isManager = profile?.role === 'admin' || profile?.role === 'manager_agent';
 
@@ -45,6 +46,7 @@ export default function HRHomeScreen() {
     refetchShift();
     refetchTasks();
     refetchSummary();
+    refetchEntries();
   };
 
   return (
@@ -64,6 +66,51 @@ export default function HRHomeScreen() {
 
       {/* Clock In/Out Widget */}
       <ClockWidget />
+
+      {/* Today's Activity Timeline */}
+      {todayEntries.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>{t('hr_todayTimeline')}</Text>
+          <Card padded={false} style={styles.timelineCard}>
+            {todayEntries.map((entry: TimeEntryWithCategory, index: number) => {
+              const catColor = entry.category?.color ?? colors.textTertiary;
+              const catName = entry.category?.name ?? '—';
+              const startTime = entry.started_at
+                ? new Date(entry.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : '';
+              const endTime = entry.ended_at
+                ? new Date(entry.ended_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : '...';
+              const durationMin = entry.duration_minutes ?? 0;
+              const durationLabel = entry.status === 'running'
+                ? '...'
+                : `${Math.floor(durationMin / 60)}h ${(durationMin % 60).toString().padStart(2, '0')}m`;
+
+              return (
+                <View
+                  key={entry.id}
+                  style={[
+                    styles.timelineItem,
+                    index < todayEntries.length - 1 && styles.timelineBorder,
+                  ]}
+                >
+                  <View style={[styles.timelineBar, { backgroundColor: catColor }]} />
+                  <View style={styles.timelineContent}>
+                    <Text style={[styles.timelineCatName, { color: catColor }]}>{catName}</Text>
+                    <Text style={styles.timelineTime}>
+                      {startTime} – {endTime}
+                      {entry.status === 'completed' && `  (${durationLabel})`}
+                    </Text>
+                  </View>
+                  {entry.status === 'running' && (
+                    <View style={[styles.runningDot, { backgroundColor: catColor }]} />
+                  )}
+                </View>
+              );
+            })}
+          </Card>
+        </>
+      )}
 
       {/* Today's Shift Info */}
       {shiftInfo && (
@@ -198,6 +245,42 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textSecondary,
     marginBottom: spacing.md,
+  },
+  timelineCard: {
+    marginBottom: spacing.md,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+  },
+  timelineBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  timelineBar: {
+    width: 4,
+    height: 32,
+    borderRadius: 2,
+    marginRight: spacing.sm + 4,
+  },
+  timelineContent: {
+    flex: 1,
+  },
+  timelineCatName: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+  },
+  timelineTime: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  runningDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   shiftCard: {
     marginBottom: spacing.md,
