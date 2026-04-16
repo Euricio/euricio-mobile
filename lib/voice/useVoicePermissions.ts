@@ -13,7 +13,7 @@ async function checkVoicePermission(userId: string): Promise<VoicePermission> {
     .from('voice_user_permissions')
     .select('id, user_id')
     .eq('user_id', userId)
-    .eq('enabled', true)
+    .eq('voice_enabled', true)
     .maybeSingle();
 
   if (!perm) return { hasPermission: false, isConnected: false };
@@ -34,7 +34,7 @@ async function checkVoicePermission(userId: string): Promise<VoicePermission> {
   const { data: conn } = await supabase
     .from('voice_connections')
     .select('id')
-    .eq('user_id', ownerId)
+    .eq('owner_id', ownerId)
     .maybeSingle();
 
   return { hasPermission: true, isConnected: !!conn };
