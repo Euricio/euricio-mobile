@@ -79,6 +79,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="contracts"
+        options={{
+          title: t('contracts_title'),
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="document-text-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="more"
         options={{
           title: t('tab_more'),
