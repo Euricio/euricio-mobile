@@ -300,6 +300,18 @@ export default function ContractDetailScreen() {
         onUploadComplete={() => refetch()}
       />
 
+      {/* Open standalone scanner */}
+      {!contract.signed_pdf_url && (
+        <TouchableOpacity
+          style={styles.scannerLink}
+          onPress={() => router.push('/(app)/scanner')}
+        >
+          <Ionicons name="scan-outline" size={18} color={colors.primary} />
+          <Text style={styles.scannerLinkText}>{t('signedPdf_openScanner')}</Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+        </TouchableOpacity>
+      )}
+
       {/* Client Info */}
       <Card style={styles.section}>
         <Text style={styles.sectionTitle}>{t('contract_sectionClient')}</Text>
@@ -562,6 +574,23 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.textSecondary,
     lineHeight: 18,
+  },
+  scannerLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+  },
+  scannerLinkText: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.primary,
   },
   deleteContainer: {
     marginTop: spacing.lg,
