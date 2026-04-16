@@ -249,6 +249,7 @@ export function useClockIn() {
           short_break_minutes: 0,
           lunch_break_minutes: 0,
           start_time_text: localTimeText(),
+          break_mode: 'work',
         })
         .select()
         .single();
@@ -288,6 +289,7 @@ export function useClockOut() {
           duration_minutes: durationMinutes,
           total_hours: totalHours,
           end_time_text: localTimeText(),
+          break_mode: 'work',
         })
         .eq('id', entryId);
       if (error) throw error;
@@ -331,6 +333,7 @@ export function useChangeActivity() {
           duration_minutes: durationMinutes,
           total_hours: totalHours,
           end_time_text: localTimeText(),
+          break_mode: 'work',
         })
         .eq('id', currentEntryId);
       if (closeError) throw closeError;
@@ -347,6 +350,7 @@ export function useChangeActivity() {
           short_break_minutes: 0,
           lunch_break_minutes: 0,
           start_time_text: localTimeText(),
+          break_mode: 'work',
         })
         .select()
         .single();
