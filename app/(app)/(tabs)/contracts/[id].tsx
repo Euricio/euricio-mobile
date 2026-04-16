@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -16,11 +16,18 @@ import {
   useDeleteContract,
   useGeneratePdf,
 } from '../../../../lib/api/contracts';
+import {
+  useSendContractEmail,
+  useSendSignatureRequest,
+  useEmailSettings,
+  EmailNotConfiguredError,
+} from '../../../../lib/api/email';
 import { CONTRACT_TYPE_CONFIG } from '../../../../lib/contracts/config';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
 import { Button } from '../../../../components/ui/Button';
+import { SendContractSheet } from '../../../../components/email/SendContractSheet';
 import {
   colors,
   spacing,
@@ -29,6 +36,7 @@ import {
   borderRadius,
 } from '../../../../constants/theme';
 import { useI18n } from '../../../../lib/i18n';
+import type { Locale } from '../../../../lib/i18n';
 
 function getStatusBadge(
   status: string,
@@ -52,6 +60,10 @@ export default function ContractDetailScreen() {
   const { data: contract, isLoading, refetch, isRefetching } = useContract(id!);
   const deleteContract = useDeleteContract();
   const generatePdf = useGeneratePdf();
+  const sendContractEmail = useSendContractEmail();
+  const sendSignatureRequest = useSendSignatureRequest();
+  const { data: emailSettings } = useEmailSettings();
+  const [showSendSheet, setShowSendSheet] = useState(false);
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -109,6 +121,76 @@ export default function ContractDetailScreen() {
             onSuccess: () => router.back(),
             onError: () => Alert.alert(t('error'), t('contracts_deleteError')),
           });
+        },
+      },
+    ]);
+  };
+
+  const handleSendEmail = () => {
+    if (!emailSettings?.smtp_host) {
+      Alert.alert(t('error'), t('email_smtpNotConfigured'));
+      return;
+    }
+    if (!contract.client_email) {
+      Alert.alert(t('error'), t('email_noClientEmail'));
+      return;
+    }
+    setShowSendSheet(true);
+  };
+
+  const handleSendContractEmail = (email: string, language: Locale) => {
+    sendContractEmail.mutate(
+      {
+        contractId: contract.id,
+        recipientEmail: email,
+        language,
+      },
+      {
+        onSuccess: () => {
+          setShowSendSheet(false);
+          Alert.alert(t('email_sent'));
+        },
+        onError: (error) => {
+          if (error instanceof EmailNotConfiguredError) {
+            Alert.alert(t('error'), t('email_smtpNotConfigured'));
+          } else {
+            Alert.alert(t('error'), t('email_sendError'));
+          }
+        },
+      },
+    );
+  };
+
+  const handleSendSignature = () => {
+    if (!emailSettings?.smtp_host) {
+      Alert.alert(t('error'), t('email_smtpNotConfigured'));
+      return;
+    }
+    if (!contract.signature_status && !contract.client_email) {
+      Alert.alert(t('error'), t('email_signatureNoToken'));
+      return;
+    }
+
+    Alert.alert(t('email_sendSignature'), t('email_sendSignature'), [
+      { text: t('cancel'), style: 'cancel' },
+      {
+        text: t('email_send'),
+        onPress: () => {
+          sendSignatureRequest.mutate(
+            {
+              contractId: contract.id,
+              signerIds: [],
+            },
+            {
+              onSuccess: () => {
+                Alert.alert(t('email_signatureSent'));
+                refetch();
+              },
+              onError: () => {
+                Alert.alert(t('error'), t('email_signatureError'));
+              },
+            },
+          );
         },
       },
     ]);
@@ -180,6 +262,34 @@ export default function ContractDetailScreen() {
             disabled={generatePdf.isPending}
           />
         )}
+      </View>
+
+      {/* Email Actions */}
+      <View style={styles.emailActions}>
+        <Button
+          title={t('email_sendContract')}
+          onPress={handleSendEmail}
+          variant="outline"
+          icon={
+            <Ionicons name="mail-outline" size={16} color={colors.primary} />
+          }
+          style={styles.emailBtn}
+        />
+        <Button
+          title={t('email_sendSignature')}
+          onPress={handleSendSignature}
+          variant="ghost"
+          loading={sendSignatureRequest.isPending}
+          disabled={sendSignatureRequest.isPending}
+          icon={
+            <Ionicons
+              name="create-outline"
+              size={16}
+              color={colors.primary}
+            />
+          }
+          style={styles.emailBtn}
+        />
       </View>
 
       {/* Client Info */}
@@ -293,6 +403,15 @@ export default function ContractDetailScreen() {
           disabled={deleteContract.isPending}
         />
       </View>
+
+      {/* Send Email Bottom Sheet */}
+      <SendContractSheet
+        visible={showSendSheet}
+        onClose={() => setShowSendSheet(false)}
+        onSend={handleSendContractEmail}
+        defaultEmail={contract.client_email || ''}
+        loading={sendContractEmail.isPending}
+      />
     </ScrollView>
   );
 }
@@ -368,6 +487,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     marginBottom: spacing.md,
+  },
+  emailActions: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  emailBtn: {
+    flex: 1,
   },
   section: {
     marginHorizontal: spacing.md,
