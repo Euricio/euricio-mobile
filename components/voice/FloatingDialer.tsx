@@ -203,11 +203,11 @@ const DIGIT_SIZE = Math.min((width - 120) / 3, 72);
 const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
-    bottom: 100,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    bottom: 160,
+    right: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.success,
     alignItems: 'center',
     justifyContent: 'center',
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   },
   miniCallCard: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 160,
     right: 16,
     left: 16,
     flexDirection: 'row',
