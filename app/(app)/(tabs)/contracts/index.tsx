@@ -16,6 +16,9 @@ import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { EmptyState } from '../../../../components/ui/EmptyState';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
+import { UpgradePrompt } from '../../../../components/UpgradePrompt';
+import { useProfile } from '../../../../lib/api/profile';
+import { canAccessPdfTools } from '../../../../lib/planAccess';
 import {
   colors,
   spacing,
@@ -88,10 +91,28 @@ function ContractCard({ contract }: { contract: Contract }) {
 
 export default function ContractsListScreen() {
   const { t } = useI18n();
+  const { data: profile } = useProfile();
+  const hasAccess = canAccessPdfTools(profile);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ContractStatus | 'all'>('all');
   const activeStatus = statusFilter === 'all' ? undefined : statusFilter;
   const { data: contracts, isLoading, refetch, isRefetching } = useContracts(activeStatus, search);
+
+  if (!hasAccess) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen
+          options={{
+            headerTitle: t('contracts_title'),
+            headerShown: true,
+            headerStyle: { backgroundColor: colors.surface },
+            headerShadowVisible: false,
+          }}
+        />
+        <UpgradePrompt feature="contracts" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

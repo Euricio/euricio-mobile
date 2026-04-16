@@ -807,6 +807,17 @@ const es: Record<string, string> = {
   scanner_permissionRequired: 'Permiso requerido',
   scanner_cameraPermission: 'Permita el acceso a la cámara en los ajustes.',
   scanner_galleryPermission: 'Permita el acceso a la galería en los ajustes.',
+
+  // ─── Upgrade / Plan-Gating ────────────────────────────────────────
+  upgrade_contracts_title: 'Desbloquear generador de contratos',
+  upgrade_contracts_description: 'Cree, gestione y firme contratos digitalmente desde la app. Disponible en los planes Business y Enterprise.',
+  upgrade_scanner_title: 'Desbloquear escáner PDF',
+  upgrade_scanner_description: 'Escanee y digitalice contratos firmados directamente con su smartphone. Disponible en los planes Business y Enterprise.',
+  upgrade_feature_1: 'Crear y gestionar contratos ilimitados',
+  upgrade_feature_2: 'Escáner PDF para documentos firmados',
+  upgrade_feature_3: 'Firmas digitales y archivado',
+  upgrade_cta: 'Actualizar a Business',
+  upgrade_hint: 'Puede cambiar su plan en cualquier momento en la configuración web.',
 };
 
 export default es;
