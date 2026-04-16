@@ -226,7 +226,7 @@ export function useMyActiveTimeEntry() {
       return (data as TimeEntry & { category: TimeCategory | null }) ?? null;
     },
     enabled: !!user?.id,
-    refetchInterval: 30000, // Refresh every 30s for timer accuracy
+    refetchInterval: 5000, // Refresh every 5s for web/app sync
   });
 }
 
@@ -380,6 +380,7 @@ export function useMyTimeEntriesToday() {
       return (data ?? []) as TimeEntryWithCategory[];
     },
     enabled: !!user?.id,
+    refetchInterval: 10000, // Refresh every 10s for web/app sync
   });
 }
 
