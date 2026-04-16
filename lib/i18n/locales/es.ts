@@ -752,6 +752,32 @@ const es: Record<string, string> = {
   email_signatureSent: 'Solicitud de firma enviada.',
   email_signatureError: 'No se pudo enviar la solicitud de firma.',
   email_signatureNoToken: 'El contrato no tiene token de firma. Prepare la firma en el CRM web.',
+
+  // ─── Signed PDF Upload ────────────────────────────────────────────
+  signedPdf_uploadTitle: 'Subir contrato firmado',
+  signedPdf_camera: 'Cámara',
+  signedPdf_cameraDesc: 'Fotografiar páginas',
+  signedPdf_gallery: 'Galería',
+  signedPdf_galleryDesc: 'Seleccionar fotos existentes',
+  signedPdf_file: 'Archivo PDF',
+  signedPdf_fileDesc: 'Seleccionar PDF existente',
+  signedPdf_pages: 'Páginas',
+  signedPdf_addMore: 'Añadir página',
+  signedPdf_reorder: 'Reordenar páginas',
+  signedPdf_uploading: 'Subiendo...',
+  signedPdf_uploadSuccess: 'Contrato firmado subido correctamente.',
+  signedPdf_uploadError: 'Error al subir. Inténtelo de nuevo.',
+  signedPdf_replace: 'Reemplazar',
+  signedPdf_replaceConfirm: '¿Desea reemplazar el documento existente?',
+  signedPdf_view: 'Ver contrato firmado',
+  signedPdf_share: 'Compartir',
+  signedPdf_generatedPdf: 'Contrato generado',
+  signedPdf_signedPdf: 'Contrato firmado',
+  signedPdf_noPages: 'Aún no se han añadido páginas',
+  signedPdf_deletePage: 'Eliminar página',
+  signedPdf_permissionRequired: 'Permiso requerido',
+  signedPdf_cameraPermission: 'Permita el acceso a la cámara en los ajustes.',
+  signedPdf_galleryPermission: 'Permita el acceso a la galería en los ajustes.',
 };
 
 export default es;

@@ -758,6 +758,32 @@ const de: Record<string, string> = {
   email_signatureSent: 'Unterschriftsanfrage gesendet!',
   email_signatureError: 'Unterschriftsanfrage konnte nicht gesendet werden.',
   email_signatureNoToken: 'Vertrag hat kein Signatur-Token. Bitte bereiten Sie die Signatur im Web-CRM vor.',
+
+  // ─── Signed PDF Upload ────────────────────────────────────────────
+  signedPdf_uploadTitle: 'Unterschriebenen Vertrag hochladen',
+  signedPdf_camera: 'Kamera',
+  signedPdf_cameraDesc: 'Seiten abfotografieren',
+  signedPdf_gallery: 'Galerie',
+  signedPdf_galleryDesc: 'Fotos auswählen',
+  signedPdf_file: 'PDF-Datei',
+  signedPdf_fileDesc: 'Vorhandene PDF auswählen',
+  signedPdf_pages: 'Seiten',
+  signedPdf_addMore: 'Weitere Seite',
+  signedPdf_reorder: 'Seiten sortieren',
+  signedPdf_uploading: 'Wird hochgeladen...',
+  signedPdf_uploadSuccess: 'Unterschriebener Vertrag erfolgreich hochgeladen!',
+  signedPdf_uploadError: 'Upload fehlgeschlagen. Bitte versuchen Sie es erneut.',
+  signedPdf_replace: 'Ersetzen',
+  signedPdf_replaceConfirm: 'Möchten Sie das vorhandene Dokument ersetzen?',
+  signedPdf_view: 'Unterschriebenen Vertrag anzeigen',
+  signedPdf_share: 'Teilen',
+  signedPdf_generatedPdf: 'Generierter Vertrag',
+  signedPdf_signedPdf: 'Unterschriebener Vertrag',
+  signedPdf_noPages: 'Noch keine Seiten hinzugefügt',
+  signedPdf_deletePage: 'Seite entfernen',
+  signedPdf_permissionRequired: 'Berechtigung erforderlich',
+  signedPdf_cameraPermission: 'Bitte erlauben Sie den Kamerazugriff in den Einstellungen.',
+  signedPdf_galleryPermission: 'Bitte erlauben Sie den Zugriff auf die Galerie in den Einstellungen.',
 };
 
 export default de;

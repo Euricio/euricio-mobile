@@ -28,6 +28,7 @@ import { Badge } from '../../../../components/ui/Badge';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
 import { Button } from '../../../../components/ui/Button';
 import { SendContractSheet } from '../../../../components/email/SendContractSheet';
+import { SignedPdfUpload } from '../../../../components/contracts/SignedPdfUpload';
 import {
   colors,
   spacing,
@@ -245,11 +246,11 @@ export default function ContractDetailScreen() {
         </Text>
       </View>
 
-      {/* PDF Actions */}
+      {/* PDF Actions — Generated Contract */}
       <View style={styles.pdfActions}>
         {hasPdf ? (
           <Button
-            title={t('contract_viewPdf')}
+            title={`${t('signedPdf_generatedPdf')} — ${t('contract_viewPdf')}`}
             icon="document-outline"
             onPress={handleViewPdf}
           />
@@ -291,6 +292,13 @@ export default function ContractDetailScreen() {
           style={styles.emailBtn}
         />
       </View>
+
+      {/* Signed PDF Upload */}
+      <SignedPdfUpload
+        contractId={contract.id}
+        signedPdfUrl={contract.signed_pdf_url}
+        onUploadComplete={() => refetch()}
+      />
 
       {/* Client Info */}
       <Card style={styles.section}>
