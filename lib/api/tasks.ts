@@ -16,6 +16,7 @@ export interface Task {
   created_at: string;
   updated_at: string;
   lead?: { id: string; full_name: string } | null;
+  assigned?: { id: string; full_name: string } | null;
 }
 
 export function useTasks(statusFilter?: string) {
@@ -24,7 +25,7 @@ export function useTasks(statusFilter?: string) {
     queryFn: async () => {
       let query = supabase
         .from('tasks')
-        .select('*, lead:leads(id, full_name)')
+        .select('*, lead:leads(id, full_name), assigned:profiles!tasks_assigned_to_fkey(id, full_name)')
         .order('due_date', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: false })
         .limit(50);
@@ -46,7 +47,7 @@ export function useTask(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tasks')
-        .select('*, lead:leads(id, full_name)')
+        .select('*, lead:leads(id, full_name), assigned:profiles!tasks_assigned_to_fkey(id, full_name)')
         .eq('id', id)
         .single();
       if (error) throw error;
@@ -88,6 +89,44 @@ export function useCreateTask() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    },
+  });
+}
+
+export function useUpdateTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Task> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Task;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task', data.id] });
+      queryClient.invalidateQueries({ queryKey: ['team-tasks'] });
+    },
+  });
+}
+
+export function useAssignTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ taskId, assignedTo }: { taskId: string; assignedTo: string | null }) => {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ assigned_to: assignedTo })
+        .eq('id', taskId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['team-tasks'] });
     },
   });
 }

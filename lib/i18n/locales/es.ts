@@ -400,6 +400,104 @@ const es: Record<string, string> = {
   media_deleteDocError: 'No se pudo eliminar el documento.',
   media_photoCount: '{count} fotos',
   media_docCount: '{count} documentos',
+
+  // ─── HR Module ─────────────────────────────────────────────────────
+  // Navigation
+  hr_title: 'Personal',
+  hr_personal: 'Personal',
+  hr_team: 'Equipo',
+  hr_teamTitle: 'Equipo',
+  hr_requests: 'Solicitudes',
+  hr_manageRequests: 'Gestionar solicitudes',
+  hr_myDay: 'Mi jornada',
+  hr_workday: 'Jornada laboral',
+
+  // Clock
+  hr_clockIn: 'Fichar entrada',
+  hr_clockOut: 'Fichar salida',
+  hr_clockedInSince: 'Fichado desde',
+  hr_workedToday: 'Trabajado hoy',
+  hr_totalHours: 'Horas totales',
+  hr_break: 'Descanso',
+
+  // Shift
+  hr_todayShift: 'Turno de hoy',
+  hr_noShiftToday: 'Sin turno hoy',
+  hr_shiftTime: 'Horario del turno',
+  hr_location: 'Ubicación',
+  hr_plannedShift: 'Turno planificado',
+
+  // Team
+  hr_teamEmpty: 'No se encontraron miembros del equipo',
+  hr_available: 'Disponible',
+  hr_onShift: 'En turno',
+  hr_onVacation: 'De vacaciones',
+  hr_absent: 'Ausente',
+  hr_offline: 'Desconectado',
+  hr_teamMembers: '{count} miembros del equipo',
+
+  // Vacation
+  hr_vacation: 'Vacaciones',
+  hr_vacationBalance: 'Saldo de vacaciones',
+  hr_daysRemaining: 'Días restantes',
+  hr_daysUsed: 'Días usados',
+  hr_daysTotal: 'Días totales',
+  hr_requestVacation: 'Solicitar vacaciones',
+  hr_startDate: 'Fecha de inicio',
+  hr_endDate: 'Fecha de fin',
+  hr_daysCount: 'Días',
+  hr_vacationNotes: 'Observaciones',
+  hr_noVacationRequests: 'Sin solicitudes de vacaciones',
+
+  // Shift Requests
+  hr_shiftRequest: 'Solicitudes de turno',
+  hr_requestShiftChange: 'Solicitar cambio de turno',
+  hr_shiftDate: 'Fecha del turno',
+  hr_preferredStart: 'Inicio preferido',
+  hr_preferredEnd: 'Fin preferido',
+  hr_noShiftRequests: 'Sin solicitudes de turno',
+
+  // Status
+  hr_pending: 'Pendiente',
+  hr_approved: 'Aprobada',
+  hr_rejected: 'Rechazada',
+  hr_reviewedBy: 'Revisado por',
+  hr_reviewedAt: 'Revisado el',
+  hr_rejectionReason: 'Motivo de rechazo',
+  hr_requestError: 'No se pudo crear la solicitud. Inténtelo de nuevo.',
+
+  // Manager
+  hr_approve: 'Aprobar',
+  hr_reject: 'Rechazar',
+  hr_enterRejectionReason: 'Introduzca el motivo del rechazo',
+  hr_noPendingRequests: 'Sin solicitudes pendientes',
+  hr_pendingCount: '{count} pendientes',
+
+  // Tasks
+  hr_assignedTo: 'Asignar a',
+  hr_unassigned: 'Sin asignar',
+  hr_myTasks: 'Mías',
+  hr_allTasks: 'Todas',
+  hr_teamTasks: 'Tareas del equipo',
+  hr_assignTask: 'Asignar tarea',
+  hr_selectMember: 'Seleccionar miembro',
+  hr_noAssignee: 'Sin asignar',
+
+  // Dashboard
+  hr_teamOnShift: 'En turno',
+  hr_pendingApprovals: 'Solicitudes pendientes',
+  hr_overdueTeamTasks: 'Tareas vencidas del equipo',
+  hr_teamSummary: 'Equipo',
+
+  // Member Detail
+  hr_memberDetail: 'Miembro',
+  hr_position: 'Puesto',
+  hr_role: 'Rol',
+  hr_phone: 'Teléfono',
+  hr_email: 'Correo',
+  hr_assignedTasks: 'Tareas asignadas',
+  hr_currentShift: 'Turno actual',
+  hr_nextShift: 'Próximo turno',
 };
 
 export default es;

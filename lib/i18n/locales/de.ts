@@ -400,6 +400,104 @@ const de: Record<string, string> = {
   media_deleteDocError: 'Dokument konnte nicht gelöscht werden.',
   media_photoCount: '{count} Fotos',
   media_docCount: '{count} Dokumente',
+
+  // ─── HR Module ─────────────────────────────────────────────────────
+  // Navigation
+  hr_title: 'Personal',
+  hr_personal: 'Personal',
+  hr_team: 'Team',
+  hr_teamTitle: 'Team',
+  hr_requests: 'Anfragen',
+  hr_manageRequests: 'Anfragen verwalten',
+  hr_myDay: 'Mein Arbeitstag',
+  hr_workday: 'Arbeitstag',
+
+  // Clock
+  hr_clockIn: 'Einstempeln',
+  hr_clockOut: 'Ausstempeln',
+  hr_clockedInSince: 'Eingestempelt seit',
+  hr_workedToday: 'Heute gearbeitet',
+  hr_totalHours: 'Gesamtstunden',
+  hr_break: 'Pause',
+
+  // Shift
+  hr_todayShift: 'Heutige Schicht',
+  hr_noShiftToday: 'Keine Schicht heute',
+  hr_shiftTime: 'Schichtzeit',
+  hr_location: 'Standort',
+  hr_plannedShift: 'Geplante Schicht',
+
+  // Team
+  hr_teamEmpty: 'Keine Teammitglieder gefunden',
+  hr_available: 'Verfügbar',
+  hr_onShift: 'Im Dienst',
+  hr_onVacation: 'Im Urlaub',
+  hr_absent: 'Abwesend',
+  hr_offline: 'Offline',
+  hr_teamMembers: '{count} Teammitglieder',
+
+  // Vacation
+  hr_vacation: 'Urlaub',
+  hr_vacationBalance: 'Urlaubskonto',
+  hr_daysRemaining: 'Tage übrig',
+  hr_daysUsed: 'Tage genutzt',
+  hr_daysTotal: 'Tage gesamt',
+  hr_requestVacation: 'Urlaub beantragen',
+  hr_startDate: 'Startdatum',
+  hr_endDate: 'Enddatum',
+  hr_daysCount: 'Tage',
+  hr_vacationNotes: 'Anmerkungen',
+  hr_noVacationRequests: 'Keine Urlaubsanträge',
+
+  // Shift Requests
+  hr_shiftRequest: 'Schichtanfragen',
+  hr_requestShiftChange: 'Schichtwechsel beantragen',
+  hr_shiftDate: 'Schichtdatum',
+  hr_preferredStart: 'Gewünschter Beginn',
+  hr_preferredEnd: 'Gewünschtes Ende',
+  hr_noShiftRequests: 'Keine Schichtanfragen',
+
+  // Status
+  hr_pending: 'Ausstehend',
+  hr_approved: 'Genehmigt',
+  hr_rejected: 'Abgelehnt',
+  hr_reviewedBy: 'Geprüft von',
+  hr_reviewedAt: 'Geprüft am',
+  hr_rejectionReason: 'Ablehnungsgrund',
+  hr_requestError: 'Anfrage konnte nicht erstellt werden. Bitte versuchen Sie es erneut.',
+
+  // Manager
+  hr_approve: 'Genehmigen',
+  hr_reject: 'Ablehnen',
+  hr_enterRejectionReason: 'Bitte Ablehnungsgrund eingeben',
+  hr_noPendingRequests: 'Keine ausstehenden Anfragen',
+  hr_pendingCount: '{count} ausstehend',
+
+  // Tasks
+  hr_assignedTo: 'Zuweisen an',
+  hr_unassigned: 'Ohne Zuweisung',
+  hr_myTasks: 'Meine',
+  hr_allTasks: 'Alle',
+  hr_teamTasks: 'Team-Aufgaben',
+  hr_assignTask: 'Aufgabe zuweisen',
+  hr_selectMember: 'Mitarbeiter auswählen',
+  hr_noAssignee: 'Nicht zugewiesen',
+
+  // Dashboard
+  hr_teamOnShift: 'Im Dienst',
+  hr_pendingApprovals: 'Offene Anfragen',
+  hr_overdueTeamTasks: 'Überfällige Team-Aufgaben',
+  hr_teamSummary: 'Team',
+
+  // Member Detail
+  hr_memberDetail: 'Mitarbeiter',
+  hr_position: 'Position',
+  hr_role: 'Rolle',
+  hr_phone: 'Telefon',
+  hr_email: 'E-Mail',
+  hr_assignedTasks: 'Zugewiesene Aufgaben',
+  hr_currentShift: 'Aktuelle Schicht',
+  hr_nextShift: 'Nächste Schicht',
 };
 
 export default de;

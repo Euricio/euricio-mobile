@@ -12,8 +12,10 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDashboardStats, useRecentActivity } from '../../../lib/api/dashboard';
 import { useProfile } from '../../../lib/api/profile';
+import { useTeamSummary, useTeamAvailability } from '../../../lib/api/hr';
 import { useAuthStore } from '../../../store/authStore';
 import { Card } from '../../../components/ui/Card';
+import { Avatar } from '../../../components/ui/Avatar';
 import { Badge } from '../../../components/ui/Badge';
 import {
   colors,
@@ -58,6 +60,10 @@ export default function DashboardScreen() {
   const { data: profile } = useProfile();
   const stats = useDashboardStats();
   const activity = useRecentActivity();
+  const { data: teamSummary } = useTeamSummary();
+  const { data: teamAvailability } = useTeamAvailability();
+  const isManager = profile?.role === 'admin' || profile?.role === 'manager_agent';
+  const onShiftMembers = (teamAvailability ?? []).filter((m) => m.status === 'on_shift');
 
   const isRefreshing = stats.isRefetching || activity.isRefetching;
 
@@ -133,6 +139,46 @@ export default function DashboardScreen() {
           onPress={() => router.push('/(app)/(tabs)/tasks')}
         />
       </View>
+
+      {/* Team Summary */}
+      {teamSummary && (
+        <>
+          <Text style={styles.sectionTitle}>{t('hr_teamSummary')}</Text>
+          <Card
+            onPress={() => router.push('/(app)/hr/team')}
+            style={styles.teamCard}
+          >
+            <View style={styles.teamRow}>
+              <View style={styles.teamStat}>
+                <Text style={[styles.teamStatValue, { color: colors.info }]}>
+                  {teamSummary.onShiftToday}
+                </Text>
+                <Text style={styles.teamStatLabel}>{t('hr_teamOnShift')}</Text>
+              </View>
+              {isManager && (
+                <View style={styles.teamStat}>
+                  <Text style={[styles.teamStatValue, { color: colors.warning }]}>
+                    {teamSummary.pendingRequests}
+                  </Text>
+                  <Text style={styles.teamStatLabel}>{t('hr_pendingApprovals')}</Text>
+                </View>
+              )}
+            </View>
+            {onShiftMembers.length > 0 && (
+              <View style={styles.avatarRow}>
+                {onShiftMembers.slice(0, 6).map((m) => (
+                  <Avatar key={m.member.id} name={m.member.full_name} size={32} />
+                ))}
+                {onShiftMembers.length > 6 && (
+                  <View style={styles.avatarMore}>
+                    <Text style={styles.avatarMoreText}>+{onShiftMembers.length - 6}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </Card>
+        </>
+      )}
 
       {/* Recent Activity */}
       <Text style={styles.sectionTitle}>{t('recentActivity')}</Text>
@@ -357,5 +403,48 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
     textAlign: 'center',
     paddingVertical: spacing.md,
+  },
+  teamCard: {
+    marginBottom: spacing.lg,
+  },
+  teamRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: spacing.sm,
+  },
+  teamStat: {
+    alignItems: 'center',
+  },
+  teamStatValue: {
+    fontSize: fontSize.xxl,
+    fontWeight: fontWeight.bold,
+  },
+  teamStatLabel: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  avatarRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+  },
+  avatarMore: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarMoreText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
+    color: colors.textSecondary,
   },
 });

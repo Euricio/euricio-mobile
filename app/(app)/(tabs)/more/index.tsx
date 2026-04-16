@@ -9,26 +9,29 @@ import {
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Stack, router } from 'expo-router';
 import Constants from 'expo-constants';
-import { useAuth } from '../../../lib/auth/authContext';
-import { useAuthStore } from '../../../store/authStore';
-import { Card } from '../../../components/ui/Card';
-import { Avatar } from '../../../components/ui/Avatar';
-import { Button } from '../../../components/ui/Button';
-import { useI18n, LOCALE_LABELS } from '../../../lib/i18n';
-import type { Locale } from '../../../lib/i18n';
+import { useAuth } from '../../../../lib/auth/authContext';
+import { useAuthStore } from '../../../../store/authStore';
+import { useTeamSummary } from '../../../../lib/api/hr';
+import { Card } from '../../../../components/ui/Card';
+import { Avatar } from '../../../../components/ui/Avatar';
+import { Button } from '../../../../components/ui/Button';
+import { useI18n, LOCALE_LABELS } from '../../../../lib/i18n';
+import type { Locale } from '../../../../lib/i18n';
 import {
   colors,
   spacing,
   fontSize,
   fontWeight,
   borderRadius,
-} from '../../../constants/theme';
+} from '../../../../constants/theme';
 
-export default function SettingsScreen() {
+export default function MoreScreen() {
   const { signOut } = useAuth();
   const user = useAuthStore((s) => s.user);
   const { t, locale, setLocale } = useI18n();
+  const { data: teamSummary } = useTeamSummary();
 
   const handleSignOut = () => {
     Alert.alert(t('settings_logout'), t('settings_logoutConfirm'), [
@@ -50,6 +53,15 @@ export default function SettingsScreen() {
       style={styles.container}
       contentContainerStyle={styles.content}
     >
+      <Stack.Screen
+        options={{
+          headerTitle: t('settings_title'),
+          headerShown: true,
+          headerStyle: { backgroundColor: colors.surface },
+          headerShadowVisible: false,
+        }}
+      />
+
       {/* Profile Section */}
       <Card style={styles.profileCard}>
         <View style={styles.profileRow}>
@@ -58,6 +70,28 @@ export default function SettingsScreen() {
             <Text style={styles.profileName}>{userName}</Text>
             <Text style={styles.profileEmail}>{userEmail}</Text>
           </View>
+        </View>
+      </Card>
+
+      {/* Personal / HR Section */}
+      <Text style={styles.sectionHeader}>{t('hr_personal')}</Text>
+      <Card
+        onPress={() => router.push('/(app)/hr/')}
+        style={styles.hrCard}
+      >
+        <View style={styles.hrRow}>
+          <View style={[styles.hrIcon, { backgroundColor: colors.primary + '15' }]}>
+            <Ionicons name="people-outline" size={24} color={colors.primary} />
+          </View>
+          <View style={styles.hrInfo}>
+            <Text style={styles.hrTitle}>{t('hr_personal')}</Text>
+            <Text style={styles.hrSubtitle}>
+              {teamSummary
+                ? t('hr_teamMembers', { count: String(teamSummary.teamSize) })
+                : t('hr_myDay')}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
         </View>
       </Card>
 
@@ -232,6 +266,34 @@ const styles = StyleSheet.create({
     marginLeft: spacing.xs,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  hrCard: {
+    marginBottom: spacing.sm,
+  },
+  hrRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  hrIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hrInfo: {
+    flex: 1,
+  },
+  hrTitle: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.text,
+  },
+  hrSubtitle: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   settingRow: {
     flexDirection: 'row',

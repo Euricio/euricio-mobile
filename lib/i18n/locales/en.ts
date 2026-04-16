@@ -400,6 +400,104 @@ const en: Record<string, string> = {
   media_deleteDocError: 'Could not delete document.',
   media_photoCount: '{count} photos',
   media_docCount: '{count} documents',
+
+  // ─── HR Module ─────────────────────────────────────────────────────
+  // Navigation
+  hr_title: 'HR',
+  hr_personal: 'Personal',
+  hr_team: 'Team',
+  hr_teamTitle: 'Team',
+  hr_requests: 'Requests',
+  hr_manageRequests: 'Manage Requests',
+  hr_myDay: 'My Workday',
+  hr_workday: 'Workday',
+
+  // Clock
+  hr_clockIn: 'Clock In',
+  hr_clockOut: 'Clock Out',
+  hr_clockedInSince: 'Clocked in since',
+  hr_workedToday: 'Worked today',
+  hr_totalHours: 'Total hours',
+  hr_break: 'Break',
+
+  // Shift
+  hr_todayShift: "Today's Shift",
+  hr_noShiftToday: 'No shift today',
+  hr_shiftTime: 'Shift time',
+  hr_location: 'Location',
+  hr_plannedShift: 'Planned shift',
+
+  // Team
+  hr_teamEmpty: 'No team members found',
+  hr_available: 'Available',
+  hr_onShift: 'On Shift',
+  hr_onVacation: 'On Vacation',
+  hr_absent: 'Absent',
+  hr_offline: 'Offline',
+  hr_teamMembers: '{count} team members',
+
+  // Vacation
+  hr_vacation: 'Vacation',
+  hr_vacationBalance: 'Vacation Balance',
+  hr_daysRemaining: 'Days remaining',
+  hr_daysUsed: 'Days used',
+  hr_daysTotal: 'Days total',
+  hr_requestVacation: 'Request Vacation',
+  hr_startDate: 'Start date',
+  hr_endDate: 'End date',
+  hr_daysCount: 'Days',
+  hr_vacationNotes: 'Notes',
+  hr_noVacationRequests: 'No vacation requests',
+
+  // Shift Requests
+  hr_shiftRequest: 'Shift Requests',
+  hr_requestShiftChange: 'Request Shift Change',
+  hr_shiftDate: 'Shift date',
+  hr_preferredStart: 'Preferred start',
+  hr_preferredEnd: 'Preferred end',
+  hr_noShiftRequests: 'No shift requests',
+
+  // Status
+  hr_pending: 'Pending',
+  hr_approved: 'Approved',
+  hr_rejected: 'Rejected',
+  hr_reviewedBy: 'Reviewed by',
+  hr_reviewedAt: 'Reviewed at',
+  hr_rejectionReason: 'Rejection reason',
+  hr_requestError: 'Could not create request. Please try again.',
+
+  // Manager
+  hr_approve: 'Approve',
+  hr_reject: 'Reject',
+  hr_enterRejectionReason: 'Please enter a rejection reason',
+  hr_noPendingRequests: 'No pending requests',
+  hr_pendingCount: '{count} pending',
+
+  // Tasks
+  hr_assignedTo: 'Assign to',
+  hr_unassigned: 'Unassigned',
+  hr_myTasks: 'Mine',
+  hr_allTasks: 'All',
+  hr_teamTasks: 'Team Tasks',
+  hr_assignTask: 'Assign Task',
+  hr_selectMember: 'Select Member',
+  hr_noAssignee: 'Unassigned',
+
+  // Dashboard
+  hr_teamOnShift: 'On Shift',
+  hr_pendingApprovals: 'Pending Requests',
+  hr_overdueTeamTasks: 'Overdue Team Tasks',
+  hr_teamSummary: 'Team',
+
+  // Member Detail
+  hr_memberDetail: 'Member',
+  hr_position: 'Position',
+  hr_role: 'Role',
+  hr_phone: 'Phone',
+  hr_email: 'Email',
+  hr_assignedTasks: 'Assigned Tasks',
+  hr_currentShift: 'Current Shift',
+  hr_nextShift: 'Next Shift',
 };
 
 export default en;

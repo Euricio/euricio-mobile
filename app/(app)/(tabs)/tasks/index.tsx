@@ -10,8 +10,10 @@ import {
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTasks, useCompleteTask, Task } from '../../../../lib/api/tasks';
+import { useAuthStore } from '../../../../store/authStore';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
+import { Avatar } from '../../../../components/ui/Avatar';
 import { EmptyState } from '../../../../components/ui/EmptyState';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
 import { useI18n } from '../../../../lib/i18n';
@@ -140,15 +142,25 @@ function TaskCard({
           </View>
         )}
       </View>
+
+      {/* Assignee */}
+      {task.assigned?.full_name && (
+        <View style={styles.assigneeRow}>
+          <Avatar name={task.assigned.full_name} size={20} />
+          <Text style={styles.assigneeText}>{task.assigned.full_name}</Text>
+        </View>
+      )}
     </Card>
   );
 }
 
 export default function TasksScreen() {
   const [activeFilter, setActiveFilter] = useState('open');
+  const [assigneeFilter, setAssigneeFilter] = useState<'all' | 'mine' | 'unassigned'>('all');
   const { data: tasks, isLoading, refetch, isRefetching } =
     useTasks(activeFilter);
   const completeTask = useCompleteTask();
+  const user = useAuthStore((s) => s.user);
   const { t } = useI18n();
 
   const filters = [
@@ -157,6 +169,18 @@ export default function TasksScreen() {
     { key: 'in_progress', label: t('tasks_filter_inProgress') },
     { key: 'done', label: t('tasks_filter_done') },
   ];
+
+  const assigneeFilters = [
+    { key: 'all' as const, label: t('hr_allTasks') },
+    { key: 'mine' as const, label: t('hr_myTasks') },
+    { key: 'unassigned' as const, label: t('hr_unassigned') },
+  ];
+
+  const filteredTasks = (tasks ?? []).filter((task) => {
+    if (assigneeFilter === 'mine') return task.assigned_to === user?.id;
+    if (assigneeFilter === 'unassigned') return !task.assigned_to;
+    return true;
+  });
 
   return (
     <View style={styles.container}>
@@ -169,7 +193,7 @@ export default function TasksScreen() {
         }}
       />
 
-      {/* Filter Tabs */}
+      {/* Status Filter Tabs */}
       <View style={styles.filterContainer}>
         {filters.map((f) => (
           <TouchableOpacity
@@ -192,11 +216,34 @@ export default function TasksScreen() {
         ))}
       </View>
 
+      {/* Assignee Filter */}
+      <View style={styles.assigneeFilterContainer}>
+        {assigneeFilters.map((f) => (
+          <TouchableOpacity
+            key={f.key}
+            style={[
+              styles.assigneeFilterTab,
+              assigneeFilter === f.key && styles.assigneeFilterTabActive,
+            ]}
+            onPress={() => setAssigneeFilter(f.key)}
+          >
+            <Text
+              style={[
+                styles.assigneeFilterText,
+                assigneeFilter === f.key && styles.assigneeFilterTextActive,
+              ]}
+            >
+              {f.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       {isLoading ? (
         <LoadingScreen />
       ) : (
         <FlatList
-          data={tasks}
+          data={filteredTasks}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <TaskCard
@@ -362,6 +409,43 @@ const styles = StyleSheet.create({
   linkedContactText: {
     fontSize: fontSize.xs,
     color: colors.textSecondary,
+  },
+  assigneeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+    paddingLeft: 40,
+  },
+  assigneeText: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+  },
+  assigneeFilterContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+    gap: spacing.xs,
+  },
+  assigneeFilterTab: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+    backgroundColor: 'transparent',
+  },
+  assigneeFilterTabActive: {
+    backgroundColor: colors.primary + '15',
+  },
+  assigneeFilterText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.medium,
+    color: colors.textTertiary,
+  },
+  assigneeFilterTextActive: {
+    color: colors.primary,
   },
   fab: {
     position: 'absolute',

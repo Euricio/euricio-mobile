@@ -15,10 +15,12 @@ import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCreateTask } from '../../../../lib/api/tasks';
 import { useLeads, Lead } from '../../../../lib/api/leads';
+import { TeamMember } from '../../../../lib/api/hr';
 import { FormInput } from '../../../../components/ui/FormInput';
 import { FormSelect } from '../../../../components/ui/FormSelect';
 import { Button } from '../../../../components/ui/Button';
 import { SearchBar } from '../../../../components/ui/SearchBar';
+import { MemberPicker } from '../../../../components/ui/MemberPicker';
 import { useI18n } from '../../../../lib/i18n';
 import {
   colors,
@@ -62,6 +64,8 @@ export default function CreateTaskScreen() {
   );
   const [leadPickerOpen, setLeadPickerOpen] = useState(false);
   const [leadSearch, setLeadSearch] = useState('');
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [memberPickerOpen, setMemberPickerOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { data: leads } = useLeads(leadSearch);
@@ -98,6 +102,7 @@ export default function CreateTaskScreen() {
     if (description.trim()) payload.description = description.trim();
     if (dueDate) payload.due_date = parseDateDE(dueDate);
     if (selectedLead?.id) payload.lead_id = selectedLead.id;
+    if (selectedMember?.id) payload.assigned_to = selectedMember.id;
 
     createTask.mutate(
       payload as any,
@@ -195,6 +200,35 @@ export default function CreateTaskScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Member Assignment Selector */}
+        <View style={styles.fieldContainer}>
+          <Text style={styles.label}>{t('hr_assignedTo')}</Text>
+          <TouchableOpacity
+            style={styles.leadSelector}
+            activeOpacity={0.7}
+            onPress={() => setMemberPickerOpen(true)}
+          >
+            <Text
+              style={[
+                styles.leadSelectorText,
+                !selectedMember && styles.placeholder,
+              ]}
+            >
+              {selectedMember ? selectedMember.full_name : t('hr_noAssignee')}
+            </Text>
+            {selectedMember ? (
+              <TouchableOpacity
+                onPress={() => setSelectedMember(null)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            ) : (
+              <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
+            )}
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.buttonContainer}>
           <Button
             title={t('task_createButton')}
@@ -260,6 +294,13 @@ export default function CreateTaskScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+      {/* Member Picker Modal */}
+      <MemberPicker
+        visible={memberPickerOpen}
+        onClose={() => setMemberPickerOpen(false)}
+        onSelect={setSelectedMember}
+        selectedId={selectedMember?.id}
+      />
     </KeyboardAvoidingView>
   );
 }

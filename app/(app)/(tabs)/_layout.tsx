@@ -79,10 +79,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="more"
         options={{
           title: t('tab_more'),
-          headerTitle: t('settings_title'),
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <TabIcon name="settings-outline" color={color} size={size} />
           ),
