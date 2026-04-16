@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   useMyActiveTimeEntry,
@@ -8,11 +8,14 @@ import {
   useClockOut,
   useChangeActivity,
   useTimeCategories,
+  useUpdateTimeEntryNote,
   TimeCategory,
 } from '../../lib/api/hr';
+import { useBreakStore } from '../../store/breakStore';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { ActivityPicker } from './ActivityPicker';
+import { BreakButtons } from './BreakButtons';
 import { useI18n } from '../../lib/i18n';
 import {
   colors,
@@ -63,20 +66,41 @@ export function ClockWidget() {
   const clockIn = useClockIn();
   const clockOut = useClockOut();
   const changeActivity = useChangeActivity();
+  const updateNote = useUpdateTimeEntryNote();
+  const breakStore = useBreakStore();
 
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pickerMode, setPickerMode] = useState<'clockIn' | 'change'>('clockIn');
+  const [noteText, setNoteText] = useState('');
+  const [showNoteInput, setShowNoteInput] = useState(false);
 
   const elapsed = useElapsedTimer(activeEntry?.started_at ?? null);
   const isClockedIn = !!activeEntry;
   const currentCategory = activeEntry?.category ?? null;
 
+  // Sync note text when active entry changes
+  useEffect(() => {
+    if (activeEntry?.note) {
+      setNoteText(activeEntry.note);
+    } else {
+      setNoteText('');
+    }
+  }, [activeEntry?.id, activeEntry?.note]);
+
   // Calculate today's total (in minutes for the summary row)
+  // Subtract break minutes from total
   const completedMinutes = (todayEntries ?? [])
     .filter((e) => e.status === 'completed' && e.duration_minutes)
     .reduce((sum, e) => sum + (e.duration_minutes ?? 0), 0);
+
+  const totalBreakMinutes = (todayEntries ?? []).reduce(
+    (sum, e) => sum + (e.short_break_minutes ?? 0) + (e.lunch_break_minutes ?? 0),
+    0,
+  );
+
   const elapsedMinutes = Math.floor(elapsed / 60);
-  const totalMinutes = completedMinutes + (isClockedIn ? elapsedMinutes : 0);
+  const grossMinutes = completedMinutes + (isClockedIn ? elapsedMinutes : 0);
+  const totalMinutes = Math.max(0, grossMinutes - totalBreakMinutes);
 
   const handleOpenClockIn = () => {
     setPickerMode('clockIn');
@@ -107,7 +131,19 @@ export function ClockWidget() {
 
   const handleClockOut = () => {
     if (activeEntry) {
+      // End any active break before clocking out
+      if (breakStore.isOnBreak) {
+        breakStore.endBreak();
+      }
+      breakStore.reset();
       clockOut.mutate(activeEntry.id);
+    }
+  };
+
+  const handleSaveNote = () => {
+    if (activeEntry) {
+      updateNote.mutate({ entryId: activeEntry.id, note: noteText });
+      setShowNoteInput(false);
     }
   };
 
@@ -115,7 +151,7 @@ export function ClockWidget() {
 
   return (
     <>
-      <Card style={styles.card}>
+      <Card style={breakStore.isOnBreak ? { ...styles.card, ...styles.cardBreakActive } : styles.card}>
         {isClockedIn ? (
           <>
             {/* Current activity header */}
@@ -139,16 +175,55 @@ export function ClockWidget() {
               </TouchableOpacity>
             )}
 
-            {/* Timer */}
-            <View style={styles.timerSection}>
-              <Text style={styles.timer}>{formatDuration(elapsed)}</Text>
-            </View>
+            {/* Timer — hidden when on break, show break UI instead */}
+            {!breakStore.isOnBreak && (
+              <View style={styles.timerSection}>
+                <Text style={styles.timer}>{formatDuration(elapsed)}</Text>
+              </View>
+            )}
+
+            {/* Break buttons / active break display */}
+            <BreakButtons activeEntryId={activeEntry.id} />
 
             {/* Today total */}
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>{t('hr_workedToday')}</Text>
               <Text style={styles.totalValue}>{formatDurationShort(totalMinutes)}</Text>
             </View>
+
+            {/* Note section */}
+            {showNoteInput ? (
+              <View style={styles.noteContainer}>
+                <TextInput
+                  style={styles.noteInput}
+                  value={noteText}
+                  onChangeText={setNoteText}
+                  placeholder={t('hr_addNote')}
+                  placeholderTextColor={colors.textTertiary}
+                  multiline
+                  autoFocus
+                />
+                <View style={styles.noteActions}>
+                  <TouchableOpacity onPress={() => setShowNoteInput(false)}>
+                    <Text style={styles.noteCancelText}>{t('cancel')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleSaveNote}>
+                    <Text style={styles.noteSaveText}>{t('hr_save')}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.noteLink}
+                onPress={() => setShowNoteInput(true)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="pencil-outline" size={14} color={colors.textSecondary} />
+                <Text style={styles.noteLinkText}>
+                  {activeEntry.note ? activeEntry.note : t('hr_addNote')}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {/* Buttons */}
             <View style={styles.buttonRow}>
@@ -158,7 +233,7 @@ export function ClockWidget() {
                   onPress={handleOpenChange}
                   variant="outline"
                   loading={changeActivity.isPending}
-                  disabled={isMutating}
+                  disabled={isMutating || breakStore.isOnBreak}
                   icon={<Ionicons name="swap-horizontal-outline" size={18} color={colors.primary} />}
                   size="lg"
                 />
@@ -230,6 +305,10 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: spacing.md,
   },
+  cardBreakActive: {
+    borderWidth: 2,
+    borderColor: colors.warning,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -287,6 +366,44 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
     color: colors.text,
+  },
+  noteContainer: {
+    marginBottom: spacing.md,
+  },
+  noteInput: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm + 4,
+    fontSize: fontSize.sm,
+    color: colors.text,
+    minHeight: 50,
+    textAlignVertical: 'top',
+  },
+  noteActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.md,
+    marginTop: spacing.xs,
+  },
+  noteCancelText: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  noteSaveText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.primary,
+  },
+  noteLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  noteLinkText: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    flex: 1,
   },
   buttonRow: {
     flexDirection: 'row',

@@ -497,6 +497,35 @@ const en: Record<string, string> = {
   hr_noEntriesToday: 'No entries today',
   hr_addNote: 'Add note',
 
+  // Breaks
+  hr_shortBreak: 'Short break',
+  hr_lunchBreak: 'Lunch break',
+  hr_breakRunning: 'On break...',
+  hr_endBreak: 'End break',
+
+  // Notes & Editing
+  hr_note: 'Note',
+  hr_editEntry: 'Edit entry',
+  hr_deleteEntry: 'Delete entry',
+  hr_deleteConfirm: 'Delete this time entry?',
+  hr_save: 'Save',
+  hr_startTime: 'Start time',
+  hr_endTime: 'End time',
+  hr_breaks: 'Breaks',
+
+  // Report
+  hr_report: 'Report',
+  hr_dayView: 'Day',
+  hr_weekView: 'Week',
+  hr_targetHours: 'Target',
+  hr_actualHours: 'Actual',
+  hr_netWorkTime: 'Net work time',
+  hr_totalBreaks: 'Total breaks',
+  hr_today: 'Today',
+  hr_categoryBreakdown: 'By activity',
+  hr_weekTotal: 'Weekly total',
+  hr_noEntriesThisDay: 'No entries this day',
+
   // Member Detail
   hr_memberDetail: 'Member',
   hr_position: 'Position',

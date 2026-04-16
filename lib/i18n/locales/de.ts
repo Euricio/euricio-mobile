@@ -497,6 +497,35 @@ const de: Record<string, string> = {
   hr_noEntriesToday: 'Noch keine Zeiteinträge heute',
   hr_addNote: 'Notiz hinzufügen',
 
+  // Breaks
+  hr_shortBreak: 'Kurzpause',
+  hr_lunchBreak: 'Mittagspause',
+  hr_breakRunning: 'Pause läuft...',
+  hr_endBreak: 'Pause beenden',
+
+  // Notes & Editing
+  hr_note: 'Notiz',
+  hr_editEntry: 'Eintrag bearbeiten',
+  hr_deleteEntry: 'Eintrag löschen',
+  hr_deleteConfirm: 'Diesen Zeiteintrag wirklich löschen?',
+  hr_save: 'Speichern',
+  hr_startTime: 'Startzeit',
+  hr_endTime: 'Endzeit',
+  hr_breaks: 'Pausen',
+
+  // Report
+  hr_report: 'Bericht',
+  hr_dayView: 'Tag',
+  hr_weekView: 'Woche',
+  hr_targetHours: 'Soll',
+  hr_actualHours: 'Ist',
+  hr_netWorkTime: 'Netto-Arbeitszeit',
+  hr_totalBreaks: 'Pausen gesamt',
+  hr_today: 'Heute',
+  hr_categoryBreakdown: 'Nach Aktivität',
+  hr_weekTotal: 'Wochensumme',
+  hr_noEntriesThisDay: 'Keine Einträge an diesem Tag',
+
   // Member Detail
   hr_memberDetail: 'Mitarbeiter',
   hr_position: 'Position',

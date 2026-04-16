@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,18 @@ import {
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../../store/authStore';
-import { useMyShiftToday, useTeamSummary, useMyTimeEntriesToday, TimeEntryWithCategory } from '../../../lib/api/hr';
+import {
+  useMyShiftToday,
+  useTeamSummary,
+  useMyTimeEntriesToday,
+  useTimeEntriesForDate,
+  TimeEntryWithCategory,
+} from '../../../lib/api/hr';
 import { useTasks, Task } from '../../../lib/api/tasks';
 import { useProfile } from '../../../lib/api/profile';
 import { ClockWidget } from '../../../components/hr/ClockWidget';
+import { DaySummaryCard } from '../../../components/hr/DaySummaryCard';
+import { EditTimeEntryModal } from '../../../components/hr/EditTimeEntryModal';
 import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
 import { useI18n } from '../../../lib/i18n';
@@ -26,6 +34,16 @@ import {
   shadow,
 } from '../../../constants/theme';
 
+function toDateString(d: Date): string {
+  return d.toISOString().split('T')[0];
+}
+
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + days);
+  return toDateString(d);
+}
+
 export default function HRHomeScreen() {
   const { t, formatDate } = useI18n();
   const user = useAuthStore((s) => s.user);
@@ -34,6 +52,21 @@ export default function HRHomeScreen() {
   const { data: tasks, refetch: refetchTasks } = useTasks();
   const { data: summary, refetch: refetchSummary } = useTeamSummary();
   const { data: todayEntries = [], refetch: refetchEntries } = useMyTimeEntriesToday();
+
+  const todayStr = useMemo(() => toDateString(new Date()), []);
+  const [selectedDate, setSelectedDate] = useState(todayStr);
+  const isToday = selectedDate === todayStr;
+
+  // Fetch entries for the selected date (when not today)
+  const { data: selectedDateEntries = [] } = useTimeEntriesForDate(
+    isToday ? '' : selectedDate,
+  );
+
+  const displayEntries = isToday ? todayEntries : selectedDateEntries;
+
+  // Edit modal state
+  const [editEntry, setEditEntry] = useState<TimeEntryWithCategory | null>(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
 
   const isManager = profile?.role === 'admin' || profile?.role === 'manager_agent';
 
@@ -49,158 +82,246 @@ export default function HRHomeScreen() {
     refetchEntries();
   };
 
+  const handleDateNav = (direction: -1 | 1) => {
+    setSelectedDate((prev) => addDays(prev, direction));
+  };
+
+  const handleEntryTap = (entry: TimeEntryWithCategory) => {
+    setEditEntry(entry);
+    setEditModalVisible(true);
+  };
+
+  const selectedDateObj = new Date(selectedDate + 'T12:00:00');
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl refreshing={false} onRefresh={onRefresh} tintColor={colors.primary} />
-      }
-    >
-      <Stack.Screen options={{ headerTitle: t('hr_myDay') }} />
+    <>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={false} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
+      >
+        <Stack.Screen options={{ headerTitle: t('hr_myDay') }} />
 
-      {/* Today's date */}
-      <Text style={styles.date}>
-        {formatDate(new Date(), { weekday: 'long', day: 'numeric', month: 'long' })}
-      </Text>
+        {/* Date navigation */}
+        <View style={styles.dateNav}>
+          <TouchableOpacity onPress={() => handleDateNav(-1)} hitSlop={8}>
+            <Ionicons name="chevron-back" size={24} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setSelectedDate(todayStr)}>
+            <Text style={styles.dateNavText}>
+              {isToday
+                ? t('hr_today')
+                : formatDate(selectedDateObj, {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'long',
+                  })}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleDateNav(1)}
+            hitSlop={8}
+            disabled={isToday}
+          >
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color={isToday ? colors.textTertiary : colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
 
-      {/* Clock In/Out Widget */}
-      <ClockWidget />
+        {/* Today's date subtitle */}
+        <Text style={styles.date}>
+          {formatDate(selectedDateObj, { weekday: 'long', day: 'numeric', month: 'long' })}
+        </Text>
 
-      {/* Today's Activity Timeline */}
-      {todayEntries.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>{t('hr_todayTimeline')}</Text>
-          <Card padded={false} style={styles.timelineCard}>
-            {todayEntries.map((entry: TimeEntryWithCategory, index: number) => {
-              const catColor = entry.category?.color ?? colors.textTertiary;
-              const catName = entry.category?.name ?? '—';
-              const startTime = entry.started_at
-                ? new Date(entry.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                : '';
-              const endTime = entry.ended_at
-                ? new Date(entry.ended_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                : '...';
-              const durationMin = entry.duration_minutes ?? 0;
-              const durationLabel = entry.status === 'running'
-                ? '...'
-                : `${Math.floor(durationMin / 60)}h ${(durationMin % 60).toString().padStart(2, '0')}m`;
+        {/* Clock In/Out Widget — only on today */}
+        {isToday && <ClockWidget />}
 
-              return (
+        {/* Past day summary card */}
+        {!isToday && <DaySummaryCard entries={displayEntries} />}
+
+        {/* Activity Timeline */}
+        {displayEntries.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>
+              {isToday ? t('hr_todayTimeline') : t('hr_categoryBreakdown')}
+            </Text>
+            <Card padded={false} style={styles.timelineCard}>
+              {displayEntries.map((entry: TimeEntryWithCategory, index: number) => {
+                const catColor = entry.category?.color ?? colors.textTertiary;
+                const catName = entry.category?.name ?? '—';
+                const startTime = entry.started_at
+                  ? new Date(entry.started_at).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : '';
+                const endTime = entry.ended_at
+                  ? new Date(entry.ended_at).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : '...';
+                const durationMin = entry.duration_minutes ?? 0;
+                const durationLabel =
+                  entry.status === 'running'
+                    ? '...'
+                    : `${Math.floor(durationMin / 60)}h ${(durationMin % 60).toString().padStart(2, '0')}m`;
+
+                return (
+                  <TouchableOpacity
+                    key={entry.id}
+                    style={[
+                      styles.timelineItem,
+                      index < displayEntries.length - 1 && styles.timelineBorder,
+                    ]}
+                    activeOpacity={0.7}
+                    onPress={() => handleEntryTap(entry)}
+                  >
+                    <View style={[styles.timelineBar, { backgroundColor: catColor }]} />
+                    <View style={styles.timelineContent}>
+                      <Text style={[styles.timelineCatName, { color: catColor }]}>
+                        {catName}
+                      </Text>
+                      <Text style={styles.timelineTime}>
+                        {startTime} – {endTime}
+                        {entry.status === 'completed' && `  (${durationLabel})`}
+                      </Text>
+                      {entry.note ? (
+                        <Text style={styles.timelineNote} numberOfLines={1}>
+                          {entry.note}
+                        </Text>
+                      ) : null}
+                    </View>
+                    {entry.status === 'running' ? (
+                      <View style={[styles.runningDot, { backgroundColor: catColor }]} />
+                    ) : (
+                      <Ionicons
+                        name="chevron-forward"
+                        size={16}
+                        color={colors.textTertiary}
+                      />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </Card>
+          </>
+        )}
+
+        {/* Today's Shift Info — only on today */}
+        {isToday && shiftInfo && (
+          <Card style={styles.shiftCard}>
+            <View style={styles.shiftHeader}>
+              <Ionicons name="calendar-outline" size={18} color={colors.info} />
+              <Text style={styles.shiftTitle}>{t('hr_todayShift')}</Text>
+            </View>
+            <View style={styles.shiftDetails}>
+              <View style={styles.shiftRow}>
+                <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
+                <Text style={styles.shiftText}>
+                  {shiftInfo.data.start_time?.slice(0, 5)} – {shiftInfo.data.end_time?.slice(0, 5)}
+                </Text>
+              </View>
+              {'location' in shiftInfo.data && shiftInfo.data.location && (
+                <View style={styles.shiftRow}>
+                  <Ionicons name="location-outline" size={16} color={colors.textSecondary} />
+                  <Text style={styles.shiftText}>{shiftInfo.data.location}</Text>
+                </View>
+              )}
+            </View>
+          </Card>
+        )}
+
+        {isToday && !shiftInfo && (
+          <Card style={styles.shiftCard}>
+            <View style={styles.shiftHeader}>
+              <Ionicons name="calendar-outline" size={18} color={colors.textTertiary} />
+              <Text style={styles.noShiftText}>{t('hr_noShiftToday')}</Text>
+            </View>
+          </Card>
+        )}
+
+        {/* My Tasks — only on today */}
+        {isToday && myTasks.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>{t('hr_myTasks')}</Text>
+            <Card padded={false}>
+              {myTasks.map((task: Task, index: number) => (
                 <View
-                  key={entry.id}
+                  key={task.id}
                   style={[
-                    styles.timelineItem,
-                    index < todayEntries.length - 1 && styles.timelineBorder,
+                    styles.taskItem,
+                    index < myTasks.length - 1 && styles.taskBorder,
                   ]}
                 >
-                  <View style={[styles.timelineBar, { backgroundColor: catColor }]} />
-                  <View style={styles.timelineContent}>
-                    <Text style={[styles.timelineCatName, { color: catColor }]}>{catName}</Text>
-                    <Text style={styles.timelineTime}>
-                      {startTime} – {endTime}
-                      {entry.status === 'completed' && `  (${durationLabel})`}
+                  <View style={styles.taskContent}>
+                    <Text style={styles.taskTitle} numberOfLines={1}>
+                      {task.title}
                     </Text>
+                    {task.due_date && (
+                      <Text
+                        style={[
+                          styles.taskDue,
+                          new Date(task.due_date) < new Date() && styles.taskOverdue,
+                        ]}
+                      >
+                        {formatDate(task.due_date, { day: '2-digit', month: '2-digit' })}
+                      </Text>
+                    )}
                   </View>
-                  {entry.status === 'running' && (
-                    <View style={[styles.runningDot, { backgroundColor: catColor }]} />
-                  )}
                 </View>
-              );
-            })}
-          </Card>
-        </>
-      )}
-
-      {/* Today's Shift Info */}
-      {shiftInfo && (
-        <Card style={styles.shiftCard}>
-          <View style={styles.shiftHeader}>
-            <Ionicons name="calendar-outline" size={18} color={colors.info} />
-            <Text style={styles.shiftTitle}>{t('hr_todayShift')}</Text>
-          </View>
-          <View style={styles.shiftDetails}>
-            <View style={styles.shiftRow}>
-              <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
-              <Text style={styles.shiftText}>
-                {shiftInfo.data.start_time?.slice(0, 5)} – {shiftInfo.data.end_time?.slice(0, 5)}
-              </Text>
-            </View>
-            {'location' in shiftInfo.data && shiftInfo.data.location && (
-              <View style={styles.shiftRow}>
-                <Ionicons name="location-outline" size={16} color={colors.textSecondary} />
-                <Text style={styles.shiftText}>{shiftInfo.data.location}</Text>
-              </View>
-            )}
-          </View>
-        </Card>
-      )}
-
-      {!shiftInfo && (
-        <Card style={styles.shiftCard}>
-          <View style={styles.shiftHeader}>
-            <Ionicons name="calendar-outline" size={18} color={colors.textTertiary} />
-            <Text style={styles.noShiftText}>{t('hr_noShiftToday')}</Text>
-          </View>
-        </Card>
-      )}
-
-      {/* My Tasks */}
-      {myTasks.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>{t('hr_myTasks')}</Text>
-          <Card padded={false}>
-            {myTasks.map((task: Task, index: number) => (
-              <View
-                key={task.id}
-                style={[
-                  styles.taskItem,
-                  index < myTasks.length - 1 && styles.taskBorder,
-                ]}
-              >
-                <View style={styles.taskContent}>
-                  <Text style={styles.taskTitle} numberOfLines={1}>{task.title}</Text>
-                  {task.due_date && (
-                    <Text style={[
-                      styles.taskDue,
-                      new Date(task.due_date) < new Date() && styles.taskOverdue,
-                    ]}>
-                      {formatDate(task.due_date, { day: '2-digit', month: '2-digit' })}
-                    </Text>
-                  )}
-                </View>
-              </View>
-            ))}
-          </Card>
-        </>
-      )}
-
-      {/* Quick Actions */}
-      <Text style={styles.sectionTitle}>{t('quickAccess')}</Text>
-      <View style={styles.quickActionsRow}>
-        <QuickAction
-          icon="people-outline"
-          label={t('hr_teamTitle')}
-          color={colors.primary}
-          onPress={() => router.push('/(app)/hr/team')}
-        />
-        <QuickAction
-          icon="document-text-outline"
-          label={t('hr_requests')}
-          color={colors.accent}
-          onPress={() => router.push('/(app)/hr/requests')}
-        />
-        {isManager && (
-          <QuickAction
-            icon="shield-checkmark-outline"
-            label={t('hr_manageRequests')}
-            color={colors.success}
-            onPress={() => router.push('/(app)/hr/manage-requests')}
-            badge={summary?.pendingRequests}
-          />
+              ))}
+            </Card>
+          </>
         )}
-      </View>
-    </ScrollView>
+
+        {/* Quick Actions */}
+        <Text style={styles.sectionTitle}>{t('quickAccess')}</Text>
+        <View style={styles.quickActionsRow}>
+          <QuickAction
+            icon="bar-chart-outline"
+            label={t('hr_report')}
+            color={colors.info}
+            onPress={() => router.push('/(app)/hr/time-report')}
+          />
+          <QuickAction
+            icon="people-outline"
+            label={t('hr_teamTitle')}
+            color={colors.primary}
+            onPress={() => router.push('/(app)/hr/team')}
+          />
+          <QuickAction
+            icon="document-text-outline"
+            label={t('hr_requests')}
+            color={colors.accent}
+            onPress={() => router.push('/(app)/hr/requests')}
+          />
+          {isManager && (
+            <QuickAction
+              icon="shield-checkmark-outline"
+              label={t('hr_manageRequests')}
+              color={colors.success}
+              onPress={() => router.push('/(app)/hr/manage-requests')}
+              badge={summary?.pendingRequests}
+            />
+          )}
+        </View>
+      </ScrollView>
+
+      <EditTimeEntryModal
+        visible={editModalVisible}
+        entry={editEntry}
+        onClose={() => {
+          setEditModalVisible(false);
+          setEditEntry(null);
+        }}
+      />
+    </>
   );
 }
 
@@ -227,7 +348,9 @@ function QuickAction({
           </View>
         )}
       </View>
-      <Text style={styles.quickActionLabel} numberOfLines={2}>{label}</Text>
+      <Text style={styles.quickActionLabel} numberOfLines={2}>
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -240,6 +363,18 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.md,
     paddingBottom: 120,
+  },
+  dateNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  dateNavText: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.primary,
   },
   date: {
     fontSize: fontSize.sm,
@@ -275,6 +410,12 @@ const styles = StyleSheet.create({
   timelineTime: {
     fontSize: fontSize.xs,
     color: colors.textSecondary,
+    marginTop: 2,
+  },
+  timelineNote: {
+    fontSize: fontSize.xs,
+    color: colors.textTertiary,
+    fontStyle: 'italic',
     marginTop: 2,
   },
   runningDot: {

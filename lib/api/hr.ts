@@ -2,6 +2,13 @@ import { supabase } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function localTimeText(): string {
+  const now = new Date();
+  return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface TimeCategory {
@@ -212,7 +219,7 @@ export function useMyActiveTimeEntry() {
         .from('time_entries')
         .select('*, category:time_categories(*)')
         .eq('user_id', user!.id)
-        .eq('status', 'running')
+        .eq('status', 'active')
         .limit(1)
         .maybeSingle();
       if (error) throw error;
@@ -236,10 +243,11 @@ export function useClockIn() {
           user_id: user!.id,
           date: today,
           started_at: now,
-          status: 'running',
+          status: 'active',
           category_id: categoryId,
           short_break_minutes: 0,
           lunch_break_minutes: 0,
+          start_time_text: localTimeText(),
         })
         .select()
         .single();
@@ -278,6 +286,7 @@ export function useClockOut() {
           status: 'completed',
           duration_minutes: durationMinutes,
           total_hours: totalHours,
+          end_time_text: localTimeText(),
         })
         .eq('id', entryId);
       if (error) throw error;
@@ -320,6 +329,7 @@ export function useChangeActivity() {
           status: 'completed',
           duration_minutes: durationMinutes,
           total_hours: totalHours,
+          end_time_text: localTimeText(),
         })
         .eq('id', currentEntryId);
       if (closeError) throw closeError;
@@ -331,10 +341,11 @@ export function useChangeActivity() {
           user_id: user!.id,
           date: today,
           started_at: nowIso,
-          status: 'running',
+          status: 'active',
           category_id: newCategoryId,
           short_break_minutes: 0,
           lunch_break_minutes: 0,
+          start_time_text: localTimeText(),
         })
         .select()
         .single();
@@ -605,7 +616,7 @@ export function useTeamAvailability() {
       const [shiftsRes, scheduledRes, timeRes, vacRes] = await Promise.all([
         supabase.from('shifts').select('*').eq('shift_date', today),
         supabase.from('scheduled_shifts').select('*').eq('shift_date', today),
-        supabase.from('time_entries').select('*').eq('status', 'running'),
+        supabase.from('time_entries').select('*').eq('status', 'active'),
         supabase
           .from('vacation_requests')
           .select('employee_id, start_date, end_date')
@@ -658,6 +669,179 @@ export function useTeamAvailability() {
   });
 }
 
+// ─── Update Time Entry Note ─────────────────────────────────────────────────
+
+export function useUpdateTimeEntryNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ entryId, note }: { entryId: number; note: string }) => {
+      const { error } = await supabase
+        .from('time_entries')
+        .update({ note })
+        .eq('id', entryId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-active-time-entry'] });
+      queryClient.invalidateQueries({ queryKey: ['my-time-entries-today'] });
+      queryClient.invalidateQueries({ queryKey: ['time-entries-for-date'] });
+    },
+  });
+}
+
+// ─── Update Time Entry (Edit) ───────────────────────────────────────────────
+
+export function useUpdateTimeEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      entryId,
+      updates,
+    }: {
+      entryId: number;
+      updates: {
+        category_id?: string;
+        started_at?: string;
+        ended_at?: string;
+        note?: string;
+        short_break_minutes?: number;
+        lunch_break_minutes?: number;
+      };
+    }) => {
+      // Recalculate duration if start/end times changed
+      const recalc: Record<string, unknown> = { ...updates };
+      const startedAt = updates.started_at;
+      const endedAt = updates.ended_at;
+
+      if (startedAt && endedAt) {
+        const durationMs = new Date(endedAt).getTime() - new Date(startedAt).getTime();
+        const durationMinutes = Math.round(durationMs / 60000);
+        recalc.duration_minutes = durationMinutes;
+        recalc.total_hours = parseFloat((durationMinutes / 60).toFixed(2));
+      }
+
+      const { error } = await supabase
+        .from('time_entries')
+        .update(recalc)
+        .eq('id', entryId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-active-time-entry'] });
+      queryClient.invalidateQueries({ queryKey: ['my-time-entries-today'] });
+      queryClient.invalidateQueries({ queryKey: ['time-entries-for-date'] });
+      queryClient.invalidateQueries({ queryKey: ['time-entries-for-week'] });
+    },
+  });
+}
+
+// ─── Delete Time Entry ──────────────────────────────────────────────────────
+
+export function useDeleteTimeEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (entryId: number) => {
+      const { error } = await supabase
+        .from('time_entries')
+        .delete()
+        .eq('id', entryId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-active-time-entry'] });
+      queryClient.invalidateQueries({ queryKey: ['my-time-entries-today'] });
+      queryClient.invalidateQueries({ queryKey: ['time-entries-for-date'] });
+      queryClient.invalidateQueries({ queryKey: ['time-entries-for-week'] });
+    },
+  });
+}
+
+// ─── Save Break Minutes ─────────────────────────────────────────────────────
+
+export function useSaveBreakMinutes() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      entryId,
+      field,
+      additionalMinutes,
+    }: {
+      entryId: number;
+      field: 'short_break_minutes' | 'lunch_break_minutes';
+      additionalMinutes: number;
+    }) => {
+      // Fetch current value
+      const { data: entry, error: fetchError } = await supabase
+        .from('time_entries')
+        .select(field)
+        .eq('id', entryId)
+        .single();
+      if (fetchError) throw fetchError;
+
+      const current = (entry as Record<string, number>)[field] ?? 0;
+
+      const { error } = await supabase
+        .from('time_entries')
+        .update({ [field]: current + additionalMinutes })
+        .eq('id', entryId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-active-time-entry'] });
+      queryClient.invalidateQueries({ queryKey: ['my-time-entries-today'] });
+    },
+  });
+}
+
+// ─── Time Entries for a Specific Date ───────────────────────────────────────
+
+export function useTimeEntriesForDate(date: string) {
+  const user = useAuthStore((s) => s.user);
+
+  return useQuery({
+    queryKey: ['time-entries-for-date', date],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('time_entries')
+        .select('*, category:time_categories(*)')
+        .eq('user_id', user!.id)
+        .eq('date', date)
+        .order('started_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as TimeEntryWithCategory[];
+    },
+    enabled: !!user?.id && !!date,
+  });
+}
+
+// ─── Time Entries for a Week ────────────────────────────────────────────────
+
+export function useTimeEntriesForWeek(weekStart: string) {
+  const user = useAuthStore((s) => s.user);
+
+  return useQuery({
+    queryKey: ['time-entries-for-week', weekStart],
+    queryFn: async () => {
+      // weekStart is a Monday date string (YYYY-MM-DD)
+      const start = new Date(weekStart);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      const endStr = end.toISOString().split('T')[0];
+
+      const { data, error } = await supabase
+        .from('time_entries')
+        .select('*, category:time_categories(*)')
+        .eq('user_id', user!.id)
+        .gte('date', weekStart)
+        .lte('date', endStr)
+        .order('started_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as TimeEntryWithCategory[];
+    },
+    enabled: !!user?.id && !!weekStart,
+  });
+}
+
 // ─── Team Tasks ──────────────────────────────────────────────────────────────
 
 export function useTeamTasks(memberId?: string) {
@@ -707,7 +891,7 @@ export function useTeamSummary() {
           supabase
             .from('time_entries')
             .select('user_id')
-            .eq('status', 'running'),
+            .eq('status', 'active'),
           supabase
             .from('vacation_requests')
             .select('id', { count: 'exact', head: true })

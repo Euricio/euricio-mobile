@@ -497,6 +497,35 @@ const es: Record<string, string> = {
   hr_noEntriesToday: 'Sin registros hoy',
   hr_addNote: 'Añadir nota',
 
+  // Breaks
+  hr_shortBreak: 'Pausa corta',
+  hr_lunchBreak: 'Pausa almuerzo',
+  hr_breakRunning: 'En pausa...',
+  hr_endBreak: 'Finalizar pausa',
+
+  // Notes & Editing
+  hr_note: 'Nota',
+  hr_editEntry: 'Editar registro',
+  hr_deleteEntry: 'Eliminar registro',
+  hr_deleteConfirm: '¿Eliminar este registro de tiempo?',
+  hr_save: 'Guardar',
+  hr_startTime: 'Hora inicio',
+  hr_endTime: 'Hora fin',
+  hr_breaks: 'Pausas',
+
+  // Report
+  hr_report: 'Informe',
+  hr_dayView: 'Día',
+  hr_weekView: 'Semana',
+  hr_targetHours: 'Objetivo',
+  hr_actualHours: 'Real',
+  hr_netWorkTime: 'Tiempo neto',
+  hr_totalBreaks: 'Pausas totales',
+  hr_today: 'Hoy',
+  hr_categoryBreakdown: 'Por actividad',
+  hr_weekTotal: 'Total semanal',
+  hr_noEntriesThisDay: 'Sin registros este día',
+
   // Member Detail
   hr_memberDetail: 'Miembro',
   hr_position: 'Puesto',
