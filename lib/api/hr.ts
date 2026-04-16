@@ -226,7 +226,7 @@ export function useMyActiveTimeEntry() {
       return (data as TimeEntry & { category: TimeCategory | null }) ?? null;
     },
     enabled: !!user?.id,
-    refetchInterval: 5000, // Refresh every 5s for web/app sync
+    refetchInterval: 30000, // Fallback polling — realtime handles instant updates
   });
 }
 
@@ -380,7 +380,7 @@ export function useMyTimeEntriesToday() {
       return (data ?? []) as TimeEntryWithCategory[];
     },
     enabled: !!user?.id,
-    refetchInterval: 10000, // Refresh every 10s for web/app sync
+    refetchInterval: 60000, // Fallback polling — realtime handles instant updates
   });
 }
 

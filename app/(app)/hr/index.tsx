@@ -19,6 +19,7 @@ import {
 } from '../../../lib/api/hr';
 import { useTasks, Task } from '../../../lib/api/tasks';
 import { useProfile } from '../../../lib/api/profile';
+import { useTimeEntryRealtime } from '../../../lib/realtime/useTimeEntryRealtime';
 import { ClockWidget } from '../../../components/hr/ClockWidget';
 import { DaySummaryCard } from '../../../components/hr/DaySummaryCard';
 import { EditTimeEntryModal } from '../../../components/hr/EditTimeEntryModal';
@@ -52,6 +53,9 @@ export default function HRHomeScreen() {
   const { data: tasks, refetch: refetchTasks } = useTasks();
   const { data: summary, refetch: refetchSummary } = useTeamSummary();
   const { data: todayEntries = [], refetch: refetchEntries } = useMyTimeEntriesToday();
+
+  // ── Real-time sync: instant updates from web CRM ──
+  useTimeEntryRealtime(user?.id);
 
   const todayStr = useMemo(() => toDateString(new Date()), []);
   const [selectedDate, setSelectedDate] = useState(todayStr);
