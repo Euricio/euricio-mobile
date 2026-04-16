@@ -27,14 +27,13 @@ export default function RootLayout() {
   useEffect(() => {
     async function checkForUpdates() {
       try {
-        if (__DEV__) return; // Skip in dev mode
         const update = await Updates.checkForUpdateAsync();
         if (update.isAvailable) {
           await Updates.fetchUpdateAsync();
           await Updates.reloadAsync();
         }
-      } catch (e) {
-        // Silently ignore update errors
+      } catch {
+        // Silently ignore update errors (e.g. no network, Expo Go)
       }
     }
     checkForUpdates();
