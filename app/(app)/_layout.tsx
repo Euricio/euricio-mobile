@@ -6,6 +6,7 @@ import { LoadingScreen } from '../../components/ui/LoadingScreen';
 import { VoiceProvider } from '../../lib/voice/VoiceContext';
 import { useVoicePermissions } from '../../lib/voice/useVoicePermissions';
 import FloatingDialer from '../../components/voice/FloatingDialer';
+import FloatingScannerFab from '../../components/scanner/FloatingScannerFab';
 import IncomingCallOverlay from '../../components/voice/IncomingCallOverlay';
 
 function VoiceOverlay() {
@@ -67,7 +68,14 @@ export default function AppLayout() {
               animation: 'slide_from_right',
             }}
           />
+          <Stack.Screen
+            name="scanner"
+            options={{
+              animation: 'slide_from_bottom',
+            }}
+          />
         </Stack>
+        <FloatingScannerFab />
         <VoiceOverlay />
       </View>
     </VoiceProvider>
