@@ -69,6 +69,23 @@ export function ClockWidget() {
   const updateNote = useUpdateTimeEntryNote();
   const breakStore = useBreakStore();
 
+  // Sync break state from DB (when web CRM starts/stops a break)
+  useEffect(() => {
+    if (!activeEntry) return;
+    const dbMode = activeEntry.break_mode;
+    if (!dbMode || dbMode === 'work') {
+      // DB says not on break — if local store thinks we are, end it (web ended the break)
+      if (breakStore.isOnBreak) {
+        breakStore.reset();
+      }
+    } else if (dbMode === 'short' || dbMode === 'lunch') {
+      // DB says on break — if local store doesn't know, start it
+      if (!breakStore.isOnBreak) {
+        breakStore.startBreak(dbMode);
+      }
+    }
+  }, [activeEntry?.break_mode]);
+
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pickerMode, setPickerMode] = useState<'clockIn' | 'change'>('clockIn');
   const [noteText, setNoteText] = useState('');

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useBreakStore, BreakType } from '../../store/breakStore';
-import { useSaveBreakMinutes } from '../../lib/api/hr';
+import { useSaveBreakMinutes, useUpdateBreakMode } from '../../lib/api/hr';
 import { useI18n } from '../../lib/i18n';
 import {
   colors,
@@ -44,12 +44,14 @@ export function BreakButtons({ activeEntryId }: BreakButtonsProps) {
   const { t } = useI18n();
   const { isOnBreak, breakType, breakStartedAt, startBreak, endBreak } = useBreakStore();
   const saveBreak = useSaveBreakMinutes();
+  const updateBreakMode = useUpdateBreakMode();
   const breakElapsed = useBreakTimer(breakStartedAt);
 
   const handleToggleBreak = (type: BreakType) => {
     if (isOnBreak && breakType === type) {
-      // End break
+      // End break — set mode back to 'work' in DB and save accumulated minutes
       const result = endBreak();
+      updateBreakMode.mutate({ entryId: activeEntryId, breakMode: 'work' });
       if (result) {
         saveBreak.mutate({
           entryId: activeEntryId,
@@ -58,7 +60,9 @@ export function BreakButtons({ activeEntryId }: BreakButtonsProps) {
         });
       }
     } else if (!isOnBreak) {
+      // Start break — write mode to DB immediately so web CRM sees it
       startBreak(type);
+      updateBreakMode.mutate({ entryId: activeEntryId, breakMode: type });
     }
   };
 

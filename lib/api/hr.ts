@@ -45,6 +45,7 @@ export interface TimeEntry {
   short_break_minutes: number;
   lunch_break_minutes: number;
   total_hours: number | null;
+  break_mode: 'work' | 'short' | 'lunch';
 }
 
 export interface Shift {
@@ -753,6 +754,24 @@ export function useDeleteTimeEntry() {
       queryClient.invalidateQueries({ queryKey: ['my-time-entries-today'] });
       queryClient.invalidateQueries({ queryKey: ['time-entries-for-date'] });
       queryClient.invalidateQueries({ queryKey: ['time-entries-for-week'] });
+    },
+  });
+}
+
+// ─── Update Break Mode (real-time sync) ─────────────────────────────────────
+
+export function useUpdateBreakMode() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ entryId, breakMode }: { entryId: number; breakMode: 'work' | 'short' | 'lunch' }) => {
+      const { error } = await supabase
+        .from('time_entries')
+        .update({ break_mode: breakMode })
+        .eq('id', entryId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-active-time-entry'] });
     },
   });
 }
