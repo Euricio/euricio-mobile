@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { supabase, getFreshAccessToken } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -205,8 +205,7 @@ async function uploadViaEdgeFunction(
   fileUri: string,
   contentType: string,
 ): Promise<{ size: number }> {
-  const session = (await supabase.auth.getSession()).data.session;
-  if (!session) throw new Error('Not authenticated');
+  const accessToken = await getFreshAccessToken();
 
   const base64Data = await FileSystem.readAsStringAsync(fileUri, {
     encoding: FileSystem.EncodingType.Base64,
@@ -219,7 +218,7 @@ async function uploadViaEdgeFunction(
   const response = await fetch(`${SUPABASE_URL}/functions/v1/upload-media`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${session.access_token}`,
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -263,8 +262,7 @@ export function useUploadSignedPdf() {
           'application/pdf',
         );
       } else {
-        const session = (await supabase.auth.getSession()).data.session;
-        if (!session) throw new Error('Not authenticated');
+        const accessToken = await getFreshAccessToken();
 
         // Upload each image individually (same approach as scanner)
         for (let i = 0; i < fileUris.length; i++) {
@@ -281,7 +279,7 @@ export function useUploadSignedPdf() {
             {
               method: 'POST',
               headers: {
-                Authorization: `Bearer ${session.access_token}`,
+                Authorization: `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({

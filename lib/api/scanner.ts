@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { supabase, getFreshAccessToken } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -156,8 +156,7 @@ async function uploadViaEdgeFunction(
   fileUri: string,
   contentType: string,
 ): Promise<{ size: number }> {
-  const session = (await supabase.auth.getSession()).data.session;
-  if (!session) throw new Error('Not authenticated');
+  const accessToken = await getFreshAccessToken();
 
   // Ensure the URI is readable (copy from ph:// or asset-library:// if needed)
   let readableUri: string;
@@ -198,7 +197,7 @@ async function uploadViaEdgeFunction(
     response = await fetch(`${SUPABASE_URL}/functions/v1/upload-media`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
