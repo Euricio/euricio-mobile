@@ -91,12 +91,28 @@ function ContractCard({ contract }: { contract: Contract }) {
 
 export default function ContractsListScreen() {
   const { t } = useI18n();
-  const { data: profile } = useProfile();
+  const { data: profile, isLoading: profileLoading } = useProfile();
   const hasAccess = canAccessPdfTools(profile);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ContractStatus | 'all'>('all');
   const activeStatus = statusFilter === 'all' ? undefined : statusFilter;
   const { data: contracts, isLoading, refetch, isRefetching } = useContracts(activeStatus, search);
+
+  if (profileLoading) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen
+          options={{
+            headerTitle: t('contracts_title'),
+            headerShown: true,
+            headerStyle: { backgroundColor: colors.surface },
+            headerShadowVisible: false,
+          }}
+        />
+        <LoadingScreen />
+      </View>
+    );
+  }
 
   if (!hasAccess) {
     return (

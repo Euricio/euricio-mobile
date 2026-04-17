@@ -16,7 +16,7 @@ interface UpgradePromptProps {
   feature: 'contracts' | 'scanner';
 }
 
-const UPGRADE_URL = 'https://app.euricio.com/settings/subscription';
+const UPGRADE_URL = 'https://euricio.es/settings/subscription';
 
 export function UpgradePrompt({ feature }: UpgradePromptProps) {
   const { t } = useI18n();
