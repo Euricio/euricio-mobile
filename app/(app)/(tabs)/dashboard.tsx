@@ -118,6 +118,24 @@ export default function DashboardScreen() {
         />
       </View>
 
+      {/* Stats Cards Row 2 */}
+      <View style={styles.statsRow}>
+        <StatCard
+          icon="business-outline"
+          label={t('stat_properties')}
+          value={stats.data?.propertyCount ?? 0}
+          color={colors.accent}
+          onPress={() => router.push('/(app)/(tabs)/properties')}
+        />
+        <StatCard
+          icon="calendar-outline"
+          label={t('stat_appointmentsToday')}
+          value={stats.data?.appointmentsToday ?? 0}
+          color="#bf5af2"
+          onPress={() => router.push('/(app)/calendar/')}
+        />
+      </View>
+
       {/* Quick Actions */}
       <Text style={styles.sectionTitle}>{t('quickAccess')}</Text>
       <View style={styles.quickActionsRow}>
@@ -138,6 +156,37 @@ export default function DashboardScreen() {
           color={colors.accent}
           onPress={() => router.push('/(app)/(tabs)/tasks')}
         />
+      </View>
+
+      {/* Module Grid */}
+      <Text style={styles.sectionTitle}>{t('dashboard_modules')}</Text>
+      <View style={styles.moduleGrid}>
+        {([
+          { icon: 'people-outline' as const, label: t('module_leads'), color: colors.primary, route: '/(app)/(tabs)/leads' },
+          { icon: 'business-outline' as const, label: t('module_properties'), color: colors.accent, route: '/(app)/(tabs)/properties' },
+          { icon: 'git-branch-outline' as const, label: t('module_pipeline'), color: '#E8A838', route: '/(app)/pipeline/' },
+          { icon: 'calendar-outline' as const, label: t('module_calendar'), color: '#bf5af2', route: '/(app)/calendar/' },
+          { icon: 'checkbox-outline' as const, label: t('module_tasks'), color: colors.info, route: '/(app)/(tabs)/tasks' },
+          { icon: 'logo-whatsapp' as const, label: t('module_whatsapp'), color: '#25D366', route: '/(app)/whatsapp/' },
+          { icon: 'paper-plane-outline' as const, label: t('module_telegram'), color: '#0088cc', route: '/(app)/telegram/' },
+          { icon: 'calculator-outline' as const, label: t('module_mortgage'), color: colors.warning, route: '/(app)/mortgage/' },
+          { icon: 'people-circle-outline' as const, label: t('module_partners'), color: '#30d158', route: '/(app)/partners/' },
+          { icon: 'stats-chart-outline' as const, label: t('module_valuations'), color: '#F59E0B', route: '/(app)/valuations/' },
+          { icon: 'briefcase-outline' as const, label: t('module_hr'), color: '#6366F1', route: '/(app)/hr/' },
+          { icon: 'scan-outline' as const, label: t('module_scanner'), color: '#EC4899', route: '/(app)/scanner/' },
+        ]).map((mod) => (
+          <TouchableOpacity
+            key={mod.route}
+            style={styles.moduleItem}
+            activeOpacity={0.7}
+            onPress={() => router.push(mod.route as any)}
+          >
+            <View style={[styles.moduleIconCircle, { backgroundColor: mod.color + '15' }]}>
+              <Ionicons name={mod.icon} size={24} color={mod.color} />
+            </View>
+            <Text style={styles.moduleLabel} numberOfLines={1}>{mod.label}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Team Summary */}
@@ -335,6 +384,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
     marginBottom: spacing.lg,
+  },
+  moduleGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: spacing.lg,
+  },
+  moduleItem: {
+    width: '25%',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  moduleIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  moduleLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.medium,
+    color: colors.text,
+    textAlign: 'center',
   },
   quickAction: {
     flex: 1,
