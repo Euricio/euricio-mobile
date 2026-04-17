@@ -16,6 +16,7 @@ import { Button } from '../../../../components/ui/Button';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
 import { useI18n } from '../../../../lib/i18n';
 import { colors, spacing, fontSize, fontWeight, borderRadius } from '../../../../constants/theme';
+import PortalPublishingSection from '../../../../components/integrations/PortalPublishingSection';
 
 const WIDGET_TYPES = ['valuation', 'career', 'portal', 'listing', 'search'] as const;
 
@@ -197,6 +198,9 @@ export default function IntegrationsScreen() {
           </Card>
         );
       })}
+
+      {/* Portal Publishing Section */}
+      <PortalPublishingSection />
     </ScrollView>
   );
 }
