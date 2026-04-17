@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
+  Linking,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTasks, useCompleteTask, Task } from '../../../../lib/api/tasks';
 import { useAuthStore } from '../../../../store/authStore';
@@ -67,7 +68,9 @@ function TaskCard({
   };
   const overdue = isOverdue(task.due_date) && task.status !== 'done';
   const isCallback = task.task_type === 'callback';
+  const isMeeting = task.task_type === 'meeting';
   const isDone = task.status === 'done';
+  const leadPhone = (task.lead as any)?.phone;
 
   return (
     <Card style={isDone ? { ...styles.taskCard, ...styles.taskDone } : styles.taskCard}>
@@ -90,6 +93,9 @@ function TaskCard({
             <View style={styles.taskTitleRow}>
               {isCallback && (
                 <Ionicons name="call-outline" size={14} color={colors.error} style={{ marginRight: 4 }} />
+              )}
+              {isMeeting && (
+                <Ionicons name="calendar-outline" size={14} color="#bf5af2" style={{ marginRight: 4 }} />
               )}
               <Text
                 style={[
@@ -141,6 +147,16 @@ function TaskCard({
             <Text style={styles.linkedContactText}>{task.lead.full_name}</Text>
           </View>
         )}
+        {leadPhone && (
+          <TouchableOpacity
+            style={styles.callButton}
+            onPress={() => Linking.openURL(`tel:${leadPhone}`)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="call-outline" size={14} color={colors.success} />
+            <Text style={styles.callButtonText}>{t('task_callLead')}</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Assignee */}
@@ -162,6 +178,21 @@ export default function TasksScreen() {
   const completeTask = useCompleteTask();
   const user = useAuthStore((s) => s.user);
   const { t } = useI18n();
+  const { highlight } = useLocalSearchParams<{ highlight?: string }>();
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    if (highlight && tasks) {
+      setHighlightedId(highlight);
+      const index = tasks.findIndex((task) => task.id === highlight);
+      if (index >= 0 && flatListRef.current) {
+        flatListRef.current.scrollToIndex({ index, animated: true, viewOffset: 50 });
+      }
+      const timer = setTimeout(() => setHighlightedId(null), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlight, tasks]);
 
   const filters = [
     { key: 'alle', label: t('tasks_filter_all') },
@@ -243,13 +274,16 @@ export default function TasksScreen() {
         <LoadingScreen />
       ) : (
         <FlatList
+          ref={flatListRef}
           data={filteredTasks}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <TaskCard
-              task={item}
-              onComplete={() => completeTask.mutate(item.id)}
-            />
+            <View style={{ backgroundColor: highlightedId === item.id ? '#FEF9C3' : 'transparent', borderRadius: borderRadius.md }}>
+              <TaskCard
+                task={item}
+                onComplete={() => completeTask.mutate(item.id)}
+              />
+            </View>
           )}
           contentContainerStyle={styles.list}
           refreshControl={
@@ -446,6 +480,20 @@ const styles = StyleSheet.create({
   },
   assigneeFilterTextActive: {
     color: colors.primary,
+  },
+  callButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.success + '15',
+  },
+  callButtonText: {
+    fontSize: fontSize.xs,
+    color: colors.success,
+    fontWeight: fontWeight.medium,
   },
   fab: {
     position: 'absolute',

@@ -5,6 +5,8 @@ interface DashboardStats {
   openTasks: number;
   newLeadsToday: number;
   missedCalls: number;
+  propertyCount: number;
+  appointmentsToday: number;
 }
 
 interface Activity {
@@ -24,7 +26,11 @@ export function useDashboardStats() {
       today.setHours(0, 0, 0, 0);
       const todayISO = today.toISOString();
 
-      const [tasksRes, leadsRes, callsRes] = await Promise.all([
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowISO = tomorrow.toISOString();
+
+      const [tasksRes, leadsRes, callsRes, propertiesRes, appointmentsRes] = await Promise.all([
         supabase
           .from('tasks')
           .select('id', { count: 'exact', head: true })
@@ -38,13 +44,57 @@ export function useDashboardStats() {
           .select('id', { count: 'exact', head: true })
           .eq('status', 'missed')
           .gte('created_at', todayISO),
+        supabase
+          .from('properties')
+          .select('id', { count: 'exact', head: true }),
+        supabase
+          .from('appointments')
+          .select('id', { count: 'exact', head: true })
+          .gte('date', todayISO)
+          .lt('date', tomorrowISO),
       ]);
 
       return {
         openTasks: tasksRes.count ?? 0,
         newLeadsToday: leadsRes.count ?? 0,
         missedCalls: callsRes.count ?? 0,
+        propertyCount: propertiesRes.count ?? 0,
+        appointmentsToday: appointmentsRes.count ?? 0,
       };
+    },
+  });
+}
+
+export function usePropertyCount() {
+  return useQuery({
+    queryKey: ['dashboard', 'propertyCount'],
+    queryFn: async (): Promise<number> => {
+      const { count } = await supabase
+        .from('properties')
+        .select('id', { count: 'exact', head: true });
+      return count ?? 0;
+    },
+  });
+}
+
+export function useAppointmentsToday() {
+  return useQuery({
+    queryKey: ['dashboard', 'appointmentsToday'],
+    queryFn: async (): Promise<number> => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayISO = today.toISOString();
+
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowISO = tomorrow.toISOString();
+
+      const { count } = await supabase
+        .from('appointments')
+        .select('id', { count: 'exact', head: true })
+        .gte('date', todayISO)
+        .lt('date', tomorrowISO);
+      return count ?? 0;
     },
   });
 }
