@@ -1684,6 +1684,26 @@ const es: Record<string, string> = {
   ownership_notesPlaceholder: 'Notas sobre el propietario...',
   ownership_totalWarning: 'Las participaciones superan el 100%',
 
+  // Ownership rebuild
+  prop_ownershipStructure: 'Estructura de Propiedad',
+  prop_ownershipShares: 'Distribución de Participaciones',
+  prop_consentStatus: 'Estado de Consentimiento',
+  prop_addOwner: 'Añadir Propietario',
+  prop_editOwner: 'Editar Propietario',
+  prop_ownershipPct: 'Participación %',
+  prop_won: 'Ganado',
+  prop_pending: 'En Proceso',
+  prop_against: 'En Contra',
+  prop_pctAvailable: 'disponible',
+  prop_pctWarning: 'Las participaciones suman {pct}% (debería ser 100%)',
+  prop_wonSummary: '{pct}% ganado',
+  prop_owners: 'Propietarios',
+  prop_noOwners: 'Aún no se han registrado propietarios.',
+  prop_deleteOwnerConfirm: '¿Realmente eliminar este propietario?',
+  prop_ownerFullName: 'Nombre completo',
+  prop_ownerActions: 'Acciones',
+  prop_ownerNotes: 'Notas',
+
   // Land breakdown
   propSection_land: 'Desglose del terreno',
   land_classification: 'Clasificación',

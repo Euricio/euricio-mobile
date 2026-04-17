@@ -1690,6 +1690,26 @@ const de: Record<string, string> = {
   ownership_notesPlaceholder: 'Notizen zum Eigentümer...',
   ownership_totalWarning: 'Anteile überschreiten 100%',
 
+  // Ownership rebuild
+  prop_ownershipStructure: 'Eigentümerstruktur',
+  prop_ownershipShares: 'Anteilsverteilung',
+  prop_consentStatus: 'Zustimmungsstatus',
+  prop_addOwner: 'Eigentümer hinzufügen',
+  prop_editOwner: 'Eigentümer bearbeiten',
+  prop_ownershipPct: 'Anteil %',
+  prop_won: 'Gewonnen',
+  prop_pending: 'In Arbeit',
+  prop_against: 'Dagegen',
+  prop_pctAvailable: 'verfügbar',
+  prop_pctWarning: 'Anteile ergeben {pct}% (sollte 100% sein)',
+  prop_wonSummary: '{pct}% gewonnen',
+  prop_owners: 'Eigentümer',
+  prop_noOwners: 'Noch keine Eigentümer erfasst.',
+  prop_deleteOwnerConfirm: 'Eigentümer wirklich löschen?',
+  prop_ownerFullName: 'Vollständiger Name',
+  prop_ownerActions: 'Aktionen',
+  prop_ownerNotes: 'Notizen',
+
   // Land breakdown
   propSection_land: 'Grundstücksaufteilung',
   land_classification: 'Klassifizierung',

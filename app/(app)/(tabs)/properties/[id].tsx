@@ -12,7 +12,6 @@ import {
   Dimensions,
   Alert,
   Switch,
-  TextInput,
   ActivityIndicator,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
@@ -23,10 +22,6 @@ import {
   useDeleteProperty,
   usePropertyListing,
   useTogglePublish,
-  usePropertyOwners,
-  useCreatePropertyOwner,
-  useDeletePropertyOwner,
-  PropertyOwner,
 } from '../../../../lib/api/properties';
 import { usePropertyImages, PropertyImage } from '../../../../lib/api/propertyImages';
 import {
@@ -43,6 +38,7 @@ import { Button } from '../../../../components/ui/Button';
 import { CollapsibleSection } from '../../../../components/ui/CollapsibleSection';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
 import { DocumentManager } from '../../../../components/properties/DocumentManager';
+import { OwnershipSection } from '../../../../components/properties/OwnershipSection';
 import { useI18n } from '../../../../lib/i18n';
 import { useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
@@ -217,20 +213,12 @@ export default function PropertyDetailScreen() {
   const { data: images } = usePropertyImages(id!);
   const { data: documents } = usePropertyDocuments(id!);
   const { data: listing } = usePropertyListing(id!);
-  const { data: owners } = usePropertyOwners(id!);
   const deleteProperty = useDeleteProperty();
   const togglePublish = useTogglePublish();
-  const createOwner = useCreatePropertyOwner();
-  const deleteOwner = useDeletePropertyOwner();
   const uploadDocument = useUploadPropertyDocument();
   const deleteDocument = useDeletePropertyDocument();
   const queryClient = useQueryClient();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [showAddOwner, setShowAddOwner] = useState(false);
-  const [newOwnerName, setNewOwnerName] = useState('');
-  const [newOwnerPhone, setNewOwnerPhone] = useState('');
-  const [newOwnerEmail, setNewOwnerEmail] = useState('');
-  const [newOwnerPercentage, setNewOwnerPercentage] = useState('');
   const { t, formatPrice, formatDate } = useI18n();
 
   const updateImageSortOrder = useCallback(
@@ -328,42 +316,6 @@ export default function PropertyDetailScreen() {
     [id, deleteDocument, t],
   );
 
-  const handleAddOwner = useCallback(() => {
-    if (!newOwnerName.trim()) return;
-    createOwner.mutate(
-      {
-        property_id: id!,
-        name: newOwnerName.trim(),
-        phone: newOwnerPhone.trim() || null,
-        email: newOwnerEmail.trim() || null,
-        percentage: newOwnerPercentage ? Number(newOwnerPercentage) : null,
-      },
-      {
-        onSuccess: () => {
-          setNewOwnerName('');
-          setNewOwnerPhone('');
-          setNewOwnerEmail('');
-          setNewOwnerPercentage('');
-          setShowAddOwner(false);
-        },
-      },
-    );
-  }, [id, newOwnerName, newOwnerPhone, newOwnerEmail, newOwnerPercentage, createOwner]);
-
-  const handleDeleteOwner = useCallback(
-    (owner: PropertyOwner) => {
-      Alert.alert(t('ownership_removeOwner'), owner.name, [
-        { text: t('cancel'), style: 'cancel' },
-        {
-          text: t('delete'),
-          style: 'destructive',
-          onPress: () =>
-            deleteOwner.mutate({ id: owner.id, propertyId: id! }),
-        },
-      ]);
-    },
-    [id, deleteOwner, t],
-  );
 
   if (isLoading) return <LoadingScreen />;
 
@@ -438,7 +390,6 @@ export default function PropertyDetailScreen() {
   const pricePerM2 = property.price && property.size_m2 ? Math.round(property.price / property.size_m2) : null;
   const { score: completenessScore, missing: completenessMissing } = computeCompleteness(property);
 
-  const totalOwnershipPercent = (owners ?? []).reduce((sum, o) => sum + (o.percentage ?? 0), 0);
 
   return (
     <ScrollView
@@ -841,114 +792,7 @@ L.marker([${property.latitude}, ${property.longitude}]).addTo(map).bindPopup('${
       </Card>
 
       {/* ─── 19. Ownership Section ────────────────────────────── */}
-      <Card style={styles.section}>
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>{t('ownership_title')}</Text>
-          <TouchableOpacity onPress={() => setShowAddOwner(!showAddOwner)} style={styles.uploadButton}>
-            <Ionicons name={showAddOwner ? 'close' : 'add'} size={18} color={colors.primary} />
-            <Text style={styles.uploadButtonText}>{showAddOwner ? t('cancel') : t('ownership_addOwner')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Legacy owner fields */}
-        {(property.owner_name || property.owner_phone || property.owner_email) && (
-          <View style={styles.legacyOwnerSection}>
-            {property.owner_name && <DetailRow label={t('prop_ownerName')} value={property.owner_name} />}
-            {property.owner_phone && (
-              <TouchableOpacity onPress={() => Linking.openURL(`tel:${property.owner_phone}`)}>
-                <DetailRow label={t('prop_ownerPhone')} value={property.owner_phone} />
-              </TouchableOpacity>
-            )}
-            {property.owner_email && (
-              <TouchableOpacity onPress={() => Linking.openURL(`mailto:${property.owner_email}`)}>
-                <DetailRow label={t('prop_ownerEmail')} value={property.owner_email} />
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-
-        {/* Property Owners list */}
-        {owners && owners.length > 0 && (
-          <View style={styles.ownersList}>
-            {owners.map((owner) => (
-              <View key={owner.id} style={styles.ownerCard}>
-                <View style={styles.ownerCardHeader}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.ownerName}>{owner.name}</Text>
-                    {owner.percentage != null && (
-                      <Text style={styles.ownerPercentage}>{owner.percentage}%</Text>
-                    )}
-                  </View>
-                  <TouchableOpacity onPress={() => handleDeleteOwner(owner)}>
-                    <Ionicons name="trash-outline" size={18} color={colors.error} />
-                  </TouchableOpacity>
-                </View>
-                {owner.phone && (
-                  <TouchableOpacity onPress={() => Linking.openURL(`tel:${owner.phone}`)}>
-                    <Text style={styles.ownerContact}>{owner.phone}</Text>
-                  </TouchableOpacity>
-                )}
-                {owner.email && (
-                  <TouchableOpacity onPress={() => Linking.openURL(`mailto:${owner.email}`)}>
-                    <Text style={styles.ownerContact}>{owner.email}</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))}
-            {totalOwnershipPercent > 100 && (
-              <Text style={styles.ownerWarning}>{t('ownership_totalWarning')}</Text>
-            )}
-          </View>
-        )}
-
-        {/* Add owner form */}
-        {showAddOwner && (
-          <View style={styles.addOwnerForm}>
-            <TextInput
-              style={styles.ownerInput}
-              placeholder={t('ownership_namePlaceholder')}
-              value={newOwnerName}
-              onChangeText={setNewOwnerName}
-              placeholderTextColor={colors.textTertiary}
-            />
-            <TextInput
-              style={styles.ownerInput}
-              placeholder={t('ownership_phonePlaceholder')}
-              value={newOwnerPhone}
-              onChangeText={setNewOwnerPhone}
-              keyboardType="phone-pad"
-              placeholderTextColor={colors.textTertiary}
-            />
-            <TextInput
-              style={styles.ownerInput}
-              placeholder={t('ownership_emailPlaceholder')}
-              value={newOwnerEmail}
-              onChangeText={setNewOwnerEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              placeholderTextColor={colors.textTertiary}
-            />
-            <TextInput
-              style={styles.ownerInput}
-              placeholder={t('ownership_percentage')}
-              value={newOwnerPercentage}
-              onChangeText={setNewOwnerPercentage}
-              keyboardType="numeric"
-              placeholderTextColor={colors.textTertiary}
-            />
-            <Button
-              title={t('ownership_addOwner')}
-              onPress={handleAddOwner}
-              loading={createOwner.isPending}
-              icon={<Ionicons name="add" size={18} color={colors.white} />}
-            />
-          </View>
-        )}
-
-        {!owners?.length && !property.owner_name && !showAddOwner && (
-          <Text style={styles.emptyText}>{t('prop_noLinkedLead')}</Text>
-        )}
-      </Card>
+      <OwnershipSection propertyId={property.id} />
 
       {/* ─── 20. Publish to Website Toggle ────────────────────── */}
       <Card style={styles.section}>
