@@ -13,7 +13,7 @@ import {
 import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  PropertyOwner,
+  PropertyOwnerUI as PropertyOwner,
   usePropertyOwners,
   useCreatePropertyOwner,
   useUpdatePropertyOwner,
