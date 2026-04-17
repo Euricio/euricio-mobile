@@ -18,7 +18,7 @@ import { supabase } from '../supabase';
 import { colors, spacing, fontSize, fontWeight } from '../../constants/theme';
 
 export function useCallChoice() {
-  const { isInitialized, makeCall } = useVoice();
+  const { makeCall } = useVoice();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const [visible, setVisible] = useState(false);
@@ -27,28 +27,50 @@ export function useCallChoice() {
   const { data: voiceConnection } = useQuery({
     queryKey: ['voice-connection', user?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      // First try as owner
+      let { data } = await supabase
         .from('voice_connections')
         .select('default_outbound_number, connect_status')
         .eq('owner_id', user!.id)
         .eq('connect_status', 'connected')
         .maybeSingle();
+
+      // If not owner, check permissions
+      if (!data) {
+        const { data: perm } = await supabase
+          .from('voice_user_permissions')
+          .select('owner_id')
+          .eq('user_id', user!.id)
+          .eq('voice_enabled', true)
+          .maybeSingle();
+
+        if (perm) {
+          const { data: ownerConn } = await supabase
+            .from('voice_connections')
+            .select('default_outbound_number, connect_status')
+            .eq('owner_id', perm.owner_id)
+            .eq('connect_status', 'connected')
+            .maybeSingle();
+          data = ownerConn;
+        }
+      }
+
       return data;
     },
-    enabled: !!user && isInitialized,
+    enabled: !!user,
   });
 
   const promptCall = useCallback(
     (phone: string) => {
       if (!phone) return;
-      if (!isInitialized) {
+      if (!voiceConnection) {
         Linking.openURL(`tel:${phone}`);
         return;
       }
       setPhoneNumber(phone);
       setVisible(true);
     },
-    [isInitialized],
+    [voiceConnection],
   );
 
   const handleMobile = useCallback(() => {
