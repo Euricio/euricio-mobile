@@ -1928,6 +1928,8 @@ const de: Record<string, string> = {
   propDocs_deleteConfirm: 'Dokument wirklich löschen?',
   propDocs_uploading: 'Wird hochgeladen...',
   propDocs_uploadError: 'Dokument konnte nicht hochgeladen werden.',
+  propDocs_open: 'Öffnen',
+  propDocs_share: 'Teilen',
 
   // Operation type
   operationType_buy: 'Kauf',

@@ -1922,6 +1922,8 @@ const en: Record<string, string> = {
   propDocs_deleteConfirm: 'Delete this document?',
   propDocs_uploading: 'Uploading...',
   propDocs_uploadError: 'Could not upload document.',
+  propDocs_open: 'Open',
+  propDocs_share: 'Share',
 
   // Operation type
   operationType_buy: 'Purchase',
