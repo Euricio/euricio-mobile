@@ -815,6 +815,9 @@ const es: Record<string, string> = {
   scanner_noLeads: 'No hay contactos disponibles.',
   scanner_propertySuccess: 'Asignado al inmueble.',
   scanner_leadSuccess: 'Asignado al contacto.',
+  scanner_documentName: 'Nombre del documento',
+  scanner_documentNamePlaceholder: 'Introducir nombre...',
+  scanner_documentNameTitle: 'Nombrar documento',
 
   // ─── Upgrade / Plan-Gating ────────────────────────────────────────
   upgrade_contracts_title: 'Desbloquear generador de contratos',

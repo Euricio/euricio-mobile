@@ -821,6 +821,9 @@ const de: Record<string, string> = {
   scanner_noLeads: 'Keine Kontakte vorhanden.',
   scanner_propertySuccess: 'Dem Objekt zugeordnet.',
   scanner_leadSuccess: 'Dem Kontakt zugeordnet.',
+  scanner_documentName: 'Dokumentname',
+  scanner_documentNamePlaceholder: 'Name eingeben...',
+  scanner_documentNameTitle: 'Dokument benennen',
 
   // ─── Upgrade / Plan-Gating ────────────────────────────────────────
   upgrade_contracts_title: 'Vertragsgenerator freischalten',

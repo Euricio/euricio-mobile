@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,11 +13,14 @@ import {
   Modal,
   Dimensions,
   Platform,
+  Linking,
 } from 'react-native';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import {
   usePropertyImages,
   useUploadPropertyImage,
@@ -431,6 +434,17 @@ function DocumentsTab({ propertyId }: { propertyId: string }) {
     }
   };
 
+  const handleOpenDocument = useCallback(async (doc: PropertyDocument) => {
+    if (!doc.signed_url) return;
+    try {
+      const fileUri = FileSystem.cacheDirectory + doc.file_name;
+      await FileSystem.downloadAsync(doc.signed_url, fileUri);
+      await Sharing.shareAsync(fileUri);
+    } catch {
+      Linking.openURL(doc.signed_url);
+    }
+  }, []);
+
   const handleDeleteDocument = (doc: PropertyDocument) => {
     Alert.alert(t('media_deleteDoc'), t('media_deleteDocConfirm', { name: doc.file_name }), [
       { text: t('cancel'), style: 'cancel' },
@@ -499,7 +513,11 @@ function DocumentsTab({ propertyId }: { propertyId: string }) {
           </View>
         }
         renderItem={({ item }) => (
-          <View style={styles.docItem}>
+          <TouchableOpacity
+            style={styles.docItem}
+            activeOpacity={0.7}
+            onPress={() => handleOpenDocument(item)}
+          >
             <View style={styles.docIconContainer}>
               <Ionicons
                 name={getDocumentIcon(item.document_type)}
@@ -529,7 +547,7 @@ function DocumentsTab({ propertyId }: { propertyId: string }) {
             >
               <Ionicons name="trash-outline" size={20} color={colors.error} />
             </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         )}
       />
 

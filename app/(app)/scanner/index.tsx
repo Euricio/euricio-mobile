@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,9 @@ import {
   ActivityIndicator,
   ActionSheetIOS,
   Platform,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -47,6 +50,37 @@ export default function ScannerScreen() {
   const uploadLeadDoc = useUploadLeadDocument();
   const [pages, setPages] = useState<PageItem[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  // ─── Document Naming Dialog ────────────────────────────────────────
+  const [nameModalVisible, setNameModalVisible] = useState(false);
+  const [documentName, setDocumentName] = useState('');
+  const nameInputRef = useRef<TextInput>(null);
+  const pendingActionRef = useRef<((name: string) => void) | null>(null);
+
+  const sanitizeFileName = (name: string): string =>
+    name.replace(/[^a-zA-Z0-9äöüÄÖÜß _-]/g, '').trim() || 'Scan';
+
+  const askDocumentName = (onConfirm: (name: string) => void) => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const defaultName = `Scan_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
+    setDocumentName(defaultName);
+    pendingActionRef.current = onConfirm;
+    setNameModalVisible(true);
+    setTimeout(() => nameInputRef.current?.focus(), 300);
+  };
+
+  const confirmDocumentName = () => {
+    const name = sanitizeFileName(documentName);
+    setNameModalVisible(false);
+    pendingActionRef.current?.(name);
+    pendingActionRef.current = null;
+  };
+
+  const cancelDocumentName = () => {
+    setNameModalVisible(false);
+    pendingActionRef.current = null;
+  };
 
   // ─── Persist picked images to a stable cache dir immediately ────────
   // iOS can revoke access to ImagePicker temp URIs at any time.
@@ -183,45 +217,47 @@ export default function ScannerScreen() {
   const showSaveOptions = () => {
     if (pages.length === 0) return;
 
-    const options = [
-      t('scanner_saveToDevice'),
-      t('scanner_uploadToCloud'),
-      t('scanner_attachToContract'),
-      t('scanner_attachToProperty'),
-      t('scanner_attachToLead'),
-      t('cancel'),
-    ];
-    const cancelIndex = 5;
+    askDocumentName((docName) => {
+      const options = [
+        t('scanner_saveToDevice'),
+        t('scanner_uploadToCloud'),
+        t('scanner_attachToContract'),
+        t('scanner_attachToProperty'),
+        t('scanner_attachToLead'),
+        t('cancel'),
+      ];
+      const cancelIndex = 5;
 
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        { options, cancelButtonIndex: cancelIndex, title: t('scanner_saveOptions') },
-        (buttonIndex) => {
-          if (buttonIndex === 0) handleShareToDevice();
-          else if (buttonIndex === 1) handleSave(pages.map((p) => p.uri), 'images');
-          else if (buttonIndex === 2) showContractPicker();
-          else if (buttonIndex === 3) showPropertyPicker();
-          else if (buttonIndex === 4) showLeadPicker();
-        },
-      );
-    } else {
-      Alert.alert(t('scanner_saveOptions'), undefined, [
-        { text: t('scanner_saveToDevice'), onPress: handleShareToDevice },
-        {
-          text: t('scanner_uploadToCloud'),
-          onPress: () => handleSave(pages.map((p) => p.uri), 'images'),
-        },
-        { text: t('scanner_attachToContract'), onPress: showContractPicker },
-        { text: t('scanner_attachToProperty'), onPress: showPropertyPicker },
-        { text: t('scanner_attachToLead'), onPress: showLeadPicker },
-        { text: t('cancel'), style: 'cancel' },
-      ]);
-    }
+      if (Platform.OS === 'ios') {
+        ActionSheetIOS.showActionSheetWithOptions(
+          { options, cancelButtonIndex: cancelIndex, title: t('scanner_saveOptions') },
+          (buttonIndex) => {
+            if (buttonIndex === 0) handleShareToDevice(docName);
+            else if (buttonIndex === 1) handleSave(pages.map((p) => p.uri), 'images', undefined, docName);
+            else if (buttonIndex === 2) showContractPicker(docName);
+            else if (buttonIndex === 3) showPropertyPicker(docName);
+            else if (buttonIndex === 4) showLeadPicker(docName);
+          },
+        );
+      } else {
+        Alert.alert(t('scanner_saveOptions'), undefined, [
+          { text: t('scanner_saveToDevice'), onPress: () => handleShareToDevice(docName) },
+          {
+            text: t('scanner_uploadToCloud'),
+            onPress: () => handleSave(pages.map((p) => p.uri), 'images', undefined, docName),
+          },
+          { text: t('scanner_attachToContract'), onPress: () => showContractPicker(docName) },
+          { text: t('scanner_attachToProperty'), onPress: () => showPropertyPicker(docName) },
+          { text: t('scanner_attachToLead'), onPress: () => showLeadPicker(docName) },
+          { text: t('cancel'), style: 'cancel' },
+        ]);
+      }
+    });
   };
 
   // ─── Save to device via share sheet ─────────────────────────────────
 
-  const handleShareToDevice = async () => {
+  const handleShareToDevice = async (docName?: string) => {
     if (pages.length === 0) return;
     setUploading(true);
     try {
@@ -252,7 +288,7 @@ export default function ScannerScreen() {
 
   // ─── Upload to cloud ───────────────────────────────────────────────
 
-  const handleSave = async (uris: string[], mode: 'images' | 'pdf', contractId?: string) => {
+  const handleSave = async (uris: string[], mode: 'images' | 'pdf', contractId?: string, docName?: string) => {
     setUploading(true);
     try {
       let finalUris = uris;
@@ -279,7 +315,7 @@ export default function ScannerScreen() {
 
   // ─── Contract Picker ───────────────────────────────────────────────
 
-  const showContractPicker = () => {
+  const showContractPicker = (docName?: string) => {
     if (!contracts || contracts.length === 0) {
       Alert.alert(t('scanner_noContracts'));
       return;
@@ -299,14 +335,14 @@ export default function ScannerScreen() {
         },
         (buttonIndex) => {
           if (buttonIndex < contracts.length && buttonIndex < 10) {
-            handleSave(pages.map((p) => p.uri), 'images', contracts[buttonIndex].id);
+            handleSave(pages.map((p) => p.uri), 'images', contracts[buttonIndex].id, docName);
           }
         },
       );
     } else {
       const alertOptions = contracts.slice(0, 10).map((c, i) => ({
         text: `${c.client_name} — ${t(`contractType_${c.contract_type}`)}`,
-        onPress: () => handleSave(pages.map((p) => p.uri), 'images', c.id),
+        onPress: () => handleSave(pages.map((p) => p.uri), 'images', c.id, docName),
       }));
       alertOptions.push({ text: t('cancel'), onPress: async () => {} });
       Alert.alert(t('scanner_selectContract'), undefined, alertOptions);
@@ -315,7 +351,7 @@ export default function ScannerScreen() {
 
   // ─── Property Picker ────────────────────────────────────────────────
 
-  const showPropertyPicker = () => {
+  const showPropertyPicker = (docName?: string) => {
     if (!properties || properties.length === 0) {
       Alert.alert(t('scanner_noProperties'));
       return;
@@ -335,21 +371,21 @@ export default function ScannerScreen() {
         },
         (buttonIndex) => {
           if (buttonIndex < properties.length && buttonIndex < 10) {
-            handlePropertyUpload(properties[buttonIndex].id);
+            handlePropertyUpload(properties[buttonIndex].id, docName);
           }
         },
       );
     } else {
       const alertOptions = properties.slice(0, 10).map((p, _i) => ({
         text: p.title || `${p.street || ''}, ${p.city || ''}`,
-        onPress: () => handlePropertyUpload(p.id),
+        onPress: () => handlePropertyUpload(p.id, docName),
       }));
       alertOptions.push({ text: t('cancel'), onPress: () => {} });
       Alert.alert(t('scanner_selectProperty'), undefined, alertOptions);
     }
   };
 
-  const handlePropertyUpload = async (propertyId: string) => {
+  const handlePropertyUpload = async (propertyId: string, docName?: string) => {
     setUploading(true);
     try {
       const userId = useAuthStore.getState().user?.id;
@@ -358,7 +394,7 @@ export default function ScannerScreen() {
       const uris = pages.map((p) => p.uri);
       const pdfUri = await imagesToPdf(uris);
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileName = `${timestamp}.pdf`;
+      const fileName = docName ? `${docName}.pdf` : `${timestamp}.pdf`;
       const storagePath = `${userId}/properties/${propertyId}/${fileName}`;
 
       const { size } = await uploadToStorage(
@@ -391,7 +427,7 @@ export default function ScannerScreen() {
 
   // ─── Lead Picker ──────────────────────────────────────────────────
 
-  const showLeadPicker = () => {
+  const showLeadPicker = (docName?: string) => {
     if (!leads || leads.length === 0) {
       Alert.alert(t('scanner_noLeads'));
       return;
@@ -409,27 +445,27 @@ export default function ScannerScreen() {
         },
         (buttonIndex) => {
           if (buttonIndex < leads.length && buttonIndex < 10) {
-            handleLeadUpload(leads[buttonIndex].id);
+            handleLeadUpload(leads[buttonIndex].id, docName);
           }
         },
       );
     } else {
       const alertOptions = leads.slice(0, 10).map((l, _i) => ({
         text: l.full_name,
-        onPress: () => handleLeadUpload(l.id),
+        onPress: () => handleLeadUpload(l.id, docName),
       }));
       alertOptions.push({ text: t('cancel'), onPress: () => {} });
       Alert.alert(t('scanner_selectLead'), undefined, alertOptions);
     }
   };
 
-  const handleLeadUpload = async (leadId: string) => {
+  const handleLeadUpload = async (leadId: string, docName?: string) => {
     setUploading(true);
     try {
       const uris = pages.map((p) => p.uri);
       const pdfUri = await imagesToPdf(uris);
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileName = `${timestamp}.pdf`;
+      const fileName = docName ? `${docName}.pdf` : `${timestamp}.pdf`;
 
       await uploadLeadDoc.mutateAsync({ leadId, pdfUri, fileName });
 
@@ -564,6 +600,43 @@ export default function ScannerScreen() {
           </View>
         </>
       )}
+
+      {/* ─── Document Naming Modal ─────────────────────────────────── */}
+      <Modal
+        visible={nameModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={cancelDocumentName}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>{t('scanner_documentNameTitle')}</Text>
+            <TextInput
+              ref={nameInputRef}
+              style={styles.modalInput}
+              value={documentName}
+              onChangeText={setDocumentName}
+              placeholder={t('scanner_documentNamePlaceholder')}
+              placeholderTextColor={colors.textSecondary}
+              autoCorrect={false}
+              selectTextOnFocus
+              returnKeyType="done"
+              onSubmitEditing={confirmDocumentName}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.modalBtnCancel} onPress={cancelDocumentName}>
+                <Text style={styles.modalBtnCancelText}>{t('cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalBtnConfirm} onPress={confirmDocumentName}>
+                <Text style={styles.modalBtnConfirmText}>{t('save')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -777,5 +850,61 @@ const styles = StyleSheet.create({
   uploadingText: {
     fontSize: fontSize.md,
     color: colors.textSecondary,
+  },
+
+  // Document naming modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  modalCard: {
+    width: '100%',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    ...shadow.md,
+  },
+  modalTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.text,
+    marginBottom: spacing.md,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    fontSize: fontSize.md,
+    color: colors.text,
+    marginBottom: spacing.md,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.sm,
+  },
+  modalBtnCancel: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+  },
+  modalBtnCancelText: {
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+  },
+  modalBtnConfirm: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.primary,
+  },
+  modalBtnConfirmText: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.white,
   },
 });
