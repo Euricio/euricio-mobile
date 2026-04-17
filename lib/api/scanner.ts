@@ -49,29 +49,30 @@ export interface UploadScanParams {
 
 /**
  * Ensure the URI is readable by FileSystem.readAsStringAsync.
- * iOS image picker returns URIs in its own cache directory that can become
- * unreadable (locked / stale). We ALWAYS copy to our own cache directory
- * to guarantee readability regardless of the source URI scheme.
+ * Images should already be persisted to our cache directory at pick time
+ * (see scanner/index.tsx persistToCache). This is a safety-net that verifies
+ * the file exists and falls back to copying if needed.
  */
 async function ensureReadableUri(uri: string): Promise<string> {
+  // Check if file exists at the given URI
+  if (uri.startsWith('file://')) {
+    const info = await FileSystem.getInfoAsync(uri);
+    if (info.exists) {
+      console.error('[scanner] File exists and readable:', uri, `(${info.size} bytes)`);
+      return uri;
+    }
+    console.error('[scanner] File does NOT exist at:', uri);
+  }
+
+  // Fallback: try to copy to our own cache
   const fileName = `scan-copy-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.jpg`;
   const dest = `${FileSystem.cacheDirectory}${fileName}`;
-
   try {
-    // Always copy — even file:// URIs from ImagePicker cache can fail to read
     await FileSystem.copyAsync({ from: uri, to: dest });
-    console.error('[scanner] Copied to own cache:', dest);
+    console.error('[scanner] Fallback: copied to own cache:', dest);
     return dest;
   } catch (copyErr) {
-    console.error('[scanner] copyAsync failed for:', uri, copyErr);
-    // If copy fails and original is file://, try reading it directly as fallback
-    if (uri.startsWith('file://')) {
-      const info = await FileSystem.getInfoAsync(uri);
-      if (info.exists) {
-        console.error('[scanner] File exists at original URI, using directly:', uri);
-        return uri;
-      }
-    }
+    console.error('[scanner] copyAsync also failed:', uri, copyErr);
     throw new Error(`Cannot access image file: ${uri}`);
   }
 }

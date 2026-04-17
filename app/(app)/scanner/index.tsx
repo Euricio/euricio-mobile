@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
 import { useContracts } from '../../../lib/api/contracts';
 import { useUploadScan } from '../../../lib/api/scanner';
 import { useI18n } from '../../../lib/i18n';
@@ -39,6 +40,27 @@ export default function ScannerScreen() {
   const { data: contracts } = useContracts();
   const [pages, setPages] = useState<PageItem[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  // ─── Persist picked images to a stable cache dir immediately ────────
+  // iOS can revoke access to ImagePicker temp URIs at any time.
+  // Copying right after selection guarantees the file is readable later.
+
+  const persistToCache = async (uris: string[]): Promise<PageItem[]> => {
+    const items: PageItem[] = [];
+    for (const uri of uris) {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const dest = `${FileSystem.cacheDirectory}scanner-${id}.jpg`;
+      try {
+        await FileSystem.copyAsync({ from: uri, to: dest });
+        items.push({ id, uri: dest });
+      } catch (err) {
+        console.error('[scanner] Failed to persist image to cache:', uri, err);
+        // Fallback: try using the original URI (may still work for display)
+        items.push({ id, uri });
+      }
+    }
+    return items;
+  };
 
   // ─── Source Picker ──────────────────────────────────────────────────
 
@@ -87,10 +109,7 @@ export default function ScannerScreen() {
     });
 
     if (!result.canceled && result.assets.length > 0) {
-      const newPages = result.assets.map((asset) => ({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        uri: asset.uri,
-      }));
+      const newPages = await persistToCache(result.assets.map((a) => a.uri));
       setPages((prev) => [...prev, ...newPages]);
     }
   };
@@ -113,10 +132,7 @@ export default function ScannerScreen() {
     });
 
     if (!result.canceled && result.assets.length > 0) {
-      const newPages = result.assets.map((asset) => ({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        uri: asset.uri,
-      }));
+      const newPages = await persistToCache(result.assets.map((a) => a.uri));
       setPages((prev) => [...prev, ...newPages]);
     }
   };
