@@ -1840,6 +1840,7 @@ const es: Record<string, string> = {
   'docportal.accessModal.email': 'Email del cliente',
   'docportal.accessModal.email.label': 'Email',
   'docportal.accessModal.emailPlaceholder': 'email@ejemplo.es',
+  'docportal.accessModal.customerName': 'Nombre del cliente',
   'docportal.accessModal.customerLanguage': 'Idioma',
   'docportal.accessModal.passwordLabel': 'Contraseña',
   'docportal.accessModal.password': 'Contraseña',

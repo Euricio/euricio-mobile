@@ -531,12 +531,12 @@ export function DocumentManager({
                   />
 
                   {/* Customer name */}
-                  <Text style={styles.inputLabel}>{t('general.name')}</Text>
+                  <Text style={styles.inputLabel}>{t('docportal.accessModal.customerName')}</Text>
                   <TextInput
                     style={styles.input}
                     value={modalCustomerName}
                     onChangeText={setModalCustomerName}
-                    placeholder={t('general.name')}
+                    placeholder={t('docportal.accessModal.customerName')}
                     placeholderTextColor={colors.textTertiary}
                   />
 
@@ -828,10 +828,9 @@ const styles = StyleSheet.create({
 
   // Action row
   actionRow: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: spacing.sm,
     marginTop: spacing.md,
-    alignItems: 'center',
   },
   successMsg: {
     fontSize: fontSize.xs,

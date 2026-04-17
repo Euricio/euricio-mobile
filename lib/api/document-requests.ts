@@ -246,7 +246,7 @@ export function useCreatePortalAccess() {
         return docKey;
       });
 
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://app.euricio.es';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://crm.euricio.es';
       const emailRes = await fetch(`${apiUrl}/api/send-portal-invite`, {
         method: 'POST',
         headers: {
