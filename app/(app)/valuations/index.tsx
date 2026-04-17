@@ -9,6 +9,10 @@ import {
   TextInput,
   Modal,
   Switch,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
@@ -984,105 +988,119 @@ export default function ValuationToolScreen() {
 
       {/* ═══════ SEND DIALOG MODAL ═══════ */}
       <Modal visible={sendOpen} transparent animationType="fade" onRequestClose={() => setSendOpen(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('valuation_sendTitle')}</Text>
-              <TouchableOpacity onPress={() => setSendOpen(false)}>
-                <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={styles.modalKeyboardView}
+            >
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>{t('valuation_sendTitle')}</Text>
+                  <TouchableOpacity onPress={() => setSendOpen(false)}>
+                    <Ionicons name="close" size={24} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
 
-            {/* Method checkboxes */}
-            <Text style={styles.miniLabel}>{t('valuation_selectMethods')}</Text>
-            {vergleichswertResult && (
-              <TouchableOpacity onPress={() => toggleSendMethod('vergleichswert')} style={styles.checkboxRow}>
-                <Ionicons
-                  name={sendMethods.includes('vergleichswert') ? 'checkbox' : 'square-outline'}
-                  size={22} color={sendMethods.includes('vergleichswert') ? colors.primary : colors.textTertiary}
-                />
-                <Text style={styles.checkboxLabel}>{t('valuation_method_vergleichswert')}</Text>
-                <Text style={[styles.checkboxValue, { color: colors.accent }]}>{formatPrice(vergleichswertResult.adjusted_value)}</Text>
-              </TouchableOpacity>
-            )}
-            {substanzwertResult && (
-              <TouchableOpacity onPress={() => toggleSendMethod('substanzwert')} style={styles.checkboxRow}>
-                <Ionicons
-                  name={sendMethods.includes('substanzwert') ? 'checkbox' : 'square-outline'}
-                  size={22} color={sendMethods.includes('substanzwert') ? colors.primary : colors.textTertiary}
-                />
-                <Text style={styles.checkboxLabel}>{t('valuation_method_substanzwert')}</Text>
-                <Text style={[styles.checkboxValue, { color: '#34c759' }]}>{formatPrice(substanzwertResult.substanzwert)}</Text>
-              </TouchableOpacity>
-            )}
-            {ertragswertResult && (
-              <TouchableOpacity onPress={() => toggleSendMethod('ertragswert')} style={styles.checkboxRow}>
-                <Ionicons
-                  name={sendMethods.includes('ertragswert') ? 'checkbox' : 'square-outline'}
-                  size={22} color={sendMethods.includes('ertragswert') ? colors.primary : colors.textTertiary}
-                />
-                <Text style={styles.checkboxLabel}>{t('valuation_method_ertragswert')}</Text>
-                <Text style={[styles.checkboxValue, { color: '#ff9500' }]}>{formatPrice(ertragswertResult.ertragswert)}</Text>
-              </TouchableOpacity>
-            )}
-
-            {/* Customer email */}
-            <FormInput
-              label={t('valuation_customerEmail')}
-              value={sendEmail}
-              onChangeText={setSendEmail}
-              placeholder="kunde@example.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              required
-            />
-
-            {/* Customer name */}
-            <FormInput
-              label={t('valuation_customerName')}
-              value={sendName}
-              onChangeText={setSendName}
-              placeholder="Max Mustermann"
-            />
-
-            {/* Language selector */}
-            <Text style={styles.miniLabel}>{t('valuation_reportLanguage')}</Text>
-            <View style={styles.segmentRow}>
-              {(['de', 'en', 'es'] as const).map((l) => (
-                <TouchableOpacity
-                  key={l}
-                  onPress={() => setSendLang(l)}
-                  style={[styles.segmentBtn, sendLang === l && styles.segmentBtnActive]}
+                <ScrollView
+                  keyboardDismissMode="on-drag"
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                  style={styles.modalScrollContent}
                 >
-                  <Text style={[styles.segmentBtnText, sendLang === l && styles.segmentBtnTextActive]}>
-                    {l === 'de' ? 'Deutsch' : l === 'en' ? 'English' : 'Español'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                  {/* Method checkboxes */}
+                  <Text style={styles.miniLabel}>{t('valuation_selectMethods')}</Text>
+                  {vergleichswertResult && (
+                    <TouchableOpacity onPress={() => toggleSendMethod('vergleichswert')} style={styles.checkboxRow}>
+                      <Ionicons
+                        name={sendMethods.includes('vergleichswert') ? 'checkbox' : 'square-outline'}
+                        size={22} color={sendMethods.includes('vergleichswert') ? colors.primary : colors.textTertiary}
+                      />
+                      <Text style={styles.checkboxLabel}>{t('valuation_method_vergleichswert')}</Text>
+                      <Text style={[styles.checkboxValue, { color: colors.accent }]}>{formatPrice(vergleichswertResult.adjusted_value)}</Text>
+                    </TouchableOpacity>
+                  )}
+                  {substanzwertResult && (
+                    <TouchableOpacity onPress={() => toggleSendMethod('substanzwert')} style={styles.checkboxRow}>
+                      <Ionicons
+                        name={sendMethods.includes('substanzwert') ? 'checkbox' : 'square-outline'}
+                        size={22} color={sendMethods.includes('substanzwert') ? colors.primary : colors.textTertiary}
+                      />
+                      <Text style={styles.checkboxLabel}>{t('valuation_method_substanzwert')}</Text>
+                      <Text style={[styles.checkboxValue, { color: '#34c759' }]}>{formatPrice(substanzwertResult.substanzwert)}</Text>
+                    </TouchableOpacity>
+                  )}
+                  {ertragswertResult && (
+                    <TouchableOpacity onPress={() => toggleSendMethod('ertragswert')} style={styles.checkboxRow}>
+                      <Ionicons
+                        name={sendMethods.includes('ertragswert') ? 'checkbox' : 'square-outline'}
+                        size={22} color={sendMethods.includes('ertragswert') ? colors.primary : colors.textTertiary}
+                      />
+                      <Text style={styles.checkboxLabel}>{t('valuation_method_ertragswert')}</Text>
+                      <Text style={[styles.checkboxValue, { color: '#ff9500' }]}>{formatPrice(ertragswertResult.ertragswert)}</Text>
+                    </TouchableOpacity>
+                  )}
 
-            {/* Action buttons */}
-            <View style={styles.modalActions}>
-              <Button
-                title={generatePdf.isPending ? t('valuation_generatingPdf') : t('valuation_downloadPdf')}
-                onPress={handleDownloadPdf}
-                loading={generatePdf.isPending}
-                disabled={sendMethods.length === 0}
-                variant="outline"
-                icon={<Ionicons name="download-outline" size={16} color={colors.primary} />}
-                style={{ flex: 1 }}
-              />
-              <Button
-                title={sendReport.isPending ? t('valuation_sendingEmail') : t('valuation_sendEmail')}
-                onPress={handleSendEmail}
-                loading={sendReport.isPending}
-                disabled={sendMethods.length === 0 || !sendEmail.trim()}
-                icon={<Ionicons name="mail-outline" size={16} color={colors.white} />}
-                style={{ flex: 1 }}
-              />
-            </View>
+                  {/* Customer email */}
+                  <FormInput
+                    label={t('valuation_customerEmail')}
+                    value={sendEmail}
+                    onChangeText={setSendEmail}
+                    placeholder="kunde@example.com"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    required
+                  />
+
+                  {/* Customer name */}
+                  <FormInput
+                    label={t('valuation_customerName')}
+                    value={sendName}
+                    onChangeText={setSendName}
+                    placeholder="Max Mustermann"
+                  />
+
+                  {/* Language selector */}
+                  <Text style={styles.miniLabel}>{t('valuation_reportLanguage')}</Text>
+                  <View style={styles.segmentRow}>
+                    {(['de', 'en', 'es'] as const).map((l) => (
+                      <TouchableOpacity
+                        key={l}
+                        onPress={() => setSendLang(l)}
+                        style={[styles.segmentBtn, sendLang === l && styles.segmentBtnActive]}
+                      >
+                        <Text style={[styles.segmentBtnText, sendLang === l && styles.segmentBtnTextActive]}>
+                          {l === 'de' ? 'Deutsch' : l === 'en' ? 'English' : 'Español'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  {/* Action buttons */}
+                  <View style={styles.modalActions}>
+                    <Button
+                      title={generatePdf.isPending ? t('valuation_generatingPdf') : t('valuation_downloadPdf')}
+                      onPress={handleDownloadPdf}
+                      loading={generatePdf.isPending}
+                      disabled={sendMethods.length === 0}
+                      variant="outline"
+                      icon={<Ionicons name="download-outline" size={16} color={colors.primary} />}
+                      style={{ flex: 1 }}
+                    />
+                    <Button
+                      title={sendReport.isPending ? t('valuation_sendingEmail') : t('valuation_sendEmail')}
+                      onPress={handleSendEmail}
+                      loading={sendReport.isPending}
+                      disabled={sendMethods.length === 0 || !sendEmail.trim()}
+                      icon={<Ionicons name="mail-outline" size={16} color={colors.white} />}
+                      style={{ flex: 1 }}
+                    />
+                  </View>
+                </ScrollView>
+              </View>
+            </KeyboardAvoidingView>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </ScrollView>
   );
@@ -1769,11 +1787,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: spacing.lg,
   },
+  modalKeyboardView: {
+    width: '100%',
+    maxHeight: '90%',
+  },
   modalContent: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
-    maxHeight: '90%',
+    maxHeight: '100%',
+  },
+  modalScrollContent: {
+    flexGrow: 0,
   },
   modalHeader: {
     flexDirection: 'row',
