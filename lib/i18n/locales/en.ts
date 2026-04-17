@@ -819,6 +819,16 @@ const en: Record<string, string> = {
   scanner_documentNamePlaceholder: 'Enter name...',
   scanner_documentNameTitle: 'Name Document',
   scanner_next: 'Next',
+  scanner_saveDocument: 'Save Document',
+  scanner_saveLocation: 'Save Location',
+  scanner_assignToContract: 'Assign to contract',
+  scanner_assignToProperty: 'Assign to property',
+  scanner_assignToLead: 'Assign to lead',
+  scanner_assignToEmployee: 'Assign to employee',
+  scanner_selectEmployee: 'Select employee',
+  scanner_search: 'Search...',
+  scanner_employeeSuccess: 'Assigned to employee.',
+  scanner_noEmployees: 'No employees available.',
 
   // ─── Upgrade / Plan-Gating ────────────────────────────────────────
   upgrade_contracts_title: 'Unlock Contract Generator',
