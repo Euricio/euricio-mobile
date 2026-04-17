@@ -6,14 +6,21 @@ import React, {
   useCallback,
   useMemo,
 } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { Locale, I18nContextValue, LOCALE_DATE_FORMATS } from './types';
+import { supabase } from '../supabase';
 import de from './locales/de';
 import es from './locales/es';
 import en from './locales/en';
 
-const STORAGE_KEY = '@euricio/locale';
+const STORAGE_KEY = 'euricio_locale';
 const DEFAULT_LOCALE: Locale = 'de';
+
+const VALID_LOCALES: Locale[] = ['de', 'es', 'en'];
+
+function isValidLocale(value: string | null): value is Locale {
+  return value != null && VALID_LOCALES.includes(value as Locale);
+}
 
 const translations: Record<Locale, typeof de> = { de, es, en };
 
@@ -23,20 +30,55 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
   const [isReady, setIsReady] = useState(false);
 
-  // Load saved locale on mount
+  // Load saved locale on mount — try local storage first, then Supabase profile
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then((saved) => {
-        if (saved && (saved === 'de' || saved === 'es' || saved === 'en')) {
-          setLocaleState(saved as Locale);
+    async function loadLocale() {
+      try {
+        const saved = await SecureStore.getItemAsync(STORAGE_KEY);
+        if (isValidLocale(saved)) {
+          setLocaleState(saved);
+          return;
         }
-      })
-      .finally(() => setIsReady(true));
+
+        // Fallback: check Supabase profile for cross-device sync
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('language')
+            .eq('id', session.user.id)
+            .single();
+          if (profile && isValidLocale(profile.language)) {
+            setLocaleState(profile.language);
+            // Cache locally for next startup
+            await SecureStore.setItemAsync(STORAGE_KEY, profile.language);
+          }
+        }
+      } catch {
+        // Silently fall back to default locale
+      } finally {
+        setIsReady(true);
+      }
+    }
+    loadLocale();
   }, []);
 
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
-    AsyncStorage.setItem(STORAGE_KEY, newLocale);
+
+    // Persist locally
+    SecureStore.setItemAsync(STORAGE_KEY, newLocale).catch(() => {});
+
+    // Persist to Supabase profile (fire-and-forget)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.id) {
+        supabase
+          .from('profiles')
+          .update({ language: newLocale })
+          .eq('id', session.user.id)
+          .then(() => {});
+      }
+    }).catch(() => {});
   }, []);
 
   const t = useCallback(
