@@ -300,6 +300,7 @@ export default function EditPropertyScreen() {
   const handleSubmit = () => {
     if (!validate()) return;
 
+    // Only include columns that exist in the DB properties table
     const payload: Record<string, unknown> = {
       id: id!,
       title: title.trim(),
@@ -315,21 +316,14 @@ export default function EditPropertyScreen() {
       price: price ? parseFloat(price) : null,
       price_negotiable: priceNegotiable,
       size_m2: sizeM2 ? parseFloat(sizeM2) : null,
-      plot_size_m2: plotSizeM2 ? parseFloat(plotSizeM2) : null,
-      built_size_m2: builtSizeM2 ? parseFloat(builtSizeM2) : null,
-      useful_size_m2: usefulSizeM2 ? parseFloat(usefulSizeM2) : null,
       rooms: rooms ? parseInt(rooms, 10) : null,
       bathrooms: bathrooms ? parseInt(bathrooms, 10) : null,
       floor: floor ? parseInt(floor, 10) : null,
-      total_floors: totalFloors ? parseInt(totalFloors, 10) : null,
       property_subtype: propertySubtype.trim() || null,
       orientation: orientation || null,
       condition: condition || null,
-      year_built: yearBuilt ? parseInt(yearBuilt, 10) : null,
-      energy_certificate: energyCertificate || null,
       has_elevator: hasElevator,
       has_parking: hasParking,
-      parking_spaces: hasParking && parkingSpaces ? parseInt(parkingSpaces, 10) : null,
       has_pool: hasPool,
       has_garden: hasGarden,
       garden_m2: hasGarden && gardenM2 ? parseFloat(gardenM2) : null,
@@ -343,8 +337,6 @@ export default function EditPropertyScreen() {
       heating_type: hasHeating && heatingType ? heatingType : null,
       has_storage: hasStorage,
       has_sea_view: hasSeaView,
-      has_balcony: hasBalcony,
-      balcony_m2: hasBalcony && balconyM2 ? parseFloat(balconyM2) : null,
       referencia_catastral: referenciaCatastral.trim() || null,
       ibi_annual: ibiAnnual ? parseFloat(ibiAnnual) : null,
       community_fees_monthly: communityFeesMonthly ? parseFloat(communityFeesMonthly) : null,
@@ -359,16 +351,11 @@ export default function EditPropertyScreen() {
       rental_yield: rentalYield ? parseFloat(rentalYield) : null,
       description: description.trim() || null,
       notes: notes.trim() || null,
-      land_classification: landClassification.trim() || null,
-      land_buildable_m2: landBuildableM2 ? parseFloat(landBuildableM2) : null,
       terreno_urbano_m2: terrenoUrbanoM2 ? parseFloat(terrenoUrbanoM2) : null,
       terreno_agricola_m2: terrenoAgricolaM2 ? parseFloat(terrenoAgricolaM2) : null,
       terreno_forestal_m2: terrenoForestalM2 ? parseFloat(terrenoForestalM2) : null,
       terreno_pastizal_m2: terrenoPastizalM2 ? parseFloat(terrenoPastizalM2) : null,
-      owner_name: ownerName.trim() || null,
-      owner_phone: ownerPhone.trim() || null,
-      owner_email: ownerEmail.trim() || null,
-      lead_id: leadId || null,
+      lead_id: leadId ? parseInt(leadId, 10) : null,
     };
 
     updateProperty.mutate(payload as any, {

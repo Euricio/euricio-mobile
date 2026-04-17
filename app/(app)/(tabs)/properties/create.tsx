@@ -242,18 +242,14 @@ export default function CreatePropertyScreen() {
     if (price) payload.price = parseFloat(price);
     payload.price_negotiable = priceNegotiable;
     if (sizeM2) payload.size_m2 = parseFloat(sizeM2);
-    if (plotSizeM2) payload.plot_size_m2 = parseFloat(plotSizeM2);
-    if (builtSizeM2) payload.built_size_m2 = parseFloat(builtSizeM2);
-    if (usefulSizeM2) payload.useful_size_m2 = parseFloat(usefulSizeM2);
+    // Note: plot_size_m2, built_size_m2, useful_size_m2, total_floors,
+    // year_built, energy_certificate do not exist in the DB yet
     if (rooms) payload.rooms = parseInt(rooms, 10);
     if (bathrooms) payload.bathrooms = parseInt(bathrooms, 10);
     if (floor) payload.floor = parseInt(floor, 10);
-    if (totalFloors) payload.total_floors = parseInt(totalFloors, 10);
     if (propertySubtype.trim()) payload.property_subtype = propertySubtype.trim();
     if (orientation) payload.orientation = orientation;
     if (condition) payload.condition = condition;
-    if (yearBuilt) payload.year_built = parseInt(yearBuilt, 10);
-    if (energyCertificate) payload.energy_certificate = energyCertificate;
 
     // Features (booleans)
     if (hasElevator) payload.has_elevator = true;
@@ -279,23 +275,15 @@ export default function CreatePropertyScreen() {
     }
     if (hasStorage) payload.has_storage = true;
     if (hasSeaView) payload.has_sea_view = true;
-    if (hasBalcony) {
-      payload.has_balcony = true;
-      if (balconyM2) payload.balcony_m2 = parseFloat(balconyM2);
-    }
-    if (hasParking && parkingSpaces) payload.parking_spaces = parseInt(parkingSpaces, 10);
+    // Note: has_balcony, balcony_m2, parking_spaces do not exist in the DB yet
 
-    // Owner
-    if (ownerName.trim()) payload.owner_name = ownerName.trim();
-    if (ownerPhone.trim()) payload.owner_phone = ownerPhone.trim();
-    if (ownerEmail.trim()) payload.owner_email = ownerEmail.trim();
+    // Owner fields are stored in property_owners table, not properties
 
     // Lead
-    if (leadId) payload.lead_id = leadId;
+    if (leadId) payload.lead_id = parseInt(leadId, 10);
 
     // Land breakdown
-    if (landClassification.trim()) payload.land_classification = landClassification.trim();
-    if (landBuildableM2) payload.land_buildable_m2 = parseFloat(landBuildableM2);
+    // Note: land_classification, land_buildable_m2 do not exist in DB yet
     if (terrenoUrbanoM2) payload.terreno_urbano_m2 = parseFloat(terrenoUrbanoM2);
     if (terrenoAgricolaM2) payload.terreno_agricola_m2 = parseFloat(terrenoAgricolaM2);
     if (terrenoForestalM2) payload.terreno_forestal_m2 = parseFloat(terrenoForestalM2);
