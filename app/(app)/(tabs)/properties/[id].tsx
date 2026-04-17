@@ -42,7 +42,7 @@ import { OwnershipSection } from '../../../../components/properties/OwnershipSec
 import { useI18n } from '../../../../lib/i18n';
 import { useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import {
   colors,

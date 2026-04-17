@@ -1,7 +1,7 @@
 import { supabase } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const SUPABASE_URL = 'https://vddfghfvmnrbotmxhvvi.supabase.co';
 const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/property-images`;
