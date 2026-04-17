@@ -735,7 +735,12 @@ L.marker([${property.latitude}, ${property.longitude}]).addTo(map).bindPopup('${
         </View>
         {documents && documents.length > 0 ? (
           documents.map((doc) => (
-            <View key={doc.id} style={styles.documentRow}>
+            <TouchableOpacity
+              key={doc.id}
+              style={styles.documentRow}
+              activeOpacity={0.7}
+              onPress={() => handleDownloadDocument(doc)}
+            >
               <View style={styles.documentInfo}>
                 <Ionicons name="document-outline" size={18} color={colors.textSecondary} />
                 <View style={{ flex: 1 }}>
@@ -756,7 +761,7 @@ L.marker([${property.latitude}, ${property.longitude}]).addTo(map).bindPopup('${
                   <Ionicons name="trash-outline" size={18} color={colors.error} />
                 </TouchableOpacity>
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         ) : (
           <Text style={styles.emptyText}>{t('propDocs_empty')}</Text>

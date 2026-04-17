@@ -807,6 +807,17 @@ const en: Record<string, string> = {
   scanner_permissionRequired: 'Permission required',
   scanner_cameraPermission: 'Please allow camera access in settings.',
   scanner_galleryPermission: 'Please allow gallery access in settings.',
+  scanner_attachToProperty: 'Attach to property',
+  scanner_attachToLead: 'Attach to lead',
+  scanner_selectProperty: 'Select property',
+  scanner_selectLead: 'Select lead',
+  scanner_noProperties: 'No properties available.',
+  scanner_noLeads: 'No leads available.',
+  scanner_propertySuccess: 'Assigned to property.',
+  scanner_leadSuccess: 'Assigned to lead.',
+  scanner_documentName: 'Document Name',
+  scanner_documentNamePlaceholder: 'Enter name...',
+  scanner_documentNameTitle: 'Name Document',
 
   // ─── Upgrade / Plan-Gating ────────────────────────────────────────
   upgrade_contracts_title: 'Unlock Contract Generator',
