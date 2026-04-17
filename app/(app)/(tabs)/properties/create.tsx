@@ -7,16 +7,21 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
+  FlatList,
+  TextInput,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useCreateProperty } from '../../../../lib/api/properties';
+import { useLeads } from '../../../../lib/api/leads';
 import { FormInput } from '../../../../components/ui/FormInput';
 import { FormSelect } from '../../../../components/ui/FormSelect';
 import { FormToggle } from '../../../../components/ui/FormToggle';
 import { Button } from '../../../../components/ui/Button';
 import { CollapsibleSection } from '../../../../components/ui/CollapsibleSection';
 import { useI18n } from '../../../../lib/i18n';
-import { colors, spacing, fontSize, fontWeight } from '../../../../constants/theme';
+import { colors, spacing, fontSize, fontWeight, borderRadius } from '../../../../constants/theme';
 
 function SectionLabel({ text }: { text: string }) {
   return <Text style={styles.sectionLabel}>{text}</Text>;
@@ -92,11 +97,37 @@ export default function CreatePropertyScreen() {
     { value: 'daily', label: t('rentalPeriod_daily') },
   ];
 
+  const operationTypeOptions = [
+    { value: 'buy', label: t('operationType_buy') },
+    { value: 'sell', label: t('operationType_sell') },
+    { value: 'rent_out', label: t('operationType_rent_out') },
+    { value: 'rent_in', label: t('operationType_rent_in') },
+    { value: 'investment', label: t('operationType_investment') },
+  ];
+
+  const energyCertOptions = [
+    { value: 'A', label: 'A' },
+    { value: 'B', label: 'B' },
+    { value: 'C', label: 'C' },
+    { value: 'D', label: 'D' },
+    { value: 'E', label: 'E' },
+    { value: 'F', label: 'F' },
+    { value: 'G', label: 'G' },
+    { value: 'pending', label: t('energyCert_pending') },
+    { value: 'exempt', label: t('energyCert_exempt') },
+  ];
+
+  // Lead picker
+  const [leadSearch, setLeadSearch] = useState('');
+  const [showLeadPicker, setShowLeadPicker] = useState(false);
+  const { data: leads } = useLeads(leadSearch);
+
   // Grunddaten
   const [title, setTitle] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [offerType, setOfferType] = useState('');
   const [status, setStatus] = useState('available');
+  const [operationType, setOperationType] = useState('');
 
   // Adresse
   const [address, setAddress] = useState('');
@@ -109,14 +140,20 @@ export default function CreatePropertyScreen() {
   const [price, setPrice] = useState('');
   const [priceNegotiable, setPriceNegotiable] = useState(true);
   const [sizeM2, setSizeM2] = useState('');
+  const [plotSizeM2, setPlotSizeM2] = useState('');
+  const [builtSizeM2, setBuiltSizeM2] = useState('');
+  const [usefulSizeM2, setUsefulSizeM2] = useState('');
   const [rooms, setRooms] = useState('');
   const [bathrooms, setBathrooms] = useState('');
   const [floor, setFloor] = useState('');
+  const [totalFloors, setTotalFloors] = useState('');
 
   // Typ & Zustand
   const [propertySubtype, setPropertySubtype] = useState('');
   const [orientation, setOrientation] = useState('');
   const [condition, setCondition] = useState('');
+  const [yearBuilt, setYearBuilt] = useState('');
+  const [energyCertificate, setEnergyCertificate] = useState('');
 
   // Ausstattung
   const [hasElevator, setHasElevator] = useState(false);
@@ -134,6 +171,9 @@ export default function CreatePropertyScreen() {
   const [heatingType, setHeatingType] = useState('');
   const [hasStorage, setHasStorage] = useState(false);
   const [hasSeaView, setHasSeaView] = useState(false);
+  const [hasBalcony, setHasBalcony] = useState(false);
+  const [balconyM2, setBalconyM2] = useState('');
+  const [parkingSpaces, setParkingSpaces] = useState('');
 
   // Rechtliches
   const [referenciaCatastral, setReferenciaCatastral] = useState('');
@@ -154,6 +194,23 @@ export default function CreatePropertyScreen() {
   // Beschreibung
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Land breakdown
+  const [landClassification, setLandClassification] = useState('');
+  const [landBuildableM2, setLandBuildableM2] = useState('');
+  const [terrenoUrbanoM2, setTerrenoUrbanoM2] = useState('');
+  const [terrenoAgricolaM2, setTerrenoAgricolaM2] = useState('');
+  const [terrenoForestalM2, setTerrenoForestalM2] = useState('');
+  const [terrenoPastizalM2, setTerrenoPastizalM2] = useState('');
+
+  // Owner
+  const [ownerName, setOwnerName] = useState('');
+  const [ownerPhone, setOwnerPhone] = useState('');
+  const [ownerEmail, setOwnerEmail] = useState('');
+
+  // Lead
+  const [leadId, setLeadId] = useState('');
+  const [leadName, setLeadName] = useState('');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -176,6 +233,7 @@ export default function CreatePropertyScreen() {
 
     // Only include fields with values
     if (offerType) payload.offer_type = offerType;
+    if (operationType) payload.operation_type = operationType;
     if (address.trim()) payload.address = address.trim();
     if (city.trim()) payload.city = city.trim();
     if (province.trim()) payload.province = province.trim();
@@ -184,12 +242,18 @@ export default function CreatePropertyScreen() {
     if (price) payload.price = parseFloat(price);
     payload.price_negotiable = priceNegotiable;
     if (sizeM2) payload.size_m2 = parseFloat(sizeM2);
+    if (plotSizeM2) payload.plot_size_m2 = parseFloat(plotSizeM2);
+    if (builtSizeM2) payload.built_size_m2 = parseFloat(builtSizeM2);
+    if (usefulSizeM2) payload.useful_size_m2 = parseFloat(usefulSizeM2);
     if (rooms) payload.rooms = parseInt(rooms, 10);
     if (bathrooms) payload.bathrooms = parseInt(bathrooms, 10);
     if (floor) payload.floor = parseInt(floor, 10);
+    if (totalFloors) payload.total_floors = parseInt(totalFloors, 10);
     if (propertySubtype.trim()) payload.property_subtype = propertySubtype.trim();
     if (orientation) payload.orientation = orientation;
     if (condition) payload.condition = condition;
+    if (yearBuilt) payload.year_built = parseInt(yearBuilt, 10);
+    if (energyCertificate) payload.energy_certificate = energyCertificate;
 
     // Features (booleans)
     if (hasElevator) payload.has_elevator = true;
@@ -215,6 +279,27 @@ export default function CreatePropertyScreen() {
     }
     if (hasStorage) payload.has_storage = true;
     if (hasSeaView) payload.has_sea_view = true;
+    if (hasBalcony) {
+      payload.has_balcony = true;
+      if (balconyM2) payload.balcony_m2 = parseFloat(balconyM2);
+    }
+    if (hasParking && parkingSpaces) payload.parking_spaces = parseInt(parkingSpaces, 10);
+
+    // Owner
+    if (ownerName.trim()) payload.owner_name = ownerName.trim();
+    if (ownerPhone.trim()) payload.owner_phone = ownerPhone.trim();
+    if (ownerEmail.trim()) payload.owner_email = ownerEmail.trim();
+
+    // Lead
+    if (leadId) payload.lead_id = leadId;
+
+    // Land breakdown
+    if (landClassification.trim()) payload.land_classification = landClassification.trim();
+    if (landBuildableM2) payload.land_buildable_m2 = parseFloat(landBuildableM2);
+    if (terrenoUrbanoM2) payload.terreno_urbano_m2 = parseFloat(terrenoUrbanoM2);
+    if (terrenoAgricolaM2) payload.terreno_agricola_m2 = parseFloat(terrenoAgricolaM2);
+    if (terrenoForestalM2) payload.terreno_forestal_m2 = parseFloat(terrenoForestalM2);
+    if (terrenoPastizalM2) payload.terreno_pastizal_m2 = parseFloat(terrenoPastizalM2);
 
     // Legal
     if (referenciaCatastral.trim()) payload.referencia_catastral = referenciaCatastral.trim();
@@ -295,6 +380,13 @@ export default function CreatePropertyScreen() {
           value={status}
           onChange={setStatus}
         />
+        <FormSelect
+          label={t('prop_operationType')}
+          options={operationTypeOptions}
+          value={operationType}
+          onChange={setOperationType}
+          placeholder={t('prop_operationTypePlaceholder')}
+        />
 
         {/* Adresse */}
         <SectionLabel text={t('propSection_address')} />
@@ -372,6 +464,34 @@ export default function CreatePropertyScreen() {
           placeholder={t('prop_floorPlaceholder')}
           keyboardType="numeric"
         />
+        <FormInput
+          label={t('prop_totalFloors')}
+          value={totalFloors}
+          onChangeText={setTotalFloors}
+          placeholder="z.B. 5"
+          keyboardType="numeric"
+        />
+        <FormInput
+          label={t('prop_plotSize')}
+          value={plotSizeM2}
+          onChangeText={setPlotSizeM2}
+          placeholder={t('prop_areaPlaceholder')}
+          keyboardType="numeric"
+        />
+        <FormInput
+          label={t('prop_builtSize')}
+          value={builtSizeM2}
+          onChangeText={setBuiltSizeM2}
+          placeholder={t('prop_areaPlaceholder')}
+          keyboardType="numeric"
+        />
+        <FormInput
+          label={t('prop_usefulSize')}
+          value={usefulSizeM2}
+          onChangeText={setUsefulSizeM2}
+          placeholder={t('prop_areaPlaceholder')}
+          keyboardType="numeric"
+        />
 
         {/* Typ & Zustand — collapsible */}
         <CollapsibleSection title={t('propSection_typeCondition')}>
@@ -394,6 +514,20 @@ export default function CreatePropertyScreen() {
             value={condition}
             onChange={setCondition}
             placeholder={t('prop_conditionPlaceholder')}
+          />
+          <FormInput
+            label={t('prop_yearBuilt')}
+            value={yearBuilt}
+            onChangeText={setYearBuilt}
+            placeholder="z.B. 2005"
+            keyboardType="numeric"
+          />
+          <FormSelect
+            label={t('prop_energyCertificate')}
+            options={energyCertOptions}
+            value={energyCertificate}
+            onChange={setEnergyCertificate}
+            placeholder={t('prop_orientationPlaceholder')}
           />
         </CollapsibleSection>
 
@@ -446,6 +580,25 @@ export default function CreatePropertyScreen() {
           )}
           <FormToggle label={t('feature_storage')} value={hasStorage} onChange={setHasStorage} />
           <FormToggle label={t('feature_seaView')} value={hasSeaView} onChange={setHasSeaView} />
+          <FormToggle label={t('prop_balcony')} value={hasBalcony} onChange={setHasBalcony} />
+          {hasBalcony && (
+            <FormInput
+              label={t('prop_balconyArea')}
+              value={balconyM2}
+              onChangeText={setBalconyM2}
+              placeholder={t('prop_areaPlaceholder')}
+              keyboardType="numeric"
+            />
+          )}
+          {hasParking && (
+            <FormInput
+              label={t('prop_parkingSpaces')}
+              value={parkingSpaces}
+              onChangeText={setParkingSpaces}
+              placeholder="z.B. 2"
+              keyboardType="numeric"
+            />
+          )}
         </CollapsibleSection>
 
         {/* Rechtliches — collapsible */}
@@ -529,6 +682,129 @@ export default function CreatePropertyScreen() {
           </CollapsibleSection>
         )}
 
+        {/* Land breakdown — collapsible */}
+        <CollapsibleSection title={t('propSection_land')}>
+          <FormInput
+            label={t('land_classification')}
+            value={landClassification}
+            onChangeText={setLandClassification}
+            placeholder={t('land_classificationPlaceholder')}
+          />
+          <FormInput
+            label={t('land_buildable')}
+            value={landBuildableM2}
+            onChangeText={setLandBuildableM2}
+            placeholder={t('land_buildablePlaceholder')}
+            keyboardType="numeric"
+          />
+          <FormInput
+            label={t('land_terreno_urbano')}
+            value={terrenoUrbanoM2}
+            onChangeText={setTerrenoUrbanoM2}
+            placeholder={t('prop_areaPlaceholder')}
+            keyboardType="numeric"
+          />
+          <FormInput
+            label={t('land_terreno_agricola')}
+            value={terrenoAgricolaM2}
+            onChangeText={setTerrenoAgricolaM2}
+            placeholder={t('prop_areaPlaceholder')}
+            keyboardType="numeric"
+          />
+          <FormInput
+            label={t('land_terreno_forestal')}
+            value={terrenoForestalM2}
+            onChangeText={setTerrenoForestalM2}
+            placeholder={t('prop_areaPlaceholder')}
+            keyboardType="numeric"
+          />
+          <FormInput
+            label={t('land_terreno_pastizal')}
+            value={terrenoPastizalM2}
+            onChangeText={setTerrenoPastizalM2}
+            placeholder={t('prop_areaPlaceholder')}
+            keyboardType="numeric"
+          />
+        </CollapsibleSection>
+
+        {/* Owner — collapsible */}
+        <CollapsibleSection title={t('prop_ownerSection')}>
+          <FormInput
+            label={t('prop_ownerName')}
+            value={ownerName}
+            onChangeText={setOwnerName}
+            placeholder={t('ownership_namePlaceholder')}
+          />
+          <FormInput
+            label={t('prop_ownerPhone')}
+            value={ownerPhone}
+            onChangeText={setOwnerPhone}
+            placeholder={t('ownership_phonePlaceholder')}
+            keyboardType="phone-pad"
+          />
+          <FormInput
+            label={t('prop_ownerEmail')}
+            value={ownerEmail}
+            onChangeText={setOwnerEmail}
+            placeholder={t('ownership_emailPlaceholder')}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        </CollapsibleSection>
+
+        {/* Lead picker */}
+        <SectionLabel text={t('prop_linkedLead')} />
+        {leadId ? (
+          <View style={styles.leadSelectedRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.leadSelectedName}>{leadName}</Text>
+            </View>
+            <TouchableOpacity onPress={() => { setLeadId(''); setLeadName(''); }}>
+              <Ionicons name="close-circle" size={22} color={colors.error} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View>
+            <TouchableOpacity
+              style={styles.leadPickerButton}
+              onPress={() => setShowLeadPicker(!showLeadPicker)}
+            >
+              <Ionicons name="person-outline" size={18} color={colors.primary} />
+              <Text style={styles.leadPickerButtonText}>{t('prop_selectLead')}</Text>
+            </TouchableOpacity>
+            {showLeadPicker && (
+              <View style={styles.leadPickerDropdown}>
+                <TextInput
+                  style={styles.leadSearchInput}
+                  placeholder={t('prop_searchLead')}
+                  value={leadSearch}
+                  onChangeText={setLeadSearch}
+                  placeholderTextColor={colors.textTertiary}
+                />
+                {leads && leads.length > 0 ? (
+                  leads.slice(0, 10).map((lead) => (
+                    <TouchableOpacity
+                      key={lead.id}
+                      style={styles.leadOption}
+                      onPress={() => {
+                        setLeadId(lead.id);
+                        setLeadName(lead.full_name);
+                        setShowLeadPicker(false);
+                        setLeadSearch('');
+                      }}
+                    >
+                      <Text style={styles.leadOptionText}>{lead.full_name}</Text>
+                      {lead.phone && <Text style={styles.leadOptionSub}>{lead.phone}</Text>}
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <Text style={styles.leadEmptyText}>{t('prop_noLeadsFound')}</Text>
+                )}
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Beschreibung */}
         <SectionLabel text={t('propSection_description')} />
         <FormInput
@@ -585,5 +861,71 @@ const styles = StyleSheet.create({
   buttonContainer: {
     gap: spacing.sm,
     marginTop: spacing.lg,
+  },
+  leadSelectedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    padding: spacing.sm,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    marginBottom: spacing.sm,
+  },
+  leadSelectedName: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.text,
+  },
+  leadPickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    padding: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    marginBottom: spacing.sm,
+  },
+  leadPickerButtonText: {
+    fontSize: fontSize.sm,
+    color: colors.primary,
+  },
+  leadPickerDropdown: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    marginBottom: spacing.sm,
+    maxHeight: 300,
+  },
+  leadSearchInput: {
+    padding: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+    fontSize: fontSize.sm,
+    color: colors.text,
+  },
+  leadOption: {
+    padding: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  leadOptionText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.text,
+  },
+  leadOptionSub: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  leadEmptyText: {
+    padding: spacing.sm,
+    fontSize: fontSize.sm,
+    color: colors.textTertiary,
+    fontStyle: 'italic',
   },
 });

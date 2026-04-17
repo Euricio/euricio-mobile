@@ -85,6 +85,19 @@ export interface Property {
   // Land breakdown
   land_classification: string | null;
   land_buildable_m2: number | null;
+  terreno_urbano_m2: number | null;
+  terreno_agricola_m2: number | null;
+  terreno_forestal_m2: number | null;
+  terreno_pastizal_m2: number | null;
+
+  // Estimated value
+  estimated_value: number | null;
+  estimated_value_date: string | null;
+  estimated_value_method: string | null;
+
+  // Operation & Lead
+  operation_type: string | null;
+  lead_id: string | null;
 
   // Meta
   created_by: string | null;
@@ -182,6 +195,188 @@ export function useDeleteProperty() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });
+    },
+  });
+}
+
+// ─── Property Listings (publish/unpublish) ──────────────────────────
+
+export interface PropertyListing {
+  id: string;
+  property_id: string;
+  is_published: boolean;
+  published_at: string | null;
+  unpublished_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function usePropertyListing(propertyId: string) {
+  return useQuery({
+    queryKey: ['property-listing', propertyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('property_listings')
+        .select('*')
+        .eq('property_id', propertyId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as PropertyListing | null;
+    },
+    enabled: !!propertyId,
+  });
+}
+
+export function useTogglePublish() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      propertyId,
+      isPublished,
+    }: {
+      propertyId: string;
+      isPublished: boolean;
+    }) => {
+      // Check if listing row exists
+      const { data: existing } = await supabase
+        .from('property_listings')
+        .select('id')
+        .eq('property_id', propertyId)
+        .maybeSingle();
+
+      if (existing) {
+        const updates: Record<string, any> = { is_published: isPublished };
+        if (isPublished) {
+          updates.published_at = new Date().toISOString();
+          updates.unpublished_at = null;
+        } else {
+          updates.unpublished_at = new Date().toISOString();
+        }
+        const { data, error } = await supabase
+          .from('property_listings')
+          .update(updates)
+          .eq('property_id', propertyId)
+          .select()
+          .single();
+        if (error) throw error;
+        return data as PropertyListing;
+      } else {
+        const { data, error } = await supabase
+          .from('property_listings')
+          .insert({
+            property_id: propertyId,
+            is_published: isPublished,
+            published_at: isPublished ? new Date().toISOString() : null,
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        return data as PropertyListing;
+      }
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['property-listing', variables.propertyId],
+      });
+    },
+  });
+}
+
+// ─── Property Owners ────────────────────────────────────────────────
+
+export interface PropertyOwner {
+  id: string;
+  property_id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  percentage: number | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function usePropertyOwners(propertyId: string) {
+  return useQuery({
+    queryKey: ['property-owners', propertyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('property_owners')
+        .select('*')
+        .eq('property_id', propertyId)
+        .order('created_at');
+      if (error) throw error;
+      return (data ?? []) as PropertyOwner[];
+    },
+    enabled: !!propertyId,
+  });
+}
+
+export function useCreatePropertyOwner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (owner: Partial<PropertyOwner> & { property_id: string; name: string }) => {
+      const { data, error } = await supabase
+        .from('property_owners')
+        .insert(owner)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as PropertyOwner;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['property-owners', variables.property_id],
+      });
+    },
+  });
+}
+
+export function useUpdatePropertyOwner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      property_id,
+      ...updates
+    }: Partial<PropertyOwner> & { id: string; property_id: string }) => {
+      const { data, error } = await supabase
+        .from('property_owners')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as PropertyOwner;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['property-owners', variables.property_id],
+      });
+    },
+  });
+}
+
+export function useDeletePropertyOwner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      propertyId,
+    }: {
+      id: string;
+      propertyId: string;
+    }) => {
+      const { error } = await supabase
+        .from('property_owners')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['property-owners', variables.propertyId],
+      });
     },
   });
 }
