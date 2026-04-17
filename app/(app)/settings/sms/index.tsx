@@ -8,8 +8,9 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
   useSmsConfig,
@@ -76,7 +77,29 @@ export default function SmsSettingsScreen() {
   if (configLoading || notifLoading) {
     return (
       <>
-        <Stack.Screen options={{ headerTitle: t('sms_title') }} />
+        <Stack.Screen
+          options={{
+            headerTitle: t('sms_title'),
+            headerShown: true,
+            headerStyle: { backgroundColor: colors.surface },
+            headerShadowVisible: false,
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => {
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace('/(app)/(tabs)/more');
+                  }
+                }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={{ paddingRight: 8 }}
+              >
+                <Ionicons name="chevron-back" size={26} color={colors.primary} />
+              </TouchableOpacity>
+            ),
+          }}
+        />
         <LoadingScreen />
       </>
     );
@@ -88,7 +111,29 @@ export default function SmsSettingsScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.content}>
-        <Stack.Screen options={{ headerTitle: t('sms_title') }} />
+        <Stack.Screen
+          options={{
+            headerTitle: t('sms_title'),
+            headerShown: true,
+            headerStyle: { backgroundColor: colors.surface },
+            headerShadowVisible: false,
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => {
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace('/(app)/(tabs)/more');
+                  }
+                }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={{ paddingRight: 8 }}
+              >
+                <Ionicons name="chevron-back" size={26} color={colors.primary} />
+              </TouchableOpacity>
+            ),
+          }}
+        />
 
         {/* Twilio Configuration */}
         <Text style={styles.sectionHeader}>{t('sms_twilioConfig')}</Text>

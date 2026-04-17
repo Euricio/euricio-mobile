@@ -118,9 +118,6 @@ export default function AdminTeamListScreen() {
       <Stack.Screen
         options={{
           headerTitle: t('adminTeam_title'),
-          headerShown: true,
-          headerStyle: { backgroundColor: colors.surface },
-          headerShadowVisible: false,
         }}
       />
 

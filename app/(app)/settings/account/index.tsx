@@ -7,8 +7,10 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../../lib/supabase';
 import { FormInput } from '../../../../components/ui/FormInput';
 import { Button } from '../../../../components/ui/Button';
@@ -112,6 +114,21 @@ export default function AccountSettingsScreen() {
           headerShown: true,
           headerStyle: { backgroundColor: colors.surface },
           headerShadowVisible: false,
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/(app)/(tabs)/more');
+                }
+              }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={{ paddingRight: 8 }}
+            >
+              <Ionicons name="chevron-back" size={26} color={colors.primary} />
+            </TouchableOpacity>
+          ),
         }}
       />
       <ScrollView

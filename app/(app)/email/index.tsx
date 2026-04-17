@@ -251,9 +251,6 @@ export default function EmailSettingsScreen() {
         <Stack.Screen
           options={{
             headerTitle: t('email_settings'),
-            headerShown: true,
-            headerStyle: { backgroundColor: colors.surface },
-            headerShadowVisible: false,
           }}
         />
 

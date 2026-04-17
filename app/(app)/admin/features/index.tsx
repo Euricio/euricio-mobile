@@ -6,8 +6,10 @@ import {
   StyleSheet,
   Switch,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../../../lib/i18n';
 import {
   useFeatureFlags,
@@ -45,7 +47,29 @@ export default function FeatureFlagsScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ headerTitle: t('featureFlags_title') }} />
+      <Stack.Screen
+        options={{
+          headerTitle: t('featureFlags_title'),
+          headerShown: true,
+          headerStyle: { backgroundColor: colors.surface },
+          headerShadowVisible: false,
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/(app)/(tabs)/more');
+                }
+              }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={{ paddingRight: 8 }}
+            >
+              <Ionicons name="chevron-back" size={26} color={colors.primary} />
+            </TouchableOpacity>
+          ),
+        }}
+      />
 
       <ScrollView contentContainerStyle={styles.content}>
         {(!flags || flags.length === 0) ? (

@@ -42,8 +42,28 @@ const CATEGORY_COLORS: Record<string, string> = {
   other: colors.textTertiary,
 };
 
+// Map legacy/German category values from the database to canonical English keys
+const CATEGORY_ALIAS: Record<string, string> = {
+  privat: 'private',
+  makler: 'agent',
+  anwalt: 'lawyer',
+  notar: 'notary',
+  bankberater: 'bank_advisor',
+  'bauträger': 'developer',
+  architekt: 'architect',
+  sonstige: 'other',
+};
+
+function normalizeCategory(raw: string): string {
+  if (CATEGORY_COLORS[raw]) return raw;
+  const lower = raw.toLowerCase();
+  if (CATEGORY_COLORS[lower]) return lower;
+  return CATEGORY_ALIAS[lower] ?? raw;
+}
+
 function PartnerCard({ partner, t }: { partner: Partner; t: (key: string) => string }) {
   const fullName = [partner.first_name, partner.last_name].filter(Boolean).join(' ');
+  const category = normalizeCategory(partner.category);
 
   return (
     <Card
@@ -59,20 +79,20 @@ function PartnerCard({ partner, t }: { partner: Partner; t: (key: string) => str
         <View
           style={[
             styles.categoryIcon,
-            { backgroundColor: (CATEGORY_COLORS[partner.category] || colors.textTertiary) + '15' },
+            { backgroundColor: (CATEGORY_COLORS[category] || colors.textTertiary) + '15' },
           ]}
         >
           <Ionicons
             name="person-outline"
             size={20}
-            color={CATEGORY_COLORS[partner.category] || colors.textTertiary}
+            color={CATEGORY_COLORS[category] || colors.textTertiary}
           />
         </View>
         <View style={styles.cardInfo}>
           <Text style={styles.partnerName} numberOfLines={1}>{fullName}</Text>
           <View style={styles.metaRow}>
             <Badge
-              label={t(`partner_category_${partner.category}`)}
+              label={t(`partner_category_${category}`)}
               variant="primary"
             />
             {partner.organization && (

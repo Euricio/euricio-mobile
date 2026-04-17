@@ -6,8 +6,9 @@ import {
   StyleSheet,
   Switch,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useApiKey, useRegenerateApiKey, useWidgets, useUpdateWidget } from '../../../../lib/api/integrations';
 import { Card } from '../../../../components/ui/Card';
@@ -77,7 +78,29 @@ export default function IntegrationsScreen() {
   if (apiKeyLoading || widgetsLoading) {
     return (
       <>
-        <Stack.Screen options={{ headerTitle: t('integrations_title') }} />
+        <Stack.Screen
+          options={{
+            headerTitle: t('integrations_title'),
+            headerShown: true,
+            headerStyle: { backgroundColor: colors.surface },
+            headerShadowVisible: false,
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => {
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace('/(app)/(tabs)/more');
+                  }
+                }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={{ paddingRight: 8 }}
+              >
+                <Ionicons name="chevron-back" size={26} color={colors.primary} />
+              </TouchableOpacity>
+            ),
+          }}
+        />
         <LoadingScreen />
       </>
     );
@@ -85,7 +108,29 @@ export default function IntegrationsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ headerTitle: t('integrations_title') }} />
+      <Stack.Screen
+          options={{
+            headerTitle: t('integrations_title'),
+            headerShown: true,
+            headerStyle: { backgroundColor: colors.surface },
+            headerShadowVisible: false,
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => {
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace('/(app)/(tabs)/more');
+                  }
+                }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={{ paddingRight: 8 }}
+              >
+                <Ionicons name="chevron-back" size={26} color={colors.primary} />
+              </TouchableOpacity>
+            ),
+          }}
+        />
 
       {/* API Key Section */}
       <Text style={styles.sectionHeader}>{t('integrations_apiKeySection')}</Text>

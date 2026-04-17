@@ -4,8 +4,9 @@ import {
   Text,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSubscription } from '../../../../lib/api/subscription';
 import { Card } from '../../../../components/ui/Card';
@@ -21,7 +22,29 @@ export default function SubscriptionScreen() {
   if (isLoading) {
     return (
       <>
-        <Stack.Screen options={{ headerTitle: t('subscription_title') }} />
+        <Stack.Screen
+          options={{
+            headerTitle: t('subscription_title'),
+            headerShown: true,
+            headerStyle: { backgroundColor: colors.surface },
+            headerShadowVisible: false,
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => {
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace('/(app)/(tabs)/more');
+                  }
+                }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={{ paddingRight: 8 }}
+              >
+                <Ionicons name="chevron-back" size={26} color={colors.primary} />
+              </TouchableOpacity>
+            ),
+          }}
+        />
         <LoadingScreen />
       </>
     );
@@ -30,7 +53,29 @@ export default function SubscriptionScreen() {
   if (!subscription) {
     return (
       <View style={styles.container}>
-        <Stack.Screen options={{ headerTitle: t('subscription_title') }} />
+        <Stack.Screen
+          options={{
+            headerTitle: t('subscription_title'),
+            headerShown: true,
+            headerStyle: { backgroundColor: colors.surface },
+            headerShadowVisible: false,
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => {
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace('/(app)/(tabs)/more');
+                  }
+                }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={{ paddingRight: 8 }}
+              >
+                <Ionicons name="chevron-back" size={26} color={colors.primary} />
+              </TouchableOpacity>
+            ),
+          }}
+        />
         <View style={styles.content}>
           <Card style={styles.card}>
             <View style={styles.noSubContainer}>
@@ -71,7 +116,29 @@ export default function SubscriptionScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ headerTitle: t('subscription_title') }} />
+      <Stack.Screen
+          options={{
+            headerTitle: t('subscription_title'),
+            headerShown: true,
+            headerStyle: { backgroundColor: colors.surface },
+            headerShadowVisible: false,
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => {
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace('/(app)/(tabs)/more');
+                  }
+                }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={{ paddingRight: 8 }}
+              >
+                <Ionicons name="chevron-back" size={26} color={colors.primary} />
+              </TouchableOpacity>
+            ),
+          }}
+        />
 
       {/* Current Plan */}
       <Text style={styles.sectionHeader}>{t('subscription_currentPlan')}</Text>
