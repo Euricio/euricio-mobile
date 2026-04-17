@@ -18,6 +18,7 @@ import { Avatar } from '../../../../components/ui/Avatar';
 import { Badge } from '../../../../components/ui/Badge';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
 import { useI18n } from '../../../../lib/i18n';
+import { useCallChoice } from '../../../../lib/call/useCallChoice';
 import {
   colors,
   spacing,
@@ -33,6 +34,7 @@ export default function MemberDetailScreen() {
   const isManager = currentProfile?.role === 'admin' || currentProfile?.role === 'manager_agent';
   const { data: vacBalance } = useVacationBalance(isManager ? id : undefined);
   const { data: tasks, refetch } = useTeamTasks(id);
+  const { promptCall, CallChoiceSheet } = useCallChoice();
 
   if (isLoading || !member) return <LoadingScreen />;
 
@@ -67,7 +69,7 @@ export default function MemberDetailScreen() {
             icon="call-outline"
             label={t('hr_phone')}
             value={member.phone}
-            onPress={() => Linking.openURL(`tel:${member.phone}`)}
+            onPress={() => promptCall(member.phone!)}
           />
         )}
         {member.email && (
@@ -137,6 +139,7 @@ export default function MemberDetailScreen() {
           </Card>
         </>
       )}
+      <CallChoiceSheet />
     </ScrollView>
   );
 }

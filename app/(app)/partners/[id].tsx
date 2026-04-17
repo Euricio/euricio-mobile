@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useI18n } from '../../../lib/i18n';
+import { useCallChoice } from '../../../lib/call/useCallChoice';
 import { usePartner, usePartnerCommissions, useDeletePartner } from '../../../lib/api/partners';
 import type { Commission } from '../../../lib/api/partners';
 import { Card } from '../../../components/ui/Card';
@@ -102,6 +103,7 @@ export default function PartnerDetailScreen() {
   const { data: commissions } = usePartnerCommissions(id);
   const deletePartner = useDeletePartner();
   const [activeTab, setActiveTab] = useState<'info' | 'commissions'>('info');
+  const { promptCall, CallChoiceSheet } = useCallChoice();
 
   const handleDelete = () => {
     Alert.alert(t('partners_delete'), t('partners_deleteConfirm'), [
@@ -155,7 +157,7 @@ export default function PartnerDetailScreen() {
         {partner.phone && (
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => Linking.openURL(`tel:${partner.phone}`)}
+            onPress={() => promptCall(partner.phone!)}
           >
             <Ionicons name="call-outline" size={20} color={colors.white} />
             <Text style={styles.actionText}>{t('partner_callAction')}</Text>
@@ -251,6 +253,7 @@ export default function PartnerDetailScreen() {
           )}
         </>
       )}
+      <CallChoiceSheet />
     </ScrollView>
   );
 }

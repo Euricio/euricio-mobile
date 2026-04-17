@@ -22,6 +22,7 @@ import {
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { useI18n } from '../../lib/i18n';
+import { useCallChoice } from '../../lib/call/useCallChoice';
 import {
   colors,
   spacing,
@@ -173,6 +174,7 @@ export function OwnershipSection({ propertyId }: { propertyId: string }) {
   const createOwner = useCreatePropertyOwner();
   const updateOwner = useUpdatePropertyOwner();
   const deleteOwner = useDeletePropertyOwner();
+  const { promptCall, CallChoiceSheet } = useCallChoice();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingOwner, setEditingOwner] = useState<PropertyOwner | null>(null);
@@ -363,7 +365,7 @@ export function OwnershipSection({ propertyId }: { propertyId: string }) {
                       )}
                       {o.email && o.phone && <Text style={s.ownerContactText}> · </Text>}
                       {o.phone && (
-                        <TouchableOpacity onPress={() => Linking.openURL(`tel:${o.phone}`)}>
+                        <TouchableOpacity onPress={() => promptCall(o.phone!)}>
                           <Text style={s.ownerContactText}>{o.phone}</Text>
                         </TouchableOpacity>
                       )}
@@ -518,6 +520,7 @@ export function OwnershipSection({ propertyId }: { propertyId: string }) {
           </View>
         </View>
       </Modal>
+      <CallChoiceSheet />
     </>
   );
 }
