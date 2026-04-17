@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useContracts } from '../../../lib/api/contracts';
 import { useUploadScan } from '../../../lib/api/scanner';
 import { useI18n } from '../../../lib/i18n';
