@@ -291,6 +291,7 @@ export interface PropertyOwner {
   phone: string | null;
   email: string | null;
   percentage: number | null;
+  status: 'won' | 'pending' | 'against';
   notes: string | null;
   created_at: string;
   updated_at: string;
