@@ -16,6 +16,7 @@ import { useAuthStore } from '../../../../store/authStore';
 import { useTeamSummary } from '../../../../lib/api/hr';
 import { useEmailSettings } from '../../../../lib/api/email';
 import { useVoicePermissions } from '../../../../lib/voice/useVoicePermissions';
+import { useProfile } from '../../../../lib/api/profile';
 import { useQuery } from '@tanstack/react-query';
 import { fetchVoiceStatus } from '../../../../lib/voice/voiceApi';
 import { Card } from '../../../../components/ui/Card';
@@ -37,6 +38,7 @@ export default function MoreScreen() {
   const { t, locale, setLocale } = useI18n();
   const { data: teamSummary } = useTeamSummary();
   const { data: emailSettings } = useEmailSettings();
+  const { data: profile } = useProfile();
   const { data: voicePerms } = useVoicePermissions();
   const { data: voiceStatus } = useQuery({
     queryKey: ['voice-status'],
@@ -147,6 +149,91 @@ export default function MoreScreen() {
           <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
         </View>
       </Card>
+
+      {/* Messaging Section */}
+      <Text style={styles.sectionHeader}>{t('more_messaging')}</Text>
+      <Card
+        onPress={() => router.push('/(app)/whatsapp/')}
+        style={styles.hrCard}
+      >
+        <View style={styles.hrRow}>
+          <View style={[styles.hrIcon, { backgroundColor: '#25D366' + '15' }]}>
+            <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
+          </View>
+          <View style={styles.hrInfo}>
+            <Text style={styles.hrTitle}>{t('whatsapp_title')}</Text>
+            <Text style={styles.hrSubtitle}>{t('whatsapp_subtitle')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        </View>
+      </Card>
+      <Card
+        onPress={() => router.push('/(app)/telegram/')}
+        style={styles.hrCard}
+      >
+        <View style={styles.hrRow}>
+          <View style={[styles.hrIcon, { backgroundColor: '#0088cc' + '15' }]}>
+            <Ionicons name="paper-plane-outline" size={24} color="#0088cc" />
+          </View>
+          <View style={styles.hrInfo}>
+            <Text style={styles.hrTitle}>{t('telegram_title')}</Text>
+            <Text style={styles.hrSubtitle}>{t('telegram_subtitle')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        </View>
+      </Card>
+
+      {/* Requests Section */}
+      <Text style={styles.sectionHeader}>{t('more_requests')}</Text>
+      <Card
+        onPress={() => router.push('/(app)/valuations/')}
+        style={styles.hrCard}
+      >
+        <View style={styles.hrRow}>
+          <View style={[styles.hrIcon, { backgroundColor: colors.accent + '15' }]}>
+            <Ionicons name="stats-chart-outline" size={24} color={colors.accent} />
+          </View>
+          <View style={styles.hrInfo}>
+            <Text style={styles.hrTitle}>{t('valuation_title')}</Text>
+            <Text style={styles.hrSubtitle}>{t('valuation_subtitle')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        </View>
+      </Card>
+      {(profile?.role === 'admin' || profile?.role === 'manager_agent' || profile?.role === 'anwalt') && (
+        <>
+          <Card
+            onPress={() => router.push('/(app)/valuation-requests/')}
+            style={styles.hrCard}
+          >
+            <View style={styles.hrRow}>
+              <View style={[styles.hrIcon, { backgroundColor: colors.warning + '15' }]}>
+                <Ionicons name="document-text-outline" size={24} color={colors.warning} />
+              </View>
+              <View style={styles.hrInfo}>
+                <Text style={styles.hrTitle}>{t('valReq_title')}</Text>
+                <Text style={styles.hrSubtitle}>{t('valReq_subtitle')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+            </View>
+          </Card>
+          <Card
+            onPress={() => router.push('/(app)/search-requests/')}
+            style={styles.hrCard}
+          >
+            <View style={styles.hrRow}>
+              <View style={[styles.hrIcon, { backgroundColor: colors.info + '15' }]}>
+                <Ionicons name="search-outline" size={24} color={colors.info} />
+              </View>
+              <View style={styles.hrInfo}>
+                <Text style={styles.hrTitle}>{t('searchReq_title')}</Text>
+                <Text style={styles.hrSubtitle}>{t('searchReq_subtitle')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+            </View>
+          </Card>
+        </>
+      )}
 
       {/* Personal / HR Section */}
       <Text style={styles.sectionHeader}>{t('hr_personal')}</Text>
