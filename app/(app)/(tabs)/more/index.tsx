@@ -235,6 +235,73 @@ export default function MoreScreen() {
         </>
       )}
 
+      {/* Manager Section — role-gated */}
+      {(profile?.role === 'admin' || profile?.role === 'manager_agent' || profile?.role === 'anwalt') && (
+        <>
+          <Text style={styles.sectionHeader}>{t('more_manager')}</Text>
+          <Card
+            onPress={() => router.push('/(app)/manager/shifts/')}
+            style={styles.hrCard}
+          >
+            <View style={styles.hrRow}>
+              <View style={[styles.hrIcon, { backgroundColor: '#6366F1' + '15' }]}>
+                <Ionicons name="calendar-outline" size={24} color="#6366F1" />
+              </View>
+              <View style={styles.hrInfo}>
+                <Text style={styles.hrTitle}>{t('shifts_title')}</Text>
+                <Text style={styles.hrSubtitle}>{t('shifts_subtitle')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+            </View>
+          </Card>
+          <Card
+            onPress={() => router.push('/(app)/manager/timecheck/')}
+            style={styles.hrCard}
+          >
+            <View style={styles.hrRow}>
+              <View style={[styles.hrIcon, { backgroundColor: '#F59E0B' + '15' }]}>
+                <Ionicons name="timer-outline" size={24} color="#F59E0B" />
+              </View>
+              <View style={styles.hrInfo}>
+                <Text style={styles.hrTitle}>{t('timecheck_title')}</Text>
+                <Text style={styles.hrSubtitle}>{t('timecheck_subtitle')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+            </View>
+          </Card>
+          <Card
+            onPress={() => router.push('/(app)/manager/development/')}
+            style={styles.hrCard}
+          >
+            <View style={styles.hrRow}>
+              <View style={[styles.hrIcon, { backgroundColor: '#10B981' + '15' }]}>
+                <Ionicons name="trending-up-outline" size={24} color="#10B981" />
+              </View>
+              <View style={styles.hrInfo}>
+                <Text style={styles.hrTitle}>{t('dev_title')}</Text>
+                <Text style={styles.hrSubtitle}>{t('dev_subtitle')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+            </View>
+          </Card>
+          <Card
+            onPress={() => router.push('/(app)/hr/recruitment/')}
+            style={styles.hrCard}
+          >
+            <View style={styles.hrRow}>
+              <View style={[styles.hrIcon, { backgroundColor: '#8B5CF6' + '15' }]}>
+                <Ionicons name="person-add-outline" size={24} color="#8B5CF6" />
+              </View>
+              <View style={styles.hrInfo}>
+                <Text style={styles.hrTitle}>{t('recruit_title')}</Text>
+                <Text style={styles.hrSubtitle}>{t('recruit_subtitle')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+            </View>
+          </Card>
+        </>
+      )}
+
       {/* Personal / HR Section */}
       <Text style={styles.sectionHeader}>{t('hr_personal')}</Text>
       <Card

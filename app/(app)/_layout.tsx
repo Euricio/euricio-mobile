@@ -37,6 +37,12 @@ export default function AppLayout() {
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen
+            name="manager"
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
             name="hr"
             options={{
               animation: 'slide_from_right',
