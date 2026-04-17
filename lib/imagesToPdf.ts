@@ -58,8 +58,8 @@ export async function imagesToPdf(imageUris: string[]): Promise<string> {
     });
 
     imageHtmlParts.push(`
-      <div style="page-break-after: always; margin: 0; padding: 0; width: 100%; height: 100vh; overflow: hidden;">
-        <img src="data:image/jpeg;base64,${base64}" style="width: 100%; height: 100%; display: block; object-fit: fill;" />
+      <div style="page-break-after: always; margin: 0; padding: 0;">
+        <img src="data:image/jpeg;base64,${base64}" width="${pdfWidth}" height="${pdfHeight}" style="display: block;" />
       </div>
     `);
   }
@@ -67,10 +67,11 @@ export async function imagesToPdf(imageUris: string[]): Promise<string> {
   const html = `
     <html>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=${pdfWidth}, initial-scale=1.0">
         <style>
+          * { margin: 0; padding: 0; }
           @page { margin: 0; size: ${pdfWidth}pt ${pdfHeight}pt; }
-          body { margin: 0; padding: 0; }
+          html, body { width: ${pdfWidth}px; overflow: hidden; }
         </style>
       </head>
       <body>
