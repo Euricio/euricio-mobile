@@ -5,8 +5,9 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAddons, useToggleAddon } from '../../../../lib/api/subscription';
 import type { Addon } from '../../../../lib/api/subscription';
@@ -49,7 +50,29 @@ export default function UpgradesScreen() {
   if (isLoading) {
     return (
       <>
-        <Stack.Screen options={{ headerTitle: t('upgrades_title') }} />
+        <Stack.Screen
+          options={{
+            headerTitle: t('upgrades_title'),
+            headerShown: true,
+            headerStyle: { backgroundColor: colors.surface },
+            headerShadowVisible: false,
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => {
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace('/(app)/(tabs)/more');
+                  }
+                }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={{ paddingRight: 8 }}
+              >
+                <Ionicons name="chevron-back" size={26} color={colors.primary} />
+              </TouchableOpacity>
+            ),
+          }}
+        />
         <LoadingScreen />
       </>
     );
@@ -58,7 +81,29 @@ export default function UpgradesScreen() {
   if (!addons || addons.length === 0) {
     return (
       <View style={styles.container}>
-        <Stack.Screen options={{ headerTitle: t('upgrades_title') }} />
+        <Stack.Screen
+          options={{
+            headerTitle: t('upgrades_title'),
+            headerShown: true,
+            headerStyle: { backgroundColor: colors.surface },
+            headerShadowVisible: false,
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => {
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace('/(app)/(tabs)/more');
+                  }
+                }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={{ paddingRight: 8 }}
+              >
+                <Ionicons name="chevron-back" size={26} color={colors.primary} />
+              </TouchableOpacity>
+            ),
+          }}
+        />
         <EmptyState
           icon="cart-outline"
           title={t('upgrades_empty')}
@@ -70,7 +115,29 @@ export default function UpgradesScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ headerTitle: t('upgrades_title') }} />
+      <Stack.Screen
+          options={{
+            headerTitle: t('upgrades_title'),
+            headerShown: true,
+            headerStyle: { backgroundColor: colors.surface },
+            headerShadowVisible: false,
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => {
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace('/(app)/(tabs)/more');
+                  }
+                }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={{ paddingRight: 8 }}
+              >
+                <Ionicons name="chevron-back" size={26} color={colors.primary} />
+              </TouchableOpacity>
+            ),
+          }}
+        />
 
       <Text style={styles.sectionHeader}>{t('upgrades_availableAddons')}</Text>
 

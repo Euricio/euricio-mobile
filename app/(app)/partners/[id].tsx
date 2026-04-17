@@ -33,6 +33,27 @@ const STATUS_COLORS: Record<string, string> = {
   rejected: colors.error,
 };
 
+// Map legacy/German category values from the database to canonical English keys
+const CATEGORY_ALIAS: Record<string, string> = {
+  privat: 'private',
+  makler: 'agent',
+  anwalt: 'lawyer',
+  notar: 'notary',
+  bankberater: 'bank_advisor',
+  'bauträger': 'developer',
+  architekt: 'architect',
+  sonstige: 'other',
+};
+
+const KNOWN_CATEGORIES = ['private', 'agent', 'lawyer', 'notary', 'bank_advisor', 'developer', 'architect', 'other'];
+
+function normalizeCategory(raw: string): string {
+  if (KNOWN_CATEGORIES.includes(raw)) return raw;
+  const lower = raw.toLowerCase();
+  if (KNOWN_CATEGORIES.includes(lower)) return lower;
+  return CATEGORY_ALIAS[lower] ?? raw;
+}
+
 function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
   if (!value) return null;
   return (
@@ -173,7 +194,7 @@ export default function PartnerDetailScreen() {
 
       {activeTab === 'info' && (
         <Card>
-          <InfoRow label={t('partner_category')} value={t(`partner_category_${partner.category}`)} />
+          <InfoRow label={t('partner_category')} value={t(`partner_category_${normalizeCategory(partner.category)}`)} />
           <InfoRow label={t('partner_status')} value={t(`partner_status_${partner.status}`)} />
           <InfoRow label={t('partner_email')} value={partner.email} />
           <InfoRow label={t('partner_emailAlt')} value={partner.email_alt} />

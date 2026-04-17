@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { useI18n } from '../../../lib/i18n';
 import {
   colors,
@@ -17,7 +17,29 @@ export default function ReportsScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ headerTitle: t('reports_title') }} />
+      <Stack.Screen
+        options={{
+          headerTitle: t('reports_title'),
+          headerShown: true,
+          headerStyle: { backgroundColor: colors.surface },
+          headerShadowVisible: false,
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/(app)/(tabs)/more');
+                }
+              }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={{ paddingRight: 8 }}
+            >
+              <Ionicons name="chevron-back" size={26} color={colors.primary} />
+            </TouchableOpacity>
+          ),
+        }}
+      />
 
       <View style={styles.centerContent}>
         <Ionicons

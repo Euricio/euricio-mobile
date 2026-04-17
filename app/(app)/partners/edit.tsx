@@ -21,6 +21,25 @@ const CATEGORIES = ['private', 'agent', 'lawyer', 'notary', 'bank_advisor', 'dev
 const STATUSES = ['active', 'inactive', 'blocked'];
 const COMMISSION_TYPES = ['percent', 'fixed'];
 
+// Map legacy/German category values from the database to canonical English keys
+const CATEGORY_ALIAS: Record<string, string> = {
+  privat: 'private',
+  makler: 'agent',
+  anwalt: 'lawyer',
+  notar: 'notary',
+  bankberater: 'bank_advisor',
+  'bauträger': 'developer',
+  architekt: 'architect',
+  sonstige: 'other',
+};
+
+function normalizeCategory(raw: string): string {
+  if (CATEGORIES.includes(raw)) return raw;
+  const lower = raw.toLowerCase();
+  if (CATEGORIES.includes(lower)) return lower;
+  return CATEGORY_ALIAS[lower] ?? raw;
+}
+
 export default function EditPartnerScreen() {
   const { t } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -55,7 +74,7 @@ export default function EditPartnerScreen() {
       setOrganization(partner.organization || '');
       setCity(partner.city || '');
       setNif(partner.nif || '');
-      setCategory(partner.category || 'private');
+      setCategory(normalizeCategory(partner.category || 'private'));
       setStatus(partner.status || 'active');
       setCommissionType(partner.commission_type || '');
       setCommissionValue(partner.commission_value != null ? String(partner.commission_value) : '');
