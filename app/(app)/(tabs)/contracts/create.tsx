@@ -103,7 +103,7 @@ export default function CreateContractScreen() {
   const propertyOptions = useMemo(() => {
     return (properties ?? []).map((p) => ({
       value: p.id,
-      label: `${p.title || p.street || ''} - ${p.city || ''}`.trim(),
+      label: `${p.title || p.address || ''} - ${p.city || ''}`.trim(),
     }));
   }, [properties]);
 
@@ -204,7 +204,7 @@ export default function CreateContractScreen() {
 
     const selectedProperty = properties?.find((p) => p.id === propertyId);
     const propAddr = selectedProperty
-      ? `${selectedProperty.street || ''}, ${selectedProperty.city || ''}`.trim()
+      ? `${selectedProperty.address || ''}, ${selectedProperty.city || ''}`.trim()
       : propertyAddress.trim() || null;
 
     const payload: Record<string, unknown> = {

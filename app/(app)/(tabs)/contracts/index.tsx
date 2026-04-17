@@ -50,7 +50,7 @@ function ContractCard({ contract }: { contract: Contract }) {
   const typeLabel = t(`contractType_${contract.contract_type}`) || typeConfig?.label_de || contract.contract_type;
 
   const propertyDisplay = contract.property
-    ? `${contract.property.street || ''} ${contract.property.city || ''}`.trim()
+    ? `${contract.property.address || ''} ${contract.property.city || ''}`.trim()
     : contract.property_address || '';
 
   return (

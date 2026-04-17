@@ -90,7 +90,7 @@ export default function ContractDetailScreen() {
   );
 
   const propertyDisplay = contract.property
-    ? `${contract.property.street || ''}, ${contract.property.city || ''}`.trim()
+    ? `${contract.property.address || ''}, ${contract.property.city || ''}`.trim()
     : contract.property_address || '';
 
   const handleGeneratePdf = () => {
