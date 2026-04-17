@@ -287,15 +287,40 @@ export default function PropertyDetailScreen() {
   }, [id, uploadDocument, t]);
 
   const handleDownloadDocument = useCallback(async (doc: PropertyDocument) => {
-    if (!doc.signed_url) return;
     try {
+      let url = doc.signed_url;
+
+      // If no signed URL available, generate one on demand
+      if (!url) {
+        const { data } = await supabase.storage
+          .from('property-documents')
+          .createSignedUrl(doc.storage_path, 3600);
+        url = data?.signedUrl;
+      }
+
+      if (!url) {
+        Alert.alert(t('error'), 'Could not generate download URL');
+        return;
+      }
+
       const fileUri = FileSystem.cacheDirectory + doc.file_name;
-      await FileSystem.downloadAsync(doc.signed_url, fileUri);
-      await Sharing.shareAsync(fileUri);
-    } catch {
-      Linking.openURL(doc.signed_url);
+      const result = await FileSystem.downloadAsync(url, fileUri);
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(result.uri);
+      } else {
+        await Linking.openURL(url);
+      }
+    } catch (err: any) {
+      console.error('Document download failed:', err);
+      // Fallback: try opening the signed URL directly in browser
+      if (doc.signed_url) {
+        Linking.openURL(doc.signed_url);
+      } else {
+        Alert.alert(t('error'), err?.message || 'Download failed');
+      }
     }
-  }, []);
+  }, [t]);
 
   const handleDeleteDocument = useCallback(
     (doc: PropertyDocument) => {

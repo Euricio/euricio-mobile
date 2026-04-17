@@ -199,9 +199,12 @@ export function usePropertyDocuments(propertyId: string | number) {
       const docs = data ?? [];
       const withUrls = await Promise.all(
         docs.map(async (doc: any) => {
-          const { data: urlData } = await supabase.storage
+          const { data: urlData, error: urlError } = await supabase.storage
             .from('property-documents')
             .createSignedUrl(doc.storage_path, 3600);
+          if (urlError) {
+            console.warn('Failed to create signed URL for', doc.storage_path, urlError);
+          }
           return {
             ...doc,
             signed_url: urlData?.signedUrl ?? undefined,
