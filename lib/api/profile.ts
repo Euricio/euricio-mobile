@@ -10,7 +10,7 @@ export function useProfile() {
       // Fetch profile
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('full_name, role, position, phone, is_internal')
+        .select('full_name, role, position, phone, is_internal, language')
         .eq('id', user!.id)
         .single();
       if (profileError) throw profileError;
