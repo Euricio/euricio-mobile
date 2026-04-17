@@ -85,6 +85,69 @@ export default function MoreScreen() {
         </View>
       </Card>
 
+      {/* Sales Tools Section */}
+      <Text style={styles.sectionHeader}>{t('pipeline_subtitle')}</Text>
+      <Card
+        onPress={() => router.push('/(app)/pipeline/')}
+        style={styles.hrCard}
+      >
+        <View style={styles.hrRow}>
+          <View style={[styles.hrIcon, { backgroundColor: colors.accent + '15' }]}>
+            <Ionicons name="git-branch-outline" size={24} color={colors.accent} />
+          </View>
+          <View style={styles.hrInfo}>
+            <Text style={styles.hrTitle}>{t('pipeline_title')}</Text>
+            <Text style={styles.hrSubtitle}>{t('pipeline_subtitle')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        </View>
+      </Card>
+      <Card
+        onPress={() => router.push('/(app)/calendar/')}
+        style={styles.hrCard}
+      >
+        <View style={styles.hrRow}>
+          <View style={[styles.hrIcon, { backgroundColor: '#bf5af2' + '15' }]}>
+            <Ionicons name="calendar-outline" size={24} color="#bf5af2" />
+          </View>
+          <View style={styles.hrInfo}>
+            <Text style={styles.hrTitle}>{t('calendar_title')}</Text>
+            <Text style={styles.hrSubtitle}>{t('calendar_subtitle')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        </View>
+      </Card>
+      <Card
+        onPress={() => router.push('/(app)/mortgage/')}
+        style={styles.hrCard}
+      >
+        <View style={styles.hrRow}>
+          <View style={[styles.hrIcon, { backgroundColor: colors.warning + '15' }]}>
+            <Ionicons name="calculator-outline" size={24} color={colors.warning} />
+          </View>
+          <View style={styles.hrInfo}>
+            <Text style={styles.hrTitle}>{t('mortgage_title')}</Text>
+            <Text style={styles.hrSubtitle}>{t('mortgage_subtitle')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        </View>
+      </Card>
+      <Card
+        onPress={() => router.push('/(app)/partners/')}
+        style={styles.hrCard}
+      >
+        <View style={styles.hrRow}>
+          <View style={[styles.hrIcon, { backgroundColor: '#30d158' + '15' }]}>
+            <Ionicons name="people-circle-outline" size={24} color="#30d158" />
+          </View>
+          <View style={styles.hrInfo}>
+            <Text style={styles.hrTitle}>{t('partners_title')}</Text>
+            <Text style={styles.hrSubtitle}>{t('partners_subtitle')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        </View>
+      </Card>
+
       {/* Personal / HR Section */}
       <Text style={styles.sectionHeader}>{t('hr_personal')}</Text>
       <Card
