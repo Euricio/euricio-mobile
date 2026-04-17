@@ -322,7 +322,7 @@ export default function ScannerScreen() {
     }
 
     const propertyOptions = properties.slice(0, 10).map(
-      (p) => p.title || `${p.street || ''}, ${p.city || ''}`,
+      (p) => p.title || `${p.address || ''}, ${p.city || ''}`,
     );
     propertyOptions.push(t('cancel'));
 

@@ -37,7 +37,7 @@ export interface Contract {
   property?: {
     id: string;
     title: string | null;
-    street: string | null;
+    address: string | null;
     city: string | null;
     province: string | null;
     price: number | null;
@@ -53,7 +53,7 @@ export function useContracts(status?: ContractStatus, search?: string) {
     queryFn: async () => {
       let query = supabase
         .from('contracts')
-        .select('*, property:properties(id, title, street, city, province, price)')
+        .select('*, property:properties(id, title, address, city, province, price)')
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -82,7 +82,7 @@ export function useContract(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('contracts')
-        .select('*, property:properties(id, title, street, city, province, price)')
+        .select('*, property:properties(id, title, address, city, province, price)')
         .eq('id', id)
         .single();
       if (error) throw error;
@@ -184,7 +184,7 @@ export function useProperties() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('properties')
-        .select('id, title, street, city, province, price')
+        .select('id, title, address, city, province, price')
         .order('created_at', { ascending: false })
         .limit(200);
       if (error) throw error;
