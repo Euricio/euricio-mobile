@@ -7,7 +7,7 @@ import { useProfile } from '../../lib/api/profile';
 import { canAccessPdfTools } from '../../lib/planAccess';
 import { useI18n } from '../../lib/i18n';
 
-const UPGRADE_URL = 'https://app.euricio.com/settings/subscription';
+const UPGRADE_URL = 'https://euricio.es/settings/subscription';
 
 export default function FloatingScannerFab() {
   const { data: profile } = useProfile();

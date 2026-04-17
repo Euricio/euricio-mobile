@@ -2,7 +2,7 @@ import { supabase } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://app.euricio.com';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://euricio.es';
 
 async function authHeaders(): Promise<Record<string, string>> {
   const {
