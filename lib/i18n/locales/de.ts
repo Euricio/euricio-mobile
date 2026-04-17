@@ -825,6 +825,16 @@ const de: Record<string, string> = {
   scanner_documentNamePlaceholder: 'Name eingeben...',
   scanner_documentNameTitle: 'Dokument benennen',
   scanner_next: 'Weiter',
+  scanner_saveDocument: 'Dokument speichern',
+  scanner_saveLocation: 'Speicherort',
+  scanner_assignToContract: 'Vertrag zuordnen',
+  scanner_assignToProperty: 'Immobilie zuordnen',
+  scanner_assignToLead: 'Lead zuordnen',
+  scanner_assignToEmployee: 'Mitarbeiter zuordnen',
+  scanner_selectEmployee: 'Mitarbeiter auswählen',
+  scanner_search: 'Suchen...',
+  scanner_employeeSuccess: 'Dem Mitarbeiter zugeordnet.',
+  scanner_noEmployees: 'Keine Mitarbeiter vorhanden.',
 
   // ─── Upgrade / Plan-Gating ────────────────────────────────────────
   upgrade_contracts_title: 'Vertragsgenerator freischalten',

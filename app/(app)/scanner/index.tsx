@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   Modal,
   TextInput,
   KeyboardAvoidingView,
+  ScrollView,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +24,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { imagesToPdf } from '../../../lib/imagesToPdf';
 import { useContracts, useProperties } from '../../../lib/api/contracts';
 import { useLeads, useUploadLeadDocument } from '../../../lib/api/leads';
+import { useTeamMembers } from '../../../lib/api/admin-team';
 import { useUploadScan } from '../../../lib/api/scanner';
 import { uploadToStorage, supabase } from '../../../lib/supabase';
 import { useAuthStore } from '../../../store/authStore';
@@ -41,51 +43,30 @@ interface PageItem {
   uri: string;
 }
 
+type SaveLocation = 'device' | 'cloud' | 'contract' | 'property' | 'lead' | 'employee';
+
 export default function ScannerScreen() {
   const { t } = useI18n();
   const uploadScan = useUploadScan();
   const { data: contracts } = useContracts();
   const { data: properties } = useProperties();
   const { data: leads } = useLeads();
+  const { data: teamMembers } = useTeamMembers();
   const uploadLeadDoc = useUploadLeadDocument();
   const [pages, setPages] = useState<PageItem[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  // ─── Document Naming Dialog ────────────────────────────────────────
-  const [nameModalVisible, setNameModalVisible] = useState(false);
-  const [documentName, setDocumentName] = useState('');
-  const [modalStep, setModalStep] = useState<'name' | 'location'>('name');
-  const nameInputRef = useRef<TextInput>(null);
-  const confirmedNameRef = useRef('');
+  // ─── Single Save Modal State ──────────────────────────────────────
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [docName, setDocName] = useState('');
+  const [saveLocation, setSaveLocation] = useState<SaveLocation | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const sanitizeFileName = (name: string): string =>
     name.replace(/[^a-zA-Z0-9äöüÄÖÜß _-]/g, '').trim() || 'Scan';
 
-  const askDocumentName = () => {
-    const now = new Date();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const defaultName = `Scan_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
-    setDocumentName(defaultName);
-    setModalStep('name');
-    setNameModalVisible(true);
-    setTimeout(() => nameInputRef.current?.focus(), 300);
-  };
-
-  const confirmDocumentName = () => {
-    const name = sanitizeFileName(documentName);
-    confirmedNameRef.current = name;
-    setModalStep('location');
-  };
-
-  const cancelDocumentName = () => {
-    setNameModalVisible(false);
-    setModalStep('name');
-  };
-
   // ─── Persist picked images to a stable cache dir immediately ────────
-  // iOS can revoke access to ImagePicker temp URIs at any time.
-  // Copying right after selection guarantees the file is readable later.
-
   const persistToCache = async (uris: string[]): Promise<PageItem[]> => {
     const items: PageItem[] = [];
     for (const uri of uris) {
@@ -96,7 +77,6 @@ export default function ScannerScreen() {
         items.push({ id, uri: dest });
       } catch (err) {
         console.error('[scanner] Failed to persist image to cache:', uri, err);
-        // Fallback: try using the original URI (may still work for display)
         items.push({ id, uri });
       }
     }
@@ -212,18 +192,133 @@ export default function ScannerScreen() {
     });
   }, []);
 
-  // ─── Save Options ──────────────────────────────────────────────────
+  // ─── Save Options — Single Modal ───────────────────────────────────
 
   const showSaveOptions = () => {
     if (pages.length === 0) return;
-    askDocumentName();
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    setDocName(
+      `Scan_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`,
+    );
+    setSaveLocation(null);
+    setSelectedItemId(null);
+    setSearchQuery('');
+    setSaveModalVisible(true);
   };
 
-  const handleLocationChoice = (action: (docName: string) => void) => {
-    const docName = confirmedNameRef.current;
-    setNameModalVisible(false);
-    setModalStep('name');
-    setTimeout(() => action(docName), 100);
+  const closeSaveModal = () => {
+    setSaveModalVisible(false);
+  };
+
+  // ─── Picker data & labels per location ─────────────────────────────
+
+  const needsPicker = saveLocation === 'contract' || saveLocation === 'property' || saveLocation === 'lead' || saveLocation === 'employee';
+
+  const pickerSectionLabel = useMemo(() => {
+    switch (saveLocation) {
+      case 'contract': return t('scanner_selectContract');
+      case 'property': return t('scanner_selectProperty');
+      case 'lead': return t('scanner_selectLead');
+      case 'employee': return t('scanner_selectEmployee');
+      default: return '';
+    }
+  }, [saveLocation, t]);
+
+  const pickerItems: { id: string; label: string; subtitle?: string }[] = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    switch (saveLocation) {
+      case 'contract': {
+        const list = contracts ?? [];
+        return list
+          .filter((c) => {
+            if (!query) return true;
+            const label = `${c.client_name} ${t(`contractType_${c.contract_type}`)}`.toLowerCase();
+            return label.includes(query);
+          })
+          .map((c) => ({
+            id: c.id,
+            label: `${c.client_name} — ${t(`contractType_${c.contract_type}`)}`,
+          }));
+      }
+      case 'property': {
+        const list = properties ?? [];
+        return list
+          .filter((p) => {
+            if (!query) return true;
+            const label = (p.title || `${p.address || ''} ${p.city || ''}`).toLowerCase();
+            return label.includes(query);
+          })
+          .map((p) => ({
+            id: p.id,
+            label: p.title || `${p.address || ''}, ${p.city || ''}`.replace(/^, |, $/g, ''),
+          }));
+      }
+      case 'lead': {
+        const list = leads ?? [];
+        return list
+          .filter((l) => {
+            if (!query) return true;
+            return l.full_name.toLowerCase().includes(query);
+          })
+          .map((l) => ({
+            id: l.id,
+            label: l.full_name,
+          }));
+      }
+      case 'employee': {
+        const list = teamMembers ?? [];
+        return list
+          .filter((m) => {
+            if (!query) return true;
+            const label = `${m.full_name || ''} ${m.position || ''} ${m.email || ''}`.toLowerCase();
+            return label.includes(query);
+          })
+          .map((m) => ({
+            id: m.id,
+            label: m.full_name || m.email || m.id,
+            subtitle: m.position || undefined,
+          }));
+      }
+      default:
+        return [];
+    }
+  }, [saveLocation, searchQuery, contracts, properties, leads, teamMembers, t]);
+
+  // ─── Can save? ─────────────────────────────────────────────────────
+
+  const canSave = useMemo(() => {
+    if (!saveLocation) return false;
+    if (!docName.trim()) return false;
+    if (needsPicker && !selectedItemId) return false;
+    return true;
+  }, [saveLocation, docName, needsPicker, selectedItemId]);
+
+  // ─── Confirm save ──────────────────────────────────────────────────
+
+  const handleSaveConfirm = () => {
+    setSaveModalVisible(false);
+    const name = sanitizeFileName(docName);
+    switch (saveLocation) {
+      case 'device':
+        handleShareToDevice(name);
+        break;
+      case 'cloud':
+        handleSave(pages.map((p) => p.uri), 'images', undefined, name);
+        break;
+      case 'contract':
+        handleSave(pages.map((p) => p.uri), 'images', selectedItemId!, name);
+        break;
+      case 'property':
+        handlePropertyUpload(selectedItemId!, name);
+        break;
+      case 'lead':
+        handleLeadUpload(selectedItemId!, name);
+        break;
+      case 'employee':
+        handleEmployeeUpload(selectedItemId!, name);
+        break;
+    }
   };
 
   // ─── Save to device via share sheet ─────────────────────────────────
@@ -233,7 +328,6 @@ export default function ScannerScreen() {
     setUploading(true);
     try {
       const uris = pages.map((p) => p.uri);
-      // Convert images to PDF
       const pdfUri = await imagesToPdf(uris);
 
       await uploadScan.mutateAsync({
@@ -241,7 +335,6 @@ export default function ScannerScreen() {
         mode: 'pdf',
       });
 
-      // Share the generated PDF
       const isAvailable = await Sharing.isAvailableAsync();
       if (isAvailable) {
         await Sharing.shareAsync(pdfUri);
@@ -265,7 +358,6 @@ export default function ScannerScreen() {
       let finalUris = uris;
       let finalMode: 'images' | 'pdf' = mode;
 
-      // Convert images to a single PDF
       if (mode === 'images' && uris.length > 0) {
         const pdfUri = await imagesToPdf(uris);
         finalUris = [pdfUri];
@@ -284,77 +376,7 @@ export default function ScannerScreen() {
     }
   };
 
-  // ─── Contract Picker ───────────────────────────────────────────────
-
-  const showContractPicker = (docName?: string) => {
-    if (!contracts || contracts.length === 0) {
-      Alert.alert(t('scanner_noContracts'));
-      return;
-    }
-
-    const contractOptions = contracts.slice(0, 10).map(
-      (c) => `${c.client_name} — ${t(`contractType_${c.contract_type}`)}`,
-    );
-    contractOptions.push(t('cancel'));
-
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: contractOptions,
-          cancelButtonIndex: contractOptions.length - 1,
-          title: t('scanner_selectContract'),
-        },
-        (buttonIndex) => {
-          if (buttonIndex < contracts.length && buttonIndex < 10) {
-            handleSave(pages.map((p) => p.uri), 'images', contracts[buttonIndex].id, docName);
-          }
-        },
-      );
-    } else {
-      const alertOptions = contracts.slice(0, 10).map((c, i) => ({
-        text: `${c.client_name} — ${t(`contractType_${c.contract_type}`)}`,
-        onPress: () => handleSave(pages.map((p) => p.uri), 'images', c.id, docName),
-      }));
-      alertOptions.push({ text: t('cancel'), onPress: async () => {} });
-      Alert.alert(t('scanner_selectContract'), undefined, alertOptions);
-    }
-  };
-
-  // ─── Property Picker ────────────────────────────────────────────────
-
-  const showPropertyPicker = (docName?: string) => {
-    if (!properties || properties.length === 0) {
-      Alert.alert(t('scanner_noProperties'));
-      return;
-    }
-
-    const propertyOptions = properties.slice(0, 10).map(
-      (p) => p.title || `${p.address || ''}, ${p.city || ''}`,
-    );
-    propertyOptions.push(t('cancel'));
-
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: propertyOptions,
-          cancelButtonIndex: propertyOptions.length - 1,
-          title: t('scanner_selectProperty'),
-        },
-        (buttonIndex) => {
-          if (buttonIndex < properties.length && buttonIndex < 10) {
-            handlePropertyUpload(properties[buttonIndex].id, docName);
-          }
-        },
-      );
-    } else {
-      const alertOptions = properties.slice(0, 10).map((p, _i) => ({
-        text: p.title || `${p.street || ''}, ${p.city || ''}`,
-        onPress: () => handlePropertyUpload(p.id, docName),
-      }));
-      alertOptions.push({ text: t('cancel'), onPress: () => {} });
-      Alert.alert(t('scanner_selectProperty'), undefined, alertOptions);
-    }
-  };
+  // ─── Property Upload ───────────────────────────────────────────────
 
   const handlePropertyUpload = async (propertyId: string, docName?: string) => {
     setUploading(true);
@@ -396,39 +418,7 @@ export default function ScannerScreen() {
     }
   };
 
-  // ─── Lead Picker ──────────────────────────────────────────────────
-
-  const showLeadPicker = (docName?: string) => {
-    if (!leads || leads.length === 0) {
-      Alert.alert(t('scanner_noLeads'));
-      return;
-    }
-
-    const leadOptions = leads.slice(0, 10).map((l) => l.full_name);
-    leadOptions.push(t('cancel'));
-
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: leadOptions,
-          cancelButtonIndex: leadOptions.length - 1,
-          title: t('scanner_selectLead'),
-        },
-        (buttonIndex) => {
-          if (buttonIndex < leads.length && buttonIndex < 10) {
-            handleLeadUpload(leads[buttonIndex].id, docName);
-          }
-        },
-      );
-    } else {
-      const alertOptions = leads.slice(0, 10).map((l, _i) => ({
-        text: l.full_name,
-        onPress: () => handleLeadUpload(l.id, docName),
-      }));
-      alertOptions.push({ text: t('cancel'), onPress: () => {} });
-      Alert.alert(t('scanner_selectLead'), undefined, alertOptions);
-    }
-  };
+  // ─── Lead Upload ──────────────────────────────────────────────────
 
   const handleLeadUpload = async (leadId: string, docName?: string) => {
     setUploading(true);
@@ -451,7 +441,56 @@ export default function ScannerScreen() {
     }
   };
 
+  // ─── Employee Upload (NEW) ────────────────────────────────────────
+
+  const handleEmployeeUpload = async (profileId: string, docName?: string) => {
+    setUploading(true);
+    try {
+      const userId = useAuthStore.getState().user?.id;
+      if (!userId) throw new Error('Not authenticated');
+
+      const uris = pages.map((p) => p.uri);
+      const pdfUri = await imagesToPdf(uris);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const fileName = docName ? `${docName}.pdf` : `${timestamp}.pdf`;
+      const storagePath = `employee-docs/${profileId}/${fileName}`;
+
+      await uploadToStorage(
+        'scanned-documents',
+        storagePath,
+        pdfUri,
+        'application/pdf',
+      );
+
+      Alert.alert(t('scanner_employeeSuccess'));
+      setPages([]);
+      router.back();
+    } catch (err: any) {
+      console.error('Scanner employee upload failed:', err);
+      Alert.alert(t('error'), err?.message || t('scanner_uploadError'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // ─── Location selection handler ────────────────────────────────────
+
+  const handleLocationSelect = (location: SaveLocation) => {
+    setSaveLocation(location);
+    setSelectedItemId(null);
+    setSearchQuery('');
+  };
+
   // ─── Render ─────────────────────────────────────────────────────────
+
+  const locationOptions: { key: SaveLocation; icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
+    { key: 'device', icon: 'phone-portrait-outline', label: t('scanner_saveToDevice') },
+    { key: 'cloud', icon: 'cloud-upload-outline', label: t('scanner_uploadToCloud') },
+    { key: 'contract', icon: 'document-text-outline', label: t('scanner_assignToContract') },
+    { key: 'property', icon: 'home-outline', label: t('scanner_assignToProperty') },
+    { key: 'lead', icon: 'person-outline', label: t('scanner_assignToLead') },
+    { key: 'employee', icon: 'people-outline', label: t('scanner_assignToEmployee') },
+  ];
 
   return (
     <View style={styles.container}>
@@ -572,91 +611,147 @@ export default function ScannerScreen() {
         </>
       )}
 
-      {/* ─── Document Name / Save Location Modal ─────────────────── */}
+      {/* ─── Single Full-Screen Save Modal ───────────────────────── */}
       <Modal
-        visible={nameModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={cancelDocumentName}
+        visible={saveModalVisible}
+        animationType="slide"
+        presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : undefined}
+        onRequestClose={closeSaveModal}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
+          style={styles.saveModalContainer}
         >
-          <View style={styles.modalCard}>
-            {modalStep === 'name' ? (
+          {/* Header */}
+          <View style={styles.saveModalHeader}>
+            <TouchableOpacity onPress={closeSaveModal} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+              <Ionicons name="close" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <Text style={styles.saveModalTitle}>{t('scanner_saveDocument')}</Text>
+            <View style={{ width: 24 }} />
+          </View>
+
+          <ScrollView
+            style={styles.saveModalBody}
+            contentContainerStyle={styles.saveModalBodyContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Document Name */}
+            <Text style={styles.sectionLabel}>{t('scanner_documentName').toUpperCase()}</Text>
+            <TextInput
+              style={styles.docNameInput}
+              value={docName}
+              onChangeText={setDocName}
+              placeholder={t('scanner_documentNamePlaceholder')}
+              placeholderTextColor={colors.textSecondary}
+              autoCorrect={false}
+              selectTextOnFocus
+            />
+
+            {/* Save Location */}
+            <Text style={[styles.sectionLabel, { marginTop: spacing.lg }]}>
+              {t('scanner_saveLocation').toUpperCase()}
+            </Text>
+            <View style={styles.radioGroup}>
+              {locationOptions.map((opt) => (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={styles.radioRow}
+                  onPress={() => handleLocationSelect(opt.key)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[
+                    styles.radioCircle,
+                    saveLocation === opt.key && styles.radioCircleSelected,
+                  ]}>
+                    {saveLocation === opt.key && <View style={styles.radioCircleInner} />}
+                  </View>
+                  <Ionicons name={opt.icon} size={20} color={saveLocation === opt.key ? colors.primary : colors.textSecondary} />
+                  <Text style={[
+                    styles.radioLabel,
+                    saveLocation === opt.key && styles.radioLabelSelected,
+                  ]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Conditional Picker */}
+            {needsPicker && (
               <>
-                <Text style={styles.modalTitle}>{t('scanner_documentNameTitle')}</Text>
+                <Text style={[styles.sectionLabel, { marginTop: spacing.lg }]}>
+                  {pickerSectionLabel.toUpperCase()}
+                </Text>
                 <TextInput
-                  ref={nameInputRef}
-                  style={styles.modalInput}
-                  value={documentName}
-                  onChangeText={setDocumentName}
-                  placeholder={t('scanner_documentNamePlaceholder')}
+                  style={styles.searchInput}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder={t('scanner_search')}
                   placeholderTextColor={colors.textSecondary}
                   autoCorrect={false}
-                  selectTextOnFocus
-                  returnKeyType="done"
-                  onSubmitEditing={confirmDocumentName}
                 />
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity style={styles.modalBtnCancel} onPress={cancelDocumentName}>
-                    <Text style={styles.modalBtnCancelText}>{t('cancel')}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.modalBtnConfirm} onPress={confirmDocumentName}>
-                    <Text style={styles.modalBtnConfirmText}>{t('scanner_next')}</Text>
-                  </TouchableOpacity>
+                <View style={styles.pickerList}>
+                  {pickerItems.length === 0 ? (
+                    <Text style={styles.pickerEmpty}>
+                      {saveLocation === 'contract' ? t('scanner_noContracts') :
+                       saveLocation === 'property' ? t('scanner_noProperties') :
+                       saveLocation === 'lead' ? t('scanner_noLeads') :
+                       t('scanner_noEmployees')}
+                    </Text>
+                  ) : (
+                    pickerItems.map((item) => (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={[
+                          styles.pickerItem,
+                          selectedItemId === item.id && styles.pickerItemSelected,
+                        ]}
+                        onPress={() => setSelectedItemId(item.id)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[
+                          styles.radioCircle,
+                          selectedItemId === item.id && styles.radioCircleSelected,
+                        ]}>
+                          {selectedItemId === item.id && <View style={styles.radioCircleInner} />}
+                        </View>
+                        <View style={styles.pickerItemText}>
+                          <Text
+                            style={[
+                              styles.pickerItemLabel,
+                              selectedItemId === item.id && styles.pickerItemLabelSelected,
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {item.label}
+                          </Text>
+                          {'subtitle' in item && item.subtitle ? (
+                            <Text style={styles.pickerItemSubtitle} numberOfLines={1}>
+                              {item.subtitle}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </TouchableOpacity>
+                    ))
+                  )}
                 </View>
-              </>
-            ) : (
-              <>
-                <Text style={styles.modalTitle}>{t('scanner_saveOptions')}</Text>
-                <View style={styles.locationList}>
-                  <TouchableOpacity
-                    style={styles.locationRow}
-                    onPress={() => handleLocationChoice((n) => handleShareToDevice(n))}
-                  >
-                    <Ionicons name="phone-portrait-outline" size={22} color={colors.primary} />
-                    <Text style={styles.locationLabel}>{t('scanner_saveToDevice')}</Text>
-                  </TouchableOpacity>
-                  <View style={styles.locationSeparator} />
-                  <TouchableOpacity
-                    style={styles.locationRow}
-                    onPress={() => handleLocationChoice((n) => handleSave(pages.map((p) => p.uri), 'images', undefined, n))}
-                  >
-                    <Ionicons name="cloud-upload-outline" size={22} color={colors.primary} />
-                    <Text style={styles.locationLabel}>{t('scanner_uploadToCloud')}</Text>
-                  </TouchableOpacity>
-                  <View style={styles.locationSeparator} />
-                  <TouchableOpacity
-                    style={styles.locationRow}
-                    onPress={() => handleLocationChoice((n) => showContractPicker(n))}
-                  >
-                    <Ionicons name="document-text-outline" size={22} color={colors.primary} />
-                    <Text style={styles.locationLabel}>{t('scanner_attachToContract')}</Text>
-                  </TouchableOpacity>
-                  <View style={styles.locationSeparator} />
-                  <TouchableOpacity
-                    style={styles.locationRow}
-                    onPress={() => handleLocationChoice((n) => showPropertyPicker(n))}
-                  >
-                    <Ionicons name="home-outline" size={22} color={colors.primary} />
-                    <Text style={styles.locationLabel}>{t('scanner_attachToProperty')}</Text>
-                  </TouchableOpacity>
-                  <View style={styles.locationSeparator} />
-                  <TouchableOpacity
-                    style={styles.locationRow}
-                    onPress={() => handleLocationChoice((n) => showLeadPicker(n))}
-                  >
-                    <Ionicons name="person-outline" size={22} color={colors.primary} />
-                    <Text style={styles.locationLabel}>{t('scanner_attachToLead')}</Text>
-                  </TouchableOpacity>
-                </View>
-                <TouchableOpacity style={styles.locationCancelBtn} onPress={cancelDocumentName}>
-                  <Text style={styles.locationCancelText}>{t('cancel')}</Text>
-                </TouchableOpacity>
               </>
             )}
+          </ScrollView>
+
+          {/* Speichern Button */}
+          <View style={styles.saveModalFooter}>
+            <TouchableOpacity
+              style={[styles.confirmButton, !canSave && styles.confirmButtonDisabled]}
+              onPress={handleSaveConfirm}
+              disabled={!canSave}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.confirmButtonText, !canSave && styles.confirmButtonTextDisabled]}>
+                {t('scanner_save').toUpperCase()}
+              </Text>
+            </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -875,89 +970,172 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
-  // Document naming modal
-  modalOverlay: {
+  // ─── Save Modal ────────────────────────────────────────────────────
+  saveModalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
+    backgroundColor: colors.background,
+  },
+  saveModalHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.lg,
-  },
-  modalCard: {
-    width: '100%',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    ...shadow.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  modalTitle: {
+  saveModalTitle: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.bold,
     color: colors.text,
-    marginBottom: spacing.md,
   },
-  modalInput: {
+  saveModalBody: {
+    flex: 1,
+  },
+  saveModalBodyContent: {
+    padding: spacing.md,
+    paddingBottom: spacing.xl,
+  },
+  sectionLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
+    color: colors.textSecondary,
+    letterSpacing: 0.5,
+    marginBottom: spacing.sm,
+  },
+  docNameInput: {
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: borderRadius.md,
     padding: spacing.sm,
     fontSize: fontSize.md,
     color: colors.text,
-    marginBottom: spacing.md,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing.sm,
-  },
-  modalBtnCancel: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.md,
-  },
-  modalBtnCancelText: {
-    fontSize: fontSize.md,
-    color: colors.textSecondary,
-  },
-  modalBtnConfirm: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.primary,
-  },
-  modalBtnConfirmText: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-    color: colors.white,
+    backgroundColor: colors.surface,
   },
 
-  // Location step
-  locationList: {
-    marginBottom: spacing.md,
+  // Radio group
+  radioGroup: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
   },
-  locationRow: {
+  radioRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.sm,
     paddingVertical: 14,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
-  locationLabel: {
+  radioCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioCircleSelected: {
+    borderColor: colors.primary,
+  },
+  radioCircleInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.primary,
+  },
+  radioLabel: {
     fontSize: fontSize.md,
     color: colors.text,
     flex: 1,
   },
-  locationSeparator: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.border,
-    marginLeft: spacing.sm + 22 + spacing.md,
+  radioLabelSelected: {
+    fontWeight: fontWeight.semibold,
+    color: colors.primary,
   },
-  locationCancelBtn: {
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-  locationCancelText: {
+
+  // Search input
+  searchInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
     fontSize: fontSize.md,
+    color: colors.text,
+    backgroundColor: colors.surface,
+    marginBottom: spacing.sm,
+  },
+
+  // Picker list
+  pickerList: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    maxHeight: 280,
+  },
+  pickerEmpty: {
+    padding: spacing.md,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  pickerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: 12,
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  pickerItemSelected: {
+    backgroundColor: colors.primary + '08',
+  },
+  pickerItemText: {
+    flex: 1,
+  },
+  pickerItemLabel: {
+    fontSize: fontSize.md,
+    color: colors.text,
+  },
+  pickerItemLabelSelected: {
+    fontWeight: fontWeight.semibold,
+    color: colors.primary,
+  },
+  pickerItemSubtitle: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+
+  // Confirm button
+  saveModalFooter: {
+    padding: spacing.md,
+    paddingBottom: spacing.xl,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  confirmButton: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmButtonDisabled: {
+    backgroundColor: colors.border,
+  },
+  confirmButtonText: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    color: colors.white,
+    letterSpacing: 0.5,
+  },
+  confirmButtonTextDisabled: {
     color: colors.textSecondary,
   },
 });
