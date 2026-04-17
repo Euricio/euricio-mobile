@@ -302,6 +302,175 @@ export default function MoreScreen() {
         </>
       )}
 
+      {/* Admin Section — admin only */}
+      {profile?.role === 'admin' && (
+        <>
+          <Text style={styles.sectionHeader}>{t('more_admin')}</Text>
+          <Card
+            onPress={() => router.push('/(app)/admin/team/')}
+            style={styles.hrCard}
+          >
+            <View style={styles.hrRow}>
+              <View style={[styles.hrIcon, { backgroundColor: colors.primary + '15' }]}>
+                <Ionicons name="people-outline" size={24} color={colors.primary} />
+              </View>
+              <View style={styles.hrInfo}>
+                <Text style={styles.hrTitle}>{t('adminTeam_title')}</Text>
+                <Text style={styles.hrSubtitle}>{t('adminTeam_subtitle')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+            </View>
+          </Card>
+          {profile?.is_internal && (
+            <Card
+              onPress={() => router.push('/(app)/admin/users/')}
+              style={styles.hrCard}
+            >
+              <View style={styles.hrRow}>
+                <View style={[styles.hrIcon, { backgroundColor: '#8B5CF6' + '15' }]}>
+                  <Ionicons name="shield-outline" size={24} color="#8B5CF6" />
+                </View>
+                <View style={styles.hrInfo}>
+                  <Text style={styles.hrTitle}>{t('adminUsers_title')}</Text>
+                  <Text style={styles.hrSubtitle}>{t('adminUsers_subtitle')}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+              </View>
+            </Card>
+          )}
+          <Card
+            onPress={() => router.push('/(app)/admin/categories/')}
+            style={styles.hrCard}
+          >
+            <View style={styles.hrRow}>
+              <View style={[styles.hrIcon, { backgroundColor: '#F59E0B' + '15' }]}>
+                <Ionicons name="pricetags-outline" size={24} color="#F59E0B" />
+              </View>
+              <View style={styles.hrInfo}>
+                <Text style={styles.hrTitle}>{t('categories_title')}</Text>
+                <Text style={styles.hrSubtitle}>{t('categories_subtitle')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+            </View>
+          </Card>
+          {profile?.is_internal && (
+            <Card
+              onPress={() => router.push('/(app)/admin/features/')}
+              style={styles.hrCard}
+            >
+              <View style={styles.hrRow}>
+                <View style={[styles.hrIcon, { backgroundColor: '#6366F1' + '15' }]}>
+                  <Ionicons name="toggle-outline" size={24} color="#6366F1" />
+                </View>
+                <View style={styles.hrInfo}>
+                  <Text style={styles.hrTitle}>{t('featureFlags_title')}</Text>
+                  <Text style={styles.hrSubtitle}>{t('featureFlags_subtitle')}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+              </View>
+            </Card>
+          )}
+          <Card
+            onPress={() => router.push('/(app)/admin/integrations/')}
+            style={styles.hrCard}
+          >
+            <View style={styles.hrRow}>
+              <View style={[styles.hrIcon, { backgroundColor: '#14B8A6' + '15' }]}>
+                <Ionicons name="code-slash-outline" size={24} color="#14B8A6" />
+              </View>
+              <View style={styles.hrInfo}>
+                <Text style={styles.hrTitle}>{t('integrations_title')}</Text>
+                <Text style={styles.hrSubtitle}>{t('integrations_subtitle')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+            </View>
+          </Card>
+        </>
+      )}
+
+      {/* Settings Section — all users, some admin-gated */}
+      <Text style={styles.sectionHeader}>{t('more_settings')}</Text>
+      <Card
+        onPress={() => router.push('/(app)/settings/subscription/')}
+        style={styles.hrCard}
+      >
+        <View style={styles.hrRow}>
+          <View style={[styles.hrIcon, { backgroundColor: '#10B981' + '15' }]}>
+            <Ionicons name="card-outline" size={24} color="#10B981" />
+          </View>
+          <View style={styles.hrInfo}>
+            <Text style={styles.hrTitle}>{t('subscription_title')}</Text>
+            <Text style={styles.hrSubtitle}>{t('subscription_subtitle')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        </View>
+      </Card>
+      <Card
+        onPress={() => router.push('/(app)/settings/upgrades/')}
+        style={styles.hrCard}
+      >
+        <View style={styles.hrRow}>
+          <View style={[styles.hrIcon, { backgroundColor: colors.accent + '15' }]}>
+            <Ionicons name="diamond-outline" size={24} color={colors.accent} />
+          </View>
+          <View style={styles.hrInfo}>
+            <Text style={styles.hrTitle}>{t('upgrades_title')}</Text>
+            <Text style={styles.hrSubtitle}>{t('upgrades_subtitle')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        </View>
+      </Card>
+      {profile?.role === 'admin' && (
+        <Card
+          onPress={() => router.push('/(app)/settings/sms/')}
+          style={styles.hrCard}
+        >
+          <View style={styles.hrRow}>
+            <View style={[styles.hrIcon, { backgroundColor: '#EC4899' + '15' }]}>
+              <Ionicons name="chatbubble-ellipses-outline" size={24} color="#EC4899" />
+            </View>
+            <View style={styles.hrInfo}>
+              <Text style={styles.hrTitle}>{t('sms_title')}</Text>
+              <Text style={styles.hrSubtitle}>{t('sms_subtitle')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+          </View>
+        </Card>
+      )}
+      <Card
+        onPress={() => router.push('/(app)/feedback/')}
+        style={styles.hrCard}
+      >
+        <View style={styles.hrRow}>
+          <View style={[styles.hrIcon, { backgroundColor: '#3B82F6' + '15' }]}>
+            <Ionicons name="chatbox-ellipses-outline" size={24} color="#3B82F6" />
+          </View>
+          <View style={styles.hrInfo}>
+            <Text style={styles.hrTitle}>{t('feedback_title')}</Text>
+            <Text style={styles.hrSubtitle}>{t('feedback_subtitle')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        </View>
+      </Card>
+
+      {/* Berichte Section — all users */}
+      <Text style={styles.sectionHeader}>{t('more_reports')}</Text>
+      <Card
+        onPress={() => router.push('/(app)/reports/')}
+        style={styles.hrCard}
+      >
+        <View style={styles.hrRow}>
+          <View style={[styles.hrIcon, { backgroundColor: '#6366F1' + '15' }]}>
+            <Ionicons name="bar-chart-outline" size={24} color="#6366F1" />
+          </View>
+          <View style={styles.hrInfo}>
+            <Text style={styles.hrTitle}>{t('reports_title')}</Text>
+            <Text style={styles.hrSubtitle}>{t('reports_subtitle')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        </View>
+      </Card>
+
       {/* Personal / HR Section */}
       <Text style={styles.sectionHeader}>{t('hr_personal')}</Text>
       <Card
