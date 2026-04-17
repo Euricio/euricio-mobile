@@ -1789,6 +1789,85 @@ const es: Record<string, string> = {
   // ─── Phase 5: Gestión de equipo ──────────────────────────────────
   adminTeam_seatLimit: 'Límite de plazas según plan',
   adminTeam_generatePassword: 'Generar contraseña',
+
+  // ─── Portal de documentos (docportal) ─────────────────────────────
+  'docportal.section.title': 'Gestor de documentos',
+  'docportal.selectAll': 'Seleccionar todo',
+  'docportal.deselectAll': 'Deseleccionar todo',
+  'docportal.requestDocs': 'Guardar solicitudes',
+  'docportal.requestDocs.saving': 'Guardando...',
+  'docportal.requestDocs.saved': '¡Solicitudes guardadas!',
+  'docportal.createAccess': 'Crear acceso al portal',
+  'docportal.manageAccess': 'Accesos al portal',
+  'docportal.download': 'Descargar',
+  'docportal.addCustom': 'Añadir tipo de documento personalizado',
+  'docportal.customName.placeholder': 'Nombre del documento...',
+  'docportal.add': 'Añadir',
+  'docportal.removeCustom': 'Eliminar tipo personalizado',
+
+  // Tipos de documento
+  'docportal.doc.land_register': 'Extracto del registro de la propiedad',
+  'docportal.doc.energy_cert': 'Certificado energético',
+  'docportal.doc.ibi_tax': 'Recibo del IBI',
+  'docportal.doc.community_rules': 'Normas de comunidad',
+  'docportal.doc.utility_bill': 'Factura de suministros',
+  'docportal.doc.id_document': 'Documento de identidad',
+  'docportal.doc.purchase_deed': 'Escritura de compraventa',
+  'docportal.doc.mortgage_docs': 'Documentos de hipoteca',
+  'docportal.doc.habitability_cert': 'Cédula de habitabilidad',
+  'docportal.doc.floor_plan': 'Plano de planta',
+  'docportal.doc.property_photos': 'Fotos del inmueble',
+  'docportal.doc.other': 'Otros documentos',
+
+  // Categorías
+  'docportal.category.legal': 'Legal',
+  'docportal.category.technical': 'Técnico',
+  'docportal.category.tax': 'Fiscal',
+  'docportal.category.financial': 'Financiero',
+  'docportal.category.identification': 'Identificación',
+  'docportal.category.visual': 'Visual',
+  'docportal.category.other': 'Otro',
+  'docportal.category.custom': 'Personalizado',
+
+  // Estado
+  'docportal.status.not_requested': 'No solicitado',
+  'docportal.status.requested': 'Solicitado',
+  'docportal.status.uploaded': 'Subido',
+  'docportal.status.verified': 'Verificado',
+
+  // Modal de acceso
+  'docportal.accessModal.title': 'Crear acceso al portal',
+  'docportal.accessModal.email': 'Email del cliente',
+  'docportal.accessModal.email.label': 'Email',
+  'docportal.accessModal.emailPlaceholder': 'email@ejemplo.es',
+  'docportal.accessModal.customerLanguage': 'Idioma',
+  'docportal.accessModal.passwordLabel': 'Contraseña',
+  'docportal.accessModal.password': 'Contraseña',
+  'docportal.accessModal.generateNew': 'Generar nueva',
+  'docportal.accessModal.requestedDocs': 'Documentos solicitados',
+  'docportal.accessModal.docsSelected': 'seleccionados',
+  'docportal.accessModal.noDocsSelected': 'No hay documentos seleccionados. Seleccione al menos un documento arriba.',
+  'docportal.accessModal.createAndSend': 'Crear y enviar',
+  'docportal.accessModal.creating': 'Creando...',
+  'docportal.accessModal.success': '¡Acceso al portal creado correctamente!',
+  'docportal.accessModal.credentials': 'Credenciales de acceso',
+  'docportal.accessModal.portalLink': 'Enlace del portal',
+  'docportal.accessModal.copied': '¡Copiado!',
+  'docportal.accessModal.copyAll': 'Copiar todo',
+  'docportal.accessModal.close': 'Listo',
+  'docportal.accessModal.deactivate': 'Desactivar',
+  'docportal.accessModal.activate': 'Activar',
+
+  // Email
+  'docportal.email.sending': 'Enviando email...',
+  'docportal.email.successWithEmail': 'Invitación enviada a',
+  'docportal.email.error': 'No se pudo enviar el email.',
+  'docportal.email.smtpWarning': 'SMTP no configurado. Las credenciales se crearon pero no se envió ningún email.',
+
+  // Gestión de accesos
+  'docportal.access.delete': 'Eliminar acceso',
+  'docportal.access.delete_confirm': '¿Eliminar acceso al portal para {email}?',
+  'docportal.access.deleted': 'Acceso eliminado.',
 };
 
 export default es;
