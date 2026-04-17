@@ -17,6 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+import { imagesToPdf } from '../../../lib/imagesToPdf';
 import { useContracts } from '../../../lib/api/contracts';
 import { useUploadScan } from '../../../lib/api/scanner';
 import { useI18n } from '../../../lib/i18n';
@@ -212,15 +213,19 @@ export default function ScannerScreen() {
     if (pages.length === 0) return;
     setUploading(true);
     try {
-      // Upload to Supabase first to generate the PDF, then share
+      const uris = pages.map((p) => p.uri);
+      // Convert images to PDF
+      const pdfUri = await imagesToPdf(uris);
+
       await uploadScan.mutateAsync({
-        fileUris: pages.map((p) => p.uri),
-        mode: 'images',
+        fileUris: [pdfUri],
+        mode: 'pdf',
       });
-      // Share the first page image as a fallback if sharing isn't available
+
+      // Share the generated PDF
       const isAvailable = await Sharing.isAvailableAsync();
-      if (isAvailable && pages.length > 0) {
-        await Sharing.shareAsync(pages[0].uri);
+      if (isAvailable) {
+        await Sharing.shareAsync(pdfUri);
       }
       Alert.alert(t('scanner_saveSuccess'));
       setPages([]);
@@ -238,7 +243,17 @@ export default function ScannerScreen() {
   const handleSave = async (uris: string[], mode: 'images' | 'pdf', contractId?: string) => {
     setUploading(true);
     try {
-      await uploadScan.mutateAsync({ fileUris: uris, mode, contractId });
+      let finalUris = uris;
+      let finalMode: 'images' | 'pdf' = mode;
+
+      // Convert images to a single PDF
+      if (mode === 'images' && uris.length > 0) {
+        const pdfUri = await imagesToPdf(uris);
+        finalUris = [pdfUri];
+        finalMode = 'pdf';
+      }
+
+      await uploadScan.mutateAsync({ fileUris: finalUris, mode: finalMode, contractId });
       Alert.alert(contractId ? t('scanner_attachSuccess') : t('scanner_saveSuccess'));
       setPages([]);
       router.back();
