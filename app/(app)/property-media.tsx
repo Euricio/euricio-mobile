@@ -435,40 +435,41 @@ function DocumentsTab({ propertyId }: { propertyId: string }) {
     }
   };
 
-  const handleOpenDocument = useCallback(async (doc: PropertyDocument) => {
+  const getSignedUrl = useCallback(async (doc: PropertyDocument): Promise<string> => {
+    if (doc.signed_url) return doc.signed_url;
+    const { data, error } = await supabase.storage
+      .from('property-documents')
+      .createSignedUrl(doc.storage_path, 3600);
+    if (error) throw new Error(error.message);
+    if (!data?.signedUrl) throw new Error('Could not generate URL');
+    return data.signedUrl;
+  }, []);
+
+  const openDocument = useCallback(async (doc: PropertyDocument) => {
     try {
-      let url = doc.signed_url;
+      const url = await getSignedUrl(doc);
+      await Linking.openURL(url);
+    } catch (err: any) {
+      Alert.alert(t('error'), err.message || 'Could not open document');
+    }
+  }, [getSignedUrl, t]);
 
-      // If no signed URL available, generate one on demand
-      if (!url) {
-        const { data } = await supabase.storage
-          .from('property-documents')
-          .createSignedUrl(doc.storage_path, 3600);
-        url = data?.signedUrl;
-      }
-
-      if (!url) {
-        Alert.alert(t('error'), 'Could not generate download URL');
-        return;
-      }
-
+  const shareDocument = useCallback(async (doc: PropertyDocument) => {
+    try {
+      const url = await getSignedUrl(doc);
       const fileUri = FileSystem.cacheDirectory + doc.file_name;
-      const result = await FileSystem.downloadAsync(url, fileUri);
+      await FileSystem.downloadAsync(url, fileUri);
 
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(result.uri);
-      } else {
-        await Linking.openURL(url);
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/pdf',
+          UTI: 'com.adobe.pdf',
+        });
       }
     } catch (err: any) {
-      console.error('Document open failed:', err);
-      if (doc.signed_url) {
-        Linking.openURL(doc.signed_url);
-      } else {
-        Alert.alert(t('error'), err?.message || 'Download failed');
-      }
+      Alert.alert(t('error'), err.message || 'Could not share document');
     }
-  }, [t]);
+  }, [getSignedUrl, t]);
 
   const handleDeleteDocument = (doc: PropertyDocument) => {
     Alert.alert(t('media_deleteDoc'), t('media_deleteDocConfirm', { name: doc.file_name }), [
@@ -538,41 +539,47 @@ function DocumentsTab({ propertyId }: { propertyId: string }) {
           </View>
         }
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.docItem}
-            activeOpacity={0.7}
-            onPress={() => handleOpenDocument(item)}
-          >
-            <View style={styles.docIconContainer}>
-              <Ionicons
-                name={getDocumentIcon(item.document_type)}
-                size={24}
-                color={colors.primary}
-              />
-            </View>
-            <View style={styles.docInfo}>
-              <Text style={styles.docName} numberOfLines={1}>
-                {item.file_name}
-              </Text>
-              <View style={styles.docMeta}>
-                <Badge
-                  label={DOCUMENT_TYPE_LABELS[item.document_type] ?? item.document_type}
-                  variant="primary"
-                  size="sm"
+          <View style={styles.docCard}>
+            <View style={styles.docCardInfo}>
+              <View style={styles.docIconContainer}>
+                <Ionicons
+                  name={getDocumentIcon(item.document_type)}
+                  size={24}
+                  color={colors.primary}
                 />
-                <Text style={styles.docDate}>{formatDate(item.created_at)}</Text>
-                {item.file_size && (
-                  <Text style={styles.docSize}>{formatFileSize(item.file_size)}</Text>
-                )}
+              </View>
+              <View style={styles.docCardText}>
+                <Text style={styles.docCardName} numberOfLines={1}>
+                  {item.file_name}
+                </Text>
+                <View style={styles.docMeta}>
+                  <Badge
+                    label={DOCUMENT_TYPE_LABELS[item.document_type] ?? item.document_type}
+                    variant="primary"
+                    size="sm"
+                  />
+                  <Text style={styles.docDate}>{formatDate(item.created_at)}</Text>
+                  {item.file_size && (
+                    <Text style={styles.docSize}>{formatFileSize(item.file_size)}</Text>
+                  )}
+                </View>
               </View>
             </View>
-            <TouchableOpacity
-              style={styles.docDeleteBtn}
-              onPress={() => handleDeleteDocument(item)}
-            >
-              <Ionicons name="trash-outline" size={20} color={colors.error} />
-            </TouchableOpacity>
-          </TouchableOpacity>
+            <View style={styles.docCardActions}>
+              <TouchableOpacity style={styles.docCardActionBtn} onPress={() => openDocument(item)}>
+                <Ionicons name="open-outline" size={18} color={colors.primary} />
+                <Text style={styles.docCardActionLabel}>{t('propDocs_open')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.docCardActionBtn} onPress={() => shareDocument(item)}>
+                <Ionicons name="share-outline" size={18} color={colors.primary} />
+                <Text style={styles.docCardActionLabel}>{t('propDocs_share')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.docCardActionBtn} onPress={() => handleDeleteDocument(item)}>
+                <Ionicons name="trash-outline" size={18} color={colors.error} />
+                <Text style={[styles.docCardActionLabel, { color: colors.error }]}>{t('propDocs_delete')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         )}
       />
 
@@ -776,14 +783,18 @@ const styles = StyleSheet.create({
   docList: {
     padding: spacing.md,
   },
-  docItem: {
+  docCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  docCardInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    ...shadow.sm,
+    marginBottom: 12,
   },
   docIconContainer: {
     width: 44,
@@ -794,11 +805,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: spacing.md,
   },
-  docInfo: {
+  docCardText: {
     flex: 1,
     gap: spacing.xs,
   },
-  docName: {
+  docCardName: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold,
     color: colors.text,
@@ -816,8 +827,24 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.textTertiary,
   },
-  docDeleteBtn: {
-    padding: spacing.sm,
+  docCardActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 10,
+  },
+  docCardActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  docCardActionLabel: {
+    fontSize: 13,
+    color: colors.primary,
+    marginLeft: 4,
+    fontWeight: '500',
   },
 
   // Document type selector

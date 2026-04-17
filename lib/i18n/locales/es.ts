@@ -1922,6 +1922,8 @@ const es: Record<string, string> = {
   propDocs_deleteConfirm: '¿Eliminar este documento?',
   propDocs_uploading: 'Subiendo...',
   propDocs_uploadError: 'No se pudo subir el documento.',
+  propDocs_open: 'Abrir',
+  propDocs_share: 'Compartir',
 
   // Operation type
   operationType_buy: 'Compra',
