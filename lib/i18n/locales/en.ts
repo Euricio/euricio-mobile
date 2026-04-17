@@ -818,6 +818,7 @@ const en: Record<string, string> = {
   scanner_documentName: 'Document Name',
   scanner_documentNamePlaceholder: 'Enter name...',
   scanner_documentNameTitle: 'Name Document',
+  scanner_next: 'Next',
 
   // ─── Upgrade / Plan-Gating ────────────────────────────────────────
   upgrade_contracts_title: 'Unlock Contract Generator',
