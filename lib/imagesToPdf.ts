@@ -4,7 +4,6 @@ import { Image } from 'react-native';
 
 /**
  * Get the pixel dimensions of a local image URI.
- * Returns { width, height } in pixels.
  */
 function getImageDimensions(
   uri: string,
@@ -20,70 +19,52 @@ function getImageDimensions(
 
 /**
  * Convert an array of image URIs to a single PDF file.
- * Each page is sized to match the aspect ratio of its image so there
- * is no extra white space around the content.
- * Returns the file URI of the generated PDF.
+ * The PDF page matches the exact aspect ratio of the scanned images
+ * so there is no extra white space.
  */
 export async function imagesToPdf(imageUris: string[]): Promise<string> {
-  // Read each image as base64, get its dimensions, and build HTML
   const imageHtmlParts: string[] = [];
 
-  // We use the first image's aspect ratio to set the PDF page size.
-  // (expo-print only supports a single page size for the whole document)
-  // All scanned pages typically share the same dimensions.
-  let pdfWidth = 595; // fallback A4
-  let pdfHeight = 842;
+  // Determine PDF page dimensions from the first image's aspect ratio.
+  // expo-print width/height are in points at 72 PPI.
+  // Default: A4 portrait (595 x 842 pt)
+  let pageW = 595;
+  let pageH = 842;
 
-  for (let i = 0; i < imageUris.length; i++) {
-    const uri = imageUris[i];
-
-    // Get actual image dimensions for the first image
-    if (i === 0) {
-      try {
-        const dims = await getImageDimensions(uri);
-        if (dims.width > 0 && dims.height > 0) {
-          // Scale to a reasonable PDF width (595pt ≈ 210mm ≈ A4 width)
-          // but keep the image's actual aspect ratio
-          pdfWidth = 595;
-          pdfHeight = Math.round((dims.height / dims.width) * 595);
-        }
-      } catch (e) {
-        // Fallback to A4 if dimensions can't be read
-        console.error('[imagesToPdf] Could not read image dimensions, using A4:', e);
-      }
+  try {
+    const dims = await getImageDimensions(imageUris[0]);
+    if (dims.width > 0 && dims.height > 0) {
+      // Keep width at 595pt (A4 width), scale height to match image ratio
+      pageH = Math.round((dims.height / dims.width) * pageW);
+      console.error(`[imagesToPdf] Image: ${dims.width}x${dims.height}, PDF page: ${pageW}x${pageH}`);
     }
+  } catch (e) {
+    console.error('[imagesToPdf] Could not read image dimensions, using A4:', e);
+  }
 
-    const base64 = await FileSystem.readAsStringAsync(uri, {
+  for (const imgUri of imageUris) {
+    const base64 = await FileSystem.readAsStringAsync(imgUri, {
       encoding: FileSystem.EncodingType.Base64,
     });
 
-    imageHtmlParts.push(`
-      <div style="page-break-after: always; margin: 0; padding: 0;">
-        <img src="data:image/jpeg;base64,${base64}" width="${pdfWidth}" height="${pdfHeight}" style="display: block;" />
-      </div>
-    `);
+    // Each image is a standalone page.
+    // Use a simple <img> that fills the full page width; the browser
+    // will scale the height proportionally, which matches our pageH.
+    imageHtmlParts.push(
+      `<img src="data:image/jpeg;base64,${base64}" style="width:${pageW}px;display:block;" />`,
+    );
   }
 
-  const html = `
-    <html>
-      <head>
-        <meta name="viewport" content="width=${pdfWidth}, initial-scale=1.0">
-        <style>
-          * { margin: 0; padding: 0; }
-          @page { margin: 0; size: ${pdfWidth}pt ${pdfHeight}pt; }
-          html, body { width: ${pdfWidth}px; overflow: hidden; }
-        </style>
-      </head>
-      <body>
-        ${imageHtmlParts.join('')}
-      </body>
-    </html>
-  `;
+  // Minimal HTML — no wrapper divs, no viewport tricks.
+  // expo-print paginates based on the width/height we pass;
+  // each <img> exactly fills one page when its width matches pageW.
+  const html = `<html><head><style>*{margin:0;padding:0}@page{margin:0}</style></head><body>${imageHtmlParts.join('')}</body></html>`;
 
   const { uri } = await Print.printToFileAsync({
     html,
-    width: pdfWidth,
-    height: pdfHeight,
+    width: pageW,
+    height: pageH,
+    margins: { top: 0, right: 0, bottom: 0, left: 0 },
   });
   return uri;
 }
