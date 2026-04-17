@@ -287,14 +287,24 @@ export function useTogglePublish() {
 export interface PropertyOwner {
   id: string;
   property_id: string;
-  name: string;
+  full_name: string;
   phone: string | null;
   email: string | null;
-  percentage: number | null;
+  ownership_percentage: number | null;
   status: 'won' | 'pending' | 'against';
   notes: string | null;
+  created_by: string | null;
   created_at: string;
-  updated_at: string;
+}
+
+// Alias fields for backward compat in UI code
+export type PropertyOwnerUI = PropertyOwner & {
+  name: string;
+  percentage: number | null;
+};
+
+function mapOwner(o: PropertyOwner): PropertyOwnerUI {
+  return { ...o, name: o.full_name, percentage: o.ownership_percentage };
 }
 
 export function usePropertyOwners(propertyId: string) {
@@ -307,7 +317,7 @@ export function usePropertyOwners(propertyId: string) {
         .eq('property_id', propertyId)
         .order('created_at');
       if (error) throw error;
-      return (data ?? []) as PropertyOwner[];
+      return (data ?? []).map(mapOwner) as PropertyOwnerUI[];
     },
     enabled: !!propertyId,
   });
@@ -316,14 +326,32 @@ export function usePropertyOwners(propertyId: string) {
 export function useCreatePropertyOwner() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (owner: Partial<PropertyOwner> & { property_id: string; name: string }) => {
+    mutationFn: async (input: {
+      property_id: string;
+      name: string;
+      phone?: string | null;
+      email?: string | null;
+      percentage?: number | null;
+      status?: 'won' | 'pending' | 'against';
+      notes?: string | null;
+    }) => {
+      const { data: { session } } = await supabase.auth.getSession();
       const { data, error } = await supabase
         .from('property_owners')
-        .insert(owner)
+        .insert({
+          property_id: input.property_id,
+          full_name: input.name,
+          ownership_percentage: input.percentage ?? 0,
+          status: input.status ?? 'pending',
+          email: input.email ?? null,
+          phone: input.phone ?? null,
+          notes: input.notes ?? null,
+          created_by: session?.user?.id ?? null,
+        })
         .select()
         .single();
       if (error) throw error;
-      return data as PropertyOwner;
+      return mapOwner(data as PropertyOwner);
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -336,19 +364,31 @@ export function useCreatePropertyOwner() {
 export function useUpdatePropertyOwner() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({
-      id,
-      property_id,
-      ...updates
-    }: Partial<PropertyOwner> & { id: string; property_id: string }) => {
+    mutationFn: async (input: {
+      id: string;
+      property_id: string;
+      name?: string;
+      phone?: string | null;
+      email?: string | null;
+      percentage?: number | null;
+      status?: 'won' | 'pending' | 'against';
+      notes?: string | null;
+    }) => {
+      const dbUpdates: Record<string, unknown> = {};
+      if (input.name !== undefined) dbUpdates.full_name = input.name;
+      if (input.percentage !== undefined) dbUpdates.ownership_percentage = input.percentage;
+      if (input.status !== undefined) dbUpdates.status = input.status;
+      if (input.email !== undefined) dbUpdates.email = input.email;
+      if (input.phone !== undefined) dbUpdates.phone = input.phone;
+      if (input.notes !== undefined) dbUpdates.notes = input.notes;
       const { data, error } = await supabase
         .from('property_owners')
-        .update(updates)
-        .eq('id', id)
+        .update(dbUpdates)
+        .eq('id', input.id)
         .select()
         .single();
       if (error) throw error;
-      return data as PropertyOwner;
+      return mapOwner(data as PropertyOwner);
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
