@@ -86,7 +86,7 @@ export function useUploadScan() {
       if (!userId) throw new Error('Not authenticated');
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const bucket = contractId ? 'contract-uploads' : 'scanned-documents';
+      const bucket = contractId ? 'contracts' : 'scanned-documents';
 
       if (mode === 'pdf') {
         const storagePath = contractId

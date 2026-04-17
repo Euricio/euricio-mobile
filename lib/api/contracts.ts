@@ -156,7 +156,7 @@ export function useGeneratePdf() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://crm.euricio.es';
       const res = await fetch(`${apiUrl}/api/contracts/generate-pdf`, {
         method: 'POST',
         headers: {
@@ -257,7 +257,7 @@ export function useUploadSignedPdf() {
 
       if (mode === 'pdf') {
         await uploadViaEdgeFunction(
-          'contract-uploads',
+          'contracts',
           storagePath,
           fileUris[0],
           'application/pdf',
@@ -266,40 +266,42 @@ export function useUploadSignedPdf() {
         const session = (await supabase.auth.getSession()).data.session;
         if (!session) throw new Error('Not authenticated');
 
-        const imagePayloads: { base64Data: string; index: number }[] = [];
+        // Upload each image individually (same approach as scanner)
         for (let i = 0; i < fileUris.length; i++) {
           const base64Data = await FileSystem.readAsStringAsync(fileUris[i], {
             encoding: FileSystem.EncodingType.Base64,
           });
-          imagePayloads.push({ base64Data, index: i });
-        }
 
-        const response = await fetch(
-          `${SUPABASE_URL}/functions/v1/upload-media`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-              'Content-Type': 'application/json',
+          const pagePath = i === 0
+            ? storagePath
+            : storagePath.replace(/\.pdf$/, `-page${i + 1}.jpeg`);
+
+          const response = await fetch(
+            `${SUPABASE_URL}/functions/v1/upload-media`,
+            {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                bucket: 'contracts',
+                path: pagePath,
+                base64Data,
+                contentType: 'image/jpeg',
+              }),
             },
-            body: JSON.stringify({
-              bucket: 'contract-uploads',
-              path: storagePath,
-              base64Data: imagePayloads[0].base64Data,
-              contentType: 'image/jpeg',
-              additionalPages: imagePayloads.slice(1).map((p) => p.base64Data),
-            }),
-          },
-        );
+          );
 
-        const result = await response.json();
-        if (!response.ok) {
-          throw new Error(result.error || `Upload failed (${response.status})`);
+          const result = await response.json();
+          if (!response.ok) {
+            throw new Error(result.error || `Upload failed (${response.status})`);
+          }
         }
       }
 
       const { data: urlData } = await supabase.storage
-        .from('contract-uploads')
+        .from('contracts')
         .createSignedUrl(storagePath, 60 * 60 * 24 * 365);
 
       const signedUrl = urlData?.signedUrl;
