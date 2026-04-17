@@ -49,18 +49,31 @@ export interface UploadScanParams {
 
 /**
  * Ensure the URI is readable by FileSystem.readAsStringAsync.
- * iOS image picker can return `ph://` or asset-library URIs that are not
- * directly readable. In that case, copy the file to the cache directory first.
+ * iOS image picker returns URIs in its own cache directory that can become
+ * unreadable (locked / stale). We ALWAYS copy to our own cache directory
+ * to guarantee readability regardless of the source URI scheme.
  */
 async function ensureReadableUri(uri: string): Promise<string> {
-  if (uri.startsWith('file://')) return uri;
-
-  console.error('[scanner] URI is not file://, copying to cache:', uri);
   const fileName = `scan-copy-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.jpg`;
   const dest = `${FileSystem.cacheDirectory}${fileName}`;
-  await FileSystem.copyAsync({ from: uri, to: dest });
-  console.error('[scanner] Copied to:', dest);
-  return dest;
+
+  try {
+    // Always copy — even file:// URIs from ImagePicker cache can fail to read
+    await FileSystem.copyAsync({ from: uri, to: dest });
+    console.error('[scanner] Copied to own cache:', dest);
+    return dest;
+  } catch (copyErr) {
+    console.error('[scanner] copyAsync failed for:', uri, copyErr);
+    // If copy fails and original is file://, try reading it directly as fallback
+    if (uri.startsWith('file://')) {
+      const info = await FileSystem.getInfoAsync(uri);
+      if (info.exists) {
+        console.error('[scanner] File exists at original URI, using directly:', uri);
+        return uri;
+      }
+    }
+    throw new Error(`Cannot access image file: ${uri}`);
+  }
 }
 
 export function useUploadScan() {
