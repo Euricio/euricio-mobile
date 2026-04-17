@@ -11,6 +11,9 @@ export interface Lead {
   source: string | null;
   assigned_to: string | null;
   notes: string | null;
+  pipeline_stage: string | null;
+  preferred_language: string | null;
+  budget: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -102,6 +105,19 @@ export function useDeleteLead() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+    },
+  });
+}
+
+export function useLeadCount() {
+  return useQuery({
+    queryKey: ['lead-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('leads')
+        .select('id', { count: 'exact', head: true });
+      if (error) throw error;
+      return count ?? 0;
     },
   });
 }

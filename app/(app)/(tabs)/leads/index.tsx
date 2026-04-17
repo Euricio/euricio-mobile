@@ -10,6 +10,7 @@ import {
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useLeads, Lead } from '../../../../lib/api/leads';
+import { useSubscription } from '../../../../lib/api/subscription';
 import { SearchBar } from '../../../../components/ui/SearchBar';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
@@ -85,6 +86,7 @@ export default function LeadsListScreen() {
   const { t } = useI18n();
   const [search, setSearch] = useState('');
   const { data: leads, isLoading, refetch, isRefetching } = useLeads(search);
+  const { data: sub } = useSubscription();
 
   return (
     <View style={styles.container}>
@@ -103,6 +105,12 @@ export default function LeadsListScreen() {
           onChangeText={setSearch}
           placeholder={t('leads_search')}
         />
+        <Text style={styles.leadCounter}>
+          {t('lead_limitCounter', {
+            used: String(leads?.length ?? 0),
+            total: String(sub?.limits?.leads ?? '\u221E'),
+          })}
+        </Text>
       </View>
 
       {isLoading ? (
@@ -155,6 +163,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     backgroundColor: colors.surface,
+  },
+  leadCounter: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    textAlign: 'right',
+    marginTop: spacing.xs,
   },
   list: {
     padding: spacing.md,

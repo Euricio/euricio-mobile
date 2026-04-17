@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,16 +12,20 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useProperty, useDeleteProperty } from '../../../../lib/api/properties';
-import { usePropertyImages } from '../../../../lib/api/propertyImages';
+import { usePropertyImages, PropertyImage } from '../../../../lib/api/propertyImages';
 import { usePropertyDocuments } from '../../../../lib/api/propertyMedia';
+import { supabase } from '../../../../lib/supabase';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
+import { CollapsibleSection } from '../../../../components/ui/CollapsibleSection';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
 import { useI18n } from '../../../../lib/i18n';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   colors,
   spacing,
@@ -112,8 +116,58 @@ export default function PropertyDetailScreen() {
   const { data: images } = usePropertyImages(id!);
   const { data: documents } = usePropertyDocuments(id!);
   const deleteProperty = useDeleteProperty();
+  const queryClient = useQueryClient();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const { t, formatPrice, formatDate } = useI18n();
+
+  const updateImageSortOrder = useCallback(
+    async (imagesList: PropertyImage[], fromIndex: number, toIndex: number) => {
+      if (toIndex < 0 || toIndex >= imagesList.length) return;
+      try {
+        const updates = imagesList.map((img, i) => {
+          let newOrder = i;
+          if (i === fromIndex) newOrder = toIndex;
+          else if (fromIndex < toIndex && i > fromIndex && i <= toIndex) newOrder = i - 1;
+          else if (fromIndex > toIndex && i >= toIndex && i < fromIndex) newOrder = i + 1;
+          return { id: img.id, sort_order: newOrder };
+        });
+        for (const u of updates) {
+          const { error } = await supabase
+            .from('property_images')
+            .update({ sort_order: u.sort_order })
+            .eq('id', u.id);
+          if (error) throw error;
+        }
+        queryClient.invalidateQueries({ queryKey: ['property-images', id] });
+      } catch {
+        Alert.alert(t('error'), t('prop_reorderError'));
+      }
+    },
+    [id, queryClient, t],
+  );
+
+  const setAsPrimary = useCallback(
+    async (imageId: string) => {
+      try {
+        // Unset all covers first
+        const { error: resetError } = await supabase
+          .from('property_images')
+          .update({ is_cover: false })
+          .eq('property_id', id!);
+        if (resetError) throw resetError;
+        // Set the selected as cover
+        const { error } = await supabase
+          .from('property_images')
+          .update({ is_cover: true })
+          .eq('id', imageId);
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ['property-images', id] });
+      } catch {
+        Alert.alert(t('error'), t('prop_reorderError'));
+      }
+    },
+    [id, queryClient, t],
+  );
 
   if (isLoading) return <LoadingScreen />;
 
@@ -259,6 +313,51 @@ export default function PropertyDetailScreen() {
         </View>
       )}
 
+      {/* Image Reorder Controls */}
+      {images && images.length > 1 && (
+        <View style={styles.imageReorderRow}>
+          <TouchableOpacity
+            style={[styles.reorderButton, activeImageIndex === 0 && styles.reorderButtonDisabled]}
+            onPress={() => {
+              if (activeImageIndex > 0) {
+                updateImageSortOrder(images, activeImageIndex, activeImageIndex - 1);
+              }
+            }}
+            disabled={activeImageIndex === 0}
+          >
+            <Ionicons name="arrow-back" size={16} color={activeImageIndex === 0 ? colors.textTertiary : colors.primary} />
+            <Text style={[styles.reorderButtonText, activeImageIndex === 0 && styles.reorderButtonTextDisabled]}>
+              {t('prop_moveUp')}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.reorderButton}
+            onPress={() => {
+              if (images[activeImageIndex]) {
+                setAsPrimary(images[activeImageIndex].id);
+              }
+            }}
+          >
+            <Ionicons name="star" size={16} color={colors.primary} />
+            <Text style={styles.reorderButtonText}>{t('prop_setPrimary')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.reorderButton, activeImageIndex === images.length - 1 && styles.reorderButtonDisabled]}
+            onPress={() => {
+              if (activeImageIndex < images.length - 1) {
+                updateImageSortOrder(images, activeImageIndex, activeImageIndex + 1);
+              }
+            }}
+            disabled={activeImageIndex === images.length - 1}
+          >
+            <Text style={[styles.reorderButtonText, activeImageIndex === images.length - 1 && styles.reorderButtonTextDisabled]}>
+              {t('prop_moveDown')}
+            </Text>
+            <Ionicons name="arrow-forward" size={16} color={activeImageIndex === images.length - 1 ? colors.textTertiary : colors.primary} />
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Title & Price */}
       <View style={styles.titleSection}>
         <View style={styles.titleRow}>
@@ -314,6 +413,61 @@ export default function PropertyDetailScreen() {
           {property.province && <DetailRow label={t('propDetail_province')} value={property.province} />}
           {property.postal_code && <DetailRow label={t('propDetail_postalCode')} value={property.postal_code} />}
           {property.country && <DetailRow label={t('propDetail_country')} value={property.country} />}
+        </Card>
+      )}
+
+      {/* Owner Section */}
+      {((property as any).owner_name || (property as any).owner_phone || (property as any).owner_email) && (
+        <View style={styles.ownerSectionWrapper}>
+          <CollapsibleSection title={t('prop_ownerSection')}>
+            {(property as any).owner_name && (
+              <DetailRow label={t('prop_ownerName')} value={(property as any).owner_name} />
+            )}
+            {(property as any).owner_phone && (
+              <TouchableOpacity
+                onPress={() => Linking.openURL(`tel:${(property as any).owner_phone}`)}
+              >
+                <DetailRow label={t('prop_ownerPhone')} value={(property as any).owner_phone} />
+              </TouchableOpacity>
+            )}
+            {(property as any).owner_email && (
+              <TouchableOpacity
+                onPress={() => Linking.openURL(`mailto:${(property as any).owner_email}`)}
+              >
+                <DetailRow label={t('prop_ownerEmail')} value={(property as any).owner_email} />
+              </TouchableOpacity>
+            )}
+          </CollapsibleSection>
+        </View>
+      )}
+
+      {/* Geocoding Mini-Map */}
+      {property.latitude != null && property.longitude != null && (
+        <Card style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('prop_geocodingPreview')}</Text>
+          <View style={styles.miniMapContainer}>
+            <WebView
+              originWhitelist={['*']}
+              source={{
+                html: `<!DOCTYPE html>
+<html><head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>body{margin:0}#map{width:100%;height:100vh}</style>
+</head><body>
+<div id="map"></div>
+<script>
+var map = L.map('map').setView([${property.latitude}, ${property.longitude}], 15);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM'}).addTo(map);
+L.marker([${property.latitude}, ${property.longitude}]).addTo(map).bindPopup('${property.title.replace(/'/g, "\\'")}');
+</script></body></html>`,
+              }}
+              style={styles.miniMapWebView}
+              javaScriptEnabled
+              scrollEnabled={false}
+            />
+          </View>
         </Card>
       )}
 
@@ -666,6 +820,48 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  // Owner section
+  ownerSectionWrapper: {
+    marginHorizontal: spacing.md,
+  },
+  // Mini-map
+  miniMapContainer: {
+    height: 200,
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+  },
+  miniMapWebView: {
+    flex: 1,
+  },
+  // Image reorder
+  imageReorderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+  },
+  reorderButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  reorderButtonDisabled: {
+    opacity: 0.4,
+  },
+  reorderButtonText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.medium,
+    color: colors.primary,
+  },
+  reorderButtonTextDisabled: {
+    color: colors.textTertiary,
   },
   // Actions
   actions: {

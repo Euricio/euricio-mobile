@@ -61,6 +61,18 @@ export default function AppLayout() {
             }}
           />
           <Stack.Screen
+            name="notifications"
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="settings"
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
             name="call/[id]"
             options={{
               presentation: 'fullScreenModal',
