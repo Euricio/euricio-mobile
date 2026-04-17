@@ -1,9 +1,6 @@
-import { supabase, getFreshAccessToken } from '../supabase';
+import { supabase, uploadToStorage } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
-import * as FileSystem from 'expo-file-system/legacy';
-
-const SUPABASE_URL = 'https://vddfghfvmnrbotmxhvvi.supabase.co';
 
 export interface SavedClause {
   key: string;
@@ -199,45 +196,6 @@ export function useProperties() {
 
 // ─── Signed PDF Upload ──────────────────────────────────────────────
 
-async function uploadViaEdgeFunction(
-  bucket: string,
-  storagePath: string,
-  fileUri: string,
-  contentType: string,
-): Promise<{ size: number }> {
-  const accessToken = await getFreshAccessToken();
-
-  const base64Data = await FileSystem.readAsStringAsync(fileUri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-
-  if (!base64Data || base64Data.length === 0) {
-    throw new Error('Could not read file');
-  }
-
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/upload-media`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      bucket,
-      path: storagePath,
-      base64Data,
-      contentType,
-    }),
-  });
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(result.error || `Upload failed (${response.status})`);
-  }
-
-  return { size: result.size ?? 0 };
-}
-
 export interface SignedPdfUploadParams {
   contractId: string;
   fileUris: string[];
@@ -255,46 +213,20 @@ export function useUploadSignedPdf() {
       const storagePath = `${userId}/contracts/${contractId}/signed.pdf`;
 
       if (mode === 'pdf') {
-        await uploadViaEdgeFunction(
+        await uploadToStorage(
           'contracts',
           storagePath,
           fileUris[0],
           'application/pdf',
         );
       } else {
-        const accessToken = await getFreshAccessToken();
-
-        // Upload each image individually (same approach as scanner)
+        // Upload each image individually
         for (let i = 0; i < fileUris.length; i++) {
-          const base64Data = await FileSystem.readAsStringAsync(fileUris[i], {
-            encoding: FileSystem.EncodingType.Base64,
-          });
-
           const pagePath = i === 0
             ? storagePath
             : storagePath.replace(/\.pdf$/, `-page${i + 1}.jpeg`);
 
-          const response = await fetch(
-            `${SUPABASE_URL}/functions/v1/upload-media`,
-            {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                bucket: 'contracts',
-                path: pagePath,
-                base64Data,
-                contentType: 'image/jpeg',
-              }),
-            },
-          );
-
-          const result = await response.json();
-          if (!response.ok) {
-            throw new Error(result.error || `Upload failed (${response.status})`);
-          }
+          await uploadToStorage('contracts', pagePath, fileUris[i], 'image/jpeg');
         }
       }
 

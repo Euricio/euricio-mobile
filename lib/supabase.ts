@@ -1,6 +1,7 @@
 import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const ExpoSecureStoreAdapter = {
   getItem: (key: string) => SecureStore.getItemAsync(key),
@@ -52,4 +53,44 @@ export async function getFreshAccessToken(): Promise<string> {
   }
 
   return session.access_token;
+}
+
+/**
+ * Upload a local file to Supabase Storage.
+ * Works around React Native's broken FormData/Blob handling by reading
+ * the file as base64, decoding to Uint8Array, and using supabase-js upload.
+ */
+export async function uploadToStorage(
+  bucket: string,
+  storagePath: string,
+  fileUri: string,
+  contentType: string,
+): Promise<{ size: number }> {
+  const base64Data = await FileSystem.readAsStringAsync(fileUri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+
+  if (!base64Data || base64Data.length === 0) {
+    throw new Error('Could not read file — base64 data is empty');
+  }
+
+  // Decode base64 to Uint8Array
+  const binaryString = atob(base64Data);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .upload(storagePath, bytes, {
+      contentType,
+      upsert: true,
+    });
+
+  if (error) {
+    throw new Error(`Upload failed: ${error.message}`);
+  }
+
+  return { size: bytes.length };
 }
