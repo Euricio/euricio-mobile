@@ -1,10 +1,7 @@
-import { supabase, getFreshAccessToken } from '../supabase';
+import { supabase, uploadToStorage } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
 import * as FileSystem from 'expo-file-system/legacy';
-
-const SUPABASE_URL = 'https://vddfghfvmnrbotmxhvvi.supabase.co';
-const UPLOAD_TIMEOUT_MS = 30_000;
 
 export interface ScannedDocument {
   name: string;
@@ -94,7 +91,8 @@ export function useUploadScan() {
           : `${userId}/scans/${timestamp}.pdf`;
 
         console.error('[scanner] Uploading PDF:', storagePath);
-        await uploadViaEdgeFunction(bucket, storagePath, fileUris[0], 'application/pdf');
+        const readablePdfUri = await ensureReadableUri(fileUris[0]);
+        await uploadToStorage(bucket, storagePath, readablePdfUri, 'application/pdf');
 
         if (contractId) {
           await updateContractRecord(bucket, storagePath, contractId, queryClient);
@@ -112,7 +110,8 @@ export function useUploadScan() {
           : `${userId}/scans/${timestamp}-${i}.jpeg`;
 
         console.error(`[scanner] Uploading image ${i + 1}/${fileUris.length}: ${storagePath}`);
-        await uploadViaEdgeFunction(bucket, storagePath, fileUris[i], 'image/jpeg');
+        const readableImageUri = await ensureReadableUri(fileUris[i]);
+        await uploadToStorage(bucket, storagePath, readableImageUri, 'image/jpeg');
         uploadedPaths.push(storagePath);
       }
 
@@ -150,88 +149,3 @@ async function updateContractRecord(
   queryClient.invalidateQueries({ queryKey: ['contracts'] });
 }
 
-async function uploadViaEdgeFunction(
-  bucket: string,
-  storagePath: string,
-  fileUri: string,
-  contentType: string,
-): Promise<{ size: number }> {
-  const accessToken = await getFreshAccessToken();
-
-  // Ensure the URI is readable (copy from ph:// or asset-library:// if needed)
-  let readableUri: string;
-  try {
-    readableUri = await ensureReadableUri(fileUri);
-  } catch (err) {
-    console.error('[scanner] Failed to prepare file URI:', fileUri, err);
-    throw new Error(`Failed to prepare file for upload: ${fileUri}`);
-  }
-
-  // Read file as base64
-  let base64Data: string;
-  try {
-    console.error('[scanner] Reading file as base64:', readableUri);
-    base64Data = await FileSystem.readAsStringAsync(readableUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-  } catch (err) {
-    console.error('[scanner] Failed to read file as base64:', readableUri, err);
-    throw new Error(`Failed to read image file: ${readableUri}`);
-  }
-
-  if (!base64Data || base64Data.length === 0) {
-    console.error('[scanner] base64Data is empty for:', readableUri);
-    throw new Error('Could not read file — base64 data is empty');
-  }
-
-  console.error(
-    `[scanner] base64 size: ${(base64Data.length / 1024 / 1024).toFixed(2)} MB, uploading to ${bucket}/${storagePath}`,
-  );
-
-  // Upload with a 30-second timeout
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
-
-  let response: Response;
-  try {
-    response = await fetch(`${SUPABASE_URL}/functions/v1/upload-media`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        bucket,
-        path: storagePath,
-        base64Data,
-        contentType,
-      }),
-      signal: controller.signal,
-    });
-  } catch (err: any) {
-    clearTimeout(timeoutId);
-    if (err?.name === 'AbortError') {
-      console.error('[scanner] Upload timed out after', UPLOAD_TIMEOUT_MS, 'ms');
-      throw new Error(`Upload timed out after ${UPLOAD_TIMEOUT_MS / 1000}s`);
-    }
-    console.error('[scanner] fetch() failed:', err);
-    throw new Error(`Upload network error: ${err?.message || 'Unknown error'}`);
-  }
-  clearTimeout(timeoutId);
-
-  let result: any;
-  try {
-    result = await response.json();
-  } catch (err) {
-    console.error('[scanner] Failed to parse response JSON:', err);
-    throw new Error(`Upload failed — invalid response (${response.status})`);
-  }
-
-  if (!response.ok) {
-    console.error('[scanner] Upload failed:', response.status, result);
-    throw new Error(result.error || `Upload failed (${response.status})`);
-  }
-
-  console.error('[scanner] Upload success:', storagePath);
-  return { size: result.size ?? 0 };
-}

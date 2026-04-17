@@ -1,9 +1,9 @@
-import { supabase, getFreshAccessToken } from '../supabase';
+import { supabase, uploadToStorage } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
-import * as FileSystem from 'expo-file-system/legacy';
 
-const SUPABASE_URL = 'https://vddfghfvmnrbotmxhvvi.supabase.co';
+const SUPABASE_URL =
+  process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://vddfghfvmnrbotmxhvvi.supabase.co';
 const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/property-images`;
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -44,52 +44,6 @@ export const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   appraisal: 'Gutachten',
   other: 'Sonstige',
 };
-
-// ─── Upload via Edge Function ────────────────────────────────────────
-// React Native's fetch() cannot correctly send binary data (ArrayBuffer,
-// Blob, FormData all produce 0-byte files with supabase-js).
-// Solution: read file as base64, send as JSON to an Edge Function that
-// decodes and uploads server-side. JSON fetch works 100% in RN.
-
-async function uploadViaEdgeFunction(
-  bucket: string,
-  storagePath: string,
-  fileUri: string,
-  contentType: string,
-): Promise<{ size: number }> {
-  const accessToken = await getFreshAccessToken();
-
-  // Read file as base64 — this always works reliably in RN
-  const base64Data = await FileSystem.readAsStringAsync(fileUri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-
-  if (!base64Data || base64Data.length === 0) {
-    throw new Error('Could not read file');
-  }
-
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/upload-media`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      bucket,
-      path: storagePath,
-      base64Data,
-      contentType,
-    }),
-  });
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(result.error || `Upload failed (${response.status})`);
-  }
-
-  return { size: result.size ?? 0 };
-}
 
 // ─── Images ──────────────────────────────────────────────────────────
 
@@ -132,8 +86,7 @@ export function useUploadPropertyImage() {
       const fileName = `${timestamp}-${index}.jpeg`;
       const storagePath = `${propertyId}/${fileName}`;
 
-      // Upload via Edge Function (sends base64 as JSON — works in RN)
-      const { size } = await uploadViaEdgeFunction(
+      const { size } = await uploadToStorage(
         'property-images',
         storagePath,
         uri,
@@ -285,8 +238,7 @@ export function useUploadPropertyDocument() {
       const timestamp = Date.now();
       const storagePath = `${propertyId}/${timestamp}-${fileName}`;
 
-      // Upload via Edge Function (sends base64 as JSON — works in RN)
-      const { size } = await uploadViaEdgeFunction(
+      const { size } = await uploadToStorage(
         'property-documents',
         storagePath,
         uri,
