@@ -1593,6 +1593,135 @@ const es: Record<string, string> = {
   prop_geocodingPreview: 'Ubicación',
   prop_limitCounter: '{used} / {total} inmuebles',
 
+  // ─── Property Detail: Extended ────────────────────────────────────
+  prop_pricePerM2: 'Precio/m²',
+  prop_plotSize: 'Superficie parcela',
+  prop_builtSize: 'Superficie construida',
+  prop_usefulSize: 'Superficie útil',
+  prop_totalFloors: 'Plantas totales',
+  prop_parkingSpaces: 'Plazas de parking',
+  prop_balcony: 'Balcón',
+  prop_balconyArea: 'Superficie balcón (m²)',
+  prop_energyCertificate: 'Certificado energético',
+  prop_operationType: 'Tipo de operación',
+  prop_operationTypePlaceholder: 'Seleccionar tipo de operación...',
+  prop_linkedLead: 'Lead vinculado',
+  prop_noLinkedLead: 'Sin lead vinculado',
+  prop_selectLead: 'Seleccionar lead...',
+  prop_searchLead: 'Buscar lead...',
+  prop_noLeadsFound: 'No se encontraron leads',
+  prop_removeLead: 'Eliminar lead',
+
+  // Property type options
+  propertyType_apartment: 'Piso',
+  propertyType_house: 'Casa',
+  propertyType_villa: 'Villa',
+  propertyType_townhouse: 'Adosado',
+  propertyType_penthouse: 'Ático',
+  propertyType_studio: 'Estudio',
+  propertyType_duplex: 'Dúplex',
+  propertyType_finca: 'Finca',
+  propertyType_plot: 'Parcela',
+  propertyType_commercial: 'Local comercial',
+  propertyType_office: 'Oficina',
+  propertyType_garage: 'Garaje',
+  propertyType_storage: 'Trastero',
+  propertyType_other: 'Otro',
+
+  // Status options
+  status_available: 'Disponible',
+  status_reserved: 'Reservado',
+  status_sold: 'Vendido',
+  status_rented: 'Alquilado',
+  status_withdrawn: 'Retirado',
+  status_draft: 'Borrador',
+
+  // Energy certificate options
+  energyCert_A: 'A',
+  energyCert_B: 'B',
+  energyCert_C: 'C',
+  energyCert_D: 'D',
+  energyCert_E: 'E',
+  energyCert_F: 'F',
+  energyCert_G: 'G',
+  energyCert_pending: 'Pendiente',
+  energyCert_exempt: 'Exento',
+
+  // Completeness score
+  completeness_title: 'Completitud',
+  completeness_score: '{score}% completo',
+  completeness_missing: 'Campos pendientes',
+
+  // Estimated value
+  estimatedValue_title: 'Valor estimado',
+  estimatedValue_value: 'Valor estimado',
+  estimatedValue_date: 'Fecha de valoración',
+  estimatedValue_method: 'Método de valoración',
+  estimatedValue_methodPlaceholder: 'Seleccionar método...',
+  estimatedValue_noValue: 'Sin valoración disponible',
+
+  // Publish / Website
+  publish_title: 'Publicar en web',
+  publish_published: 'Publicado',
+  publish_unpublished: 'No publicado',
+  publish_publishedAt: 'Publicado el',
+  publish_unpublishedAt: 'Despublicado el',
+  publish_toggle: 'Mostrar en la web',
+
+  // Ownership section
+  ownership_title: 'Propiedad',
+  ownership_owner: 'Propietario',
+  ownership_percentage: 'Participación (%)',
+  ownership_addOwner: 'Añadir propietario',
+  ownership_removeOwner: 'Eliminar propietario',
+  ownership_name: 'Nombre',
+  ownership_namePlaceholder: 'Nombre del propietario',
+  ownership_phone: 'Teléfono',
+  ownership_phonePlaceholder: 'Número de teléfono',
+  ownership_email: 'Email',
+  ownership_emailPlaceholder: 'Dirección de email',
+  ownership_notes: 'Notas',
+  ownership_notesPlaceholder: 'Notas sobre el propietario...',
+  ownership_totalWarning: 'Las participaciones superan el 100%',
+
+  // Land breakdown
+  propSection_land: 'Desglose del terreno',
+  land_classification: 'Clasificación',
+  land_classificationPlaceholder: 'p.ej. Urbano, Rústico',
+  land_buildable: 'Superficie edificable (m²)',
+  land_buildablePlaceholder: 'p.ej. 500',
+  land_terreno_urbano: 'Terreno urbano (m²)',
+  land_terreno_agricola: 'Terreno agrícola (m²)',
+  land_terreno_forestal: 'Terreno forestal (m²)',
+  land_terreno_pastizal: 'Terreno de pastizal (m²)',
+
+  // Metadata
+  metadata_title: 'Metadatos',
+  metadata_createdAt: 'Creado el',
+  metadata_updatedAt: 'Actualizado el',
+  metadata_createdBy: 'Creado por',
+  metadata_assignedTo: 'Asignado a',
+  metadata_id: 'ID',
+
+  // Documents inline
+  propDocs_title: 'Documentos',
+  propDocs_upload: 'Subir documento',
+  propDocs_empty: 'Sin documentos',
+  propDocs_type: 'Tipo de documento',
+  propDocs_typePlaceholder: 'Seleccionar tipo...',
+  propDocs_download: 'Descargar',
+  propDocs_delete: 'Eliminar',
+  propDocs_deleteConfirm: '¿Eliminar este documento?',
+  propDocs_uploading: 'Subiendo...',
+  propDocs_uploadError: 'No se pudo subir el documento.',
+
+  // Operation type
+  operationType_buy: 'Compra',
+  operationType_sell: 'Venta',
+  operationType_rent_out: 'Alquiler (dar)',
+  operationType_rent_in: 'Alquiler (tomar)',
+  operationType_investment: 'Inversión',
+
   // ─── Phase 5: Mejoras de tareas ───────────────────────────────────
   task_callLead: 'Llamar al lead',
 

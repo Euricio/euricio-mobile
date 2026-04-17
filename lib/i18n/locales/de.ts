@@ -1599,6 +1599,135 @@ const de: Record<string, string> = {
   prop_geocodingPreview: 'Lage',
   prop_limitCounter: '{used} / {total} Immobilien',
 
+  // ─── Property Detail: Extended ────────────────────────────────────
+  prop_pricePerM2: 'Preis/m²',
+  prop_plotSize: 'Grundstücksfläche',
+  prop_builtSize: 'Bebaute Fläche',
+  prop_usefulSize: 'Nutzfläche',
+  prop_totalFloors: 'Stockwerke gesamt',
+  prop_parkingSpaces: 'Parkplätze',
+  prop_balcony: 'Balkon',
+  prop_balconyArea: 'Balkonfläche (m²)',
+  prop_energyCertificate: 'Energieausweis',
+  prop_operationType: 'Transaktionsart',
+  prop_operationTypePlaceholder: 'Transaktionsart auswählen...',
+  prop_linkedLead: 'Verknüpfter Lead',
+  prop_noLinkedLead: 'Kein Lead verknüpft',
+  prop_selectLead: 'Lead auswählen...',
+  prop_searchLead: 'Lead suchen...',
+  prop_noLeadsFound: 'Keine Leads gefunden',
+  prop_removeLead: 'Lead entfernen',
+
+  // Property type options
+  propertyType_apartment: 'Wohnung',
+  propertyType_house: 'Haus',
+  propertyType_villa: 'Villa',
+  propertyType_townhouse: 'Reihenhaus',
+  propertyType_penthouse: 'Penthouse',
+  propertyType_studio: 'Studio',
+  propertyType_duplex: 'Duplex',
+  propertyType_finca: 'Finca',
+  propertyType_plot: 'Grundstück',
+  propertyType_commercial: 'Gewerbe',
+  propertyType_office: 'Büro',
+  propertyType_garage: 'Garage',
+  propertyType_storage: 'Lager',
+  propertyType_other: 'Sonstige',
+
+  // Status options
+  status_available: 'Verfügbar',
+  status_reserved: 'Reserviert',
+  status_sold: 'Verkauft',
+  status_rented: 'Vermietet',
+  status_withdrawn: 'Zurückgezogen',
+  status_draft: 'Entwurf',
+
+  // Energy certificate options
+  energyCert_A: 'A',
+  energyCert_B: 'B',
+  energyCert_C: 'C',
+  energyCert_D: 'D',
+  energyCert_E: 'E',
+  energyCert_F: 'F',
+  energyCert_G: 'G',
+  energyCert_pending: 'Ausstehend',
+  energyCert_exempt: 'Befreit',
+
+  // Completeness score
+  completeness_title: 'Vollständigkeit',
+  completeness_score: '{score}% vollständig',
+  completeness_missing: 'Fehlende Felder',
+
+  // Estimated value
+  estimatedValue_title: 'Geschätzter Wert',
+  estimatedValue_value: 'Schätzwert',
+  estimatedValue_date: 'Datum der Bewertung',
+  estimatedValue_method: 'Bewertungsmethode',
+  estimatedValue_methodPlaceholder: 'Methode auswählen...',
+  estimatedValue_noValue: 'Keine Bewertung vorhanden',
+
+  // Publish / Website
+  publish_title: 'Auf Website veröffentlichen',
+  publish_published: 'Veröffentlicht',
+  publish_unpublished: 'Nicht veröffentlicht',
+  publish_publishedAt: 'Veröffentlicht am',
+  publish_unpublishedAt: 'Unveröffentlicht am',
+  publish_toggle: 'Auf Website anzeigen',
+
+  // Ownership section
+  ownership_title: 'Eigentümerschaft',
+  ownership_owner: 'Eigentümer',
+  ownership_percentage: 'Anteil (%)',
+  ownership_addOwner: 'Eigentümer hinzufügen',
+  ownership_removeOwner: 'Eigentümer entfernen',
+  ownership_name: 'Name',
+  ownership_namePlaceholder: 'Name des Eigentümers',
+  ownership_phone: 'Telefon',
+  ownership_phonePlaceholder: 'Telefonnummer',
+  ownership_email: 'E-Mail',
+  ownership_emailPlaceholder: 'E-Mail-Adresse',
+  ownership_notes: 'Notizen',
+  ownership_notesPlaceholder: 'Notizen zum Eigentümer...',
+  ownership_totalWarning: 'Anteile überschreiten 100%',
+
+  // Land breakdown
+  propSection_land: 'Grundstücksaufteilung',
+  land_classification: 'Klassifizierung',
+  land_classificationPlaceholder: 'z.B. Urbanisiert, Ländlich',
+  land_buildable: 'Bebaubare Fläche (m²)',
+  land_buildablePlaceholder: 'z.B. 500',
+  land_terreno_urbano: 'Urbanes Gelände (m²)',
+  land_terreno_agricola: 'Landwirtschaftl. Fläche (m²)',
+  land_terreno_forestal: 'Waldfläche (m²)',
+  land_terreno_pastizal: 'Weidefläche (m²)',
+
+  // Metadata
+  metadata_title: 'Metadaten',
+  metadata_createdAt: 'Erstellt am',
+  metadata_updatedAt: 'Aktualisiert am',
+  metadata_createdBy: 'Erstellt von',
+  metadata_assignedTo: 'Zugewiesen an',
+  metadata_id: 'ID',
+
+  // Documents inline
+  propDocs_title: 'Dokumente',
+  propDocs_upload: 'Dokument hochladen',
+  propDocs_empty: 'Keine Dokumente',
+  propDocs_type: 'Dokumenttyp',
+  propDocs_typePlaceholder: 'Typ auswählen...',
+  propDocs_download: 'Herunterladen',
+  propDocs_delete: 'Löschen',
+  propDocs_deleteConfirm: 'Dokument wirklich löschen?',
+  propDocs_uploading: 'Wird hochgeladen...',
+  propDocs_uploadError: 'Dokument konnte nicht hochgeladen werden.',
+
+  // Operation type
+  operationType_buy: 'Kauf',
+  operationType_sell: 'Verkauf',
+  operationType_rent_out: 'Vermietung',
+  operationType_rent_in: 'Anmietung',
+  operationType_investment: 'Investment',
+
   // ─── Phase 5: Aufgaben-Erweiterungen ──────────────────────────────
   task_callLead: 'Lead anrufen',
 

@@ -1593,6 +1593,135 @@ const en: Record<string, string> = {
   prop_geocodingPreview: 'Location',
   prop_limitCounter: '{used} / {total} properties',
 
+  // ─── Property Detail: Extended ────────────────────────────────────
+  prop_pricePerM2: 'Price/m²',
+  prop_plotSize: 'Plot size',
+  prop_builtSize: 'Built size',
+  prop_usefulSize: 'Useful size',
+  prop_totalFloors: 'Total floors',
+  prop_parkingSpaces: 'Parking spaces',
+  prop_balcony: 'Balcony',
+  prop_balconyArea: 'Balcony area (m²)',
+  prop_energyCertificate: 'Energy certificate',
+  prop_operationType: 'Operation type',
+  prop_operationTypePlaceholder: 'Select operation type...',
+  prop_linkedLead: 'Linked lead',
+  prop_noLinkedLead: 'No lead linked',
+  prop_selectLead: 'Select lead...',
+  prop_searchLead: 'Search lead...',
+  prop_noLeadsFound: 'No leads found',
+  prop_removeLead: 'Remove lead',
+
+  // Property type options
+  propertyType_apartment: 'Apartment',
+  propertyType_house: 'House',
+  propertyType_villa: 'Villa',
+  propertyType_townhouse: 'Townhouse',
+  propertyType_penthouse: 'Penthouse',
+  propertyType_studio: 'Studio',
+  propertyType_duplex: 'Duplex',
+  propertyType_finca: 'Finca',
+  propertyType_plot: 'Plot',
+  propertyType_commercial: 'Commercial',
+  propertyType_office: 'Office',
+  propertyType_garage: 'Garage',
+  propertyType_storage: 'Storage',
+  propertyType_other: 'Other',
+
+  // Status options
+  status_available: 'Available',
+  status_reserved: 'Reserved',
+  status_sold: 'Sold',
+  status_rented: 'Rented',
+  status_withdrawn: 'Withdrawn',
+  status_draft: 'Draft',
+
+  // Energy certificate options
+  energyCert_A: 'A',
+  energyCert_B: 'B',
+  energyCert_C: 'C',
+  energyCert_D: 'D',
+  energyCert_E: 'E',
+  energyCert_F: 'F',
+  energyCert_G: 'G',
+  energyCert_pending: 'Pending',
+  energyCert_exempt: 'Exempt',
+
+  // Completeness score
+  completeness_title: 'Completeness',
+  completeness_score: '{score}% complete',
+  completeness_missing: 'Missing fields',
+
+  // Estimated value
+  estimatedValue_title: 'Estimated value',
+  estimatedValue_value: 'Estimated value',
+  estimatedValue_date: 'Valuation date',
+  estimatedValue_method: 'Valuation method',
+  estimatedValue_methodPlaceholder: 'Select method...',
+  estimatedValue_noValue: 'No valuation available',
+
+  // Publish / Website
+  publish_title: 'Publish to website',
+  publish_published: 'Published',
+  publish_unpublished: 'Unpublished',
+  publish_publishedAt: 'Published at',
+  publish_unpublishedAt: 'Unpublished at',
+  publish_toggle: 'Show on website',
+
+  // Ownership section
+  ownership_title: 'Ownership',
+  ownership_owner: 'Owner',
+  ownership_percentage: 'Share (%)',
+  ownership_addOwner: 'Add owner',
+  ownership_removeOwner: 'Remove owner',
+  ownership_name: 'Name',
+  ownership_namePlaceholder: 'Owner name',
+  ownership_phone: 'Phone',
+  ownership_phonePlaceholder: 'Phone number',
+  ownership_email: 'Email',
+  ownership_emailPlaceholder: 'Email address',
+  ownership_notes: 'Notes',
+  ownership_notesPlaceholder: 'Notes about the owner...',
+  ownership_totalWarning: 'Shares exceed 100%',
+
+  // Land breakdown
+  propSection_land: 'Land breakdown',
+  land_classification: 'Classification',
+  land_classificationPlaceholder: 'e.g. Urban, Rural',
+  land_buildable: 'Buildable area (m²)',
+  land_buildablePlaceholder: 'e.g. 500',
+  land_terreno_urbano: 'Urban land (m²)',
+  land_terreno_agricola: 'Agricultural land (m²)',
+  land_terreno_forestal: 'Forest land (m²)',
+  land_terreno_pastizal: 'Pastureland (m²)',
+
+  // Metadata
+  metadata_title: 'Metadata',
+  metadata_createdAt: 'Created at',
+  metadata_updatedAt: 'Updated at',
+  metadata_createdBy: 'Created by',
+  metadata_assignedTo: 'Assigned to',
+  metadata_id: 'ID',
+
+  // Documents inline
+  propDocs_title: 'Documents',
+  propDocs_upload: 'Upload document',
+  propDocs_empty: 'No documents',
+  propDocs_type: 'Document type',
+  propDocs_typePlaceholder: 'Select type...',
+  propDocs_download: 'Download',
+  propDocs_delete: 'Delete',
+  propDocs_deleteConfirm: 'Delete this document?',
+  propDocs_uploading: 'Uploading...',
+  propDocs_uploadError: 'Could not upload document.',
+
+  // Operation type
+  operationType_buy: 'Purchase',
+  operationType_sell: 'Sale',
+  operationType_rent_out: 'Rent out',
+  operationType_rent_in: 'Rent in',
+  operationType_investment: 'Investment',
+
   // ─── Phase 5: Task Enhancements ───────────────────────────────────
   task_callLead: 'Call lead',
 
