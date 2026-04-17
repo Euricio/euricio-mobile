@@ -813,6 +813,14 @@ const de: Record<string, string> = {
   scanner_permissionRequired: 'Berechtigung erforderlich',
   scanner_cameraPermission: 'Bitte erlauben Sie den Kamerazugriff in den Einstellungen.',
   scanner_galleryPermission: 'Bitte erlauben Sie den Zugriff auf die Galerie in den Einstellungen.',
+  scanner_attachToProperty: 'Objekt zuordnen',
+  scanner_attachToLead: 'Kontakt zuordnen',
+  scanner_selectProperty: 'Objekt auswählen',
+  scanner_selectLead: 'Kontakt auswählen',
+  scanner_noProperties: 'Keine Objekte vorhanden.',
+  scanner_noLeads: 'Keine Kontakte vorhanden.',
+  scanner_propertySuccess: 'Dem Objekt zugeordnet.',
+  scanner_leadSuccess: 'Dem Kontakt zugeordnet.',
 
   // ─── Upgrade / Plan-Gating ────────────────────────────────────────
   upgrade_contracts_title: 'Vertragsgenerator freischalten',

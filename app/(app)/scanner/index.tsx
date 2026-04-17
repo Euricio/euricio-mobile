@@ -18,8 +18,11 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { imagesToPdf } from '../../../lib/imagesToPdf';
-import { useContracts } from '../../../lib/api/contracts';
+import { useContracts, useProperties } from '../../../lib/api/contracts';
+import { useLeads, useUploadLeadDocument } from '../../../lib/api/leads';
 import { useUploadScan } from '../../../lib/api/scanner';
+import { uploadToStorage, supabase } from '../../../lib/supabase';
+import { useAuthStore } from '../../../store/authStore';
 import { useI18n } from '../../../lib/i18n';
 import {
   colors,
@@ -39,6 +42,9 @@ export default function ScannerScreen() {
   const { t } = useI18n();
   const uploadScan = useUploadScan();
   const { data: contracts } = useContracts();
+  const { data: properties } = useProperties();
+  const { data: leads } = useLeads();
+  const uploadLeadDoc = useUploadLeadDocument();
   const [pages, setPages] = useState<PageItem[]>([]);
   const [uploading, setUploading] = useState(false);
 
@@ -181,9 +187,11 @@ export default function ScannerScreen() {
       t('scanner_saveToDevice'),
       t('scanner_uploadToCloud'),
       t('scanner_attachToContract'),
+      t('scanner_attachToProperty'),
+      t('scanner_attachToLead'),
       t('cancel'),
     ];
-    const cancelIndex = 3;
+    const cancelIndex = 5;
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -192,6 +200,8 @@ export default function ScannerScreen() {
           if (buttonIndex === 0) handleShareToDevice();
           else if (buttonIndex === 1) handleSave(pages.map((p) => p.uri), 'images');
           else if (buttonIndex === 2) showContractPicker();
+          else if (buttonIndex === 3) showPropertyPicker();
+          else if (buttonIndex === 4) showLeadPicker();
         },
       );
     } else {
@@ -202,6 +212,8 @@ export default function ScannerScreen() {
           onPress: () => handleSave(pages.map((p) => p.uri), 'images'),
         },
         { text: t('scanner_attachToContract'), onPress: showContractPicker },
+        { text: t('scanner_attachToProperty'), onPress: showPropertyPicker },
+        { text: t('scanner_attachToLead'), onPress: showLeadPicker },
         { text: t('cancel'), style: 'cancel' },
       ]);
     }
@@ -298,6 +310,137 @@ export default function ScannerScreen() {
       }));
       alertOptions.push({ text: t('cancel'), onPress: async () => {} });
       Alert.alert(t('scanner_selectContract'), undefined, alertOptions);
+    }
+  };
+
+  // ─── Property Picker ────────────────────────────────────────────────
+
+  const showPropertyPicker = () => {
+    if (!properties || properties.length === 0) {
+      Alert.alert(t('scanner_noProperties'));
+      return;
+    }
+
+    const propertyOptions = properties.slice(0, 10).map(
+      (p) => p.title || `${p.street || ''}, ${p.city || ''}`,
+    );
+    propertyOptions.push(t('cancel'));
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: propertyOptions,
+          cancelButtonIndex: propertyOptions.length - 1,
+          title: t('scanner_selectProperty'),
+        },
+        (buttonIndex) => {
+          if (buttonIndex < properties.length && buttonIndex < 10) {
+            handlePropertyUpload(properties[buttonIndex].id);
+          }
+        },
+      );
+    } else {
+      const alertOptions = properties.slice(0, 10).map((p, _i) => ({
+        text: p.title || `${p.street || ''}, ${p.city || ''}`,
+        onPress: () => handlePropertyUpload(p.id),
+      }));
+      alertOptions.push({ text: t('cancel'), onPress: () => {} });
+      Alert.alert(t('scanner_selectProperty'), undefined, alertOptions);
+    }
+  };
+
+  const handlePropertyUpload = async (propertyId: string) => {
+    setUploading(true);
+    try {
+      const userId = useAuthStore.getState().user?.id;
+      if (!userId) throw new Error('Not authenticated');
+
+      const uris = pages.map((p) => p.uri);
+      const pdfUri = await imagesToPdf(uris);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const fileName = `${timestamp}.pdf`;
+      const storagePath = `${userId}/properties/${propertyId}/${fileName}`;
+
+      const { size } = await uploadToStorage(
+        'property-documents',
+        storagePath,
+        pdfUri,
+        'application/pdf',
+      );
+
+      const { error } = await supabase.from('property_documents').insert({
+        property_id: propertyId,
+        storage_path: storagePath,
+        file_name: fileName,
+        file_size: size,
+        document_type: 'scan',
+        uploaded_by: userId,
+      });
+      if (error) throw error;
+
+      Alert.alert(t('scanner_propertySuccess'));
+      setPages([]);
+      router.back();
+    } catch (err: any) {
+      console.error('Scanner property upload failed:', err);
+      Alert.alert(t('error'), err?.message || t('scanner_uploadError'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // ─── Lead Picker ──────────────────────────────────────────────────
+
+  const showLeadPicker = () => {
+    if (!leads || leads.length === 0) {
+      Alert.alert(t('scanner_noLeads'));
+      return;
+    }
+
+    const leadOptions = leads.slice(0, 10).map((l) => l.full_name);
+    leadOptions.push(t('cancel'));
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: leadOptions,
+          cancelButtonIndex: leadOptions.length - 1,
+          title: t('scanner_selectLead'),
+        },
+        (buttonIndex) => {
+          if (buttonIndex < leads.length && buttonIndex < 10) {
+            handleLeadUpload(leads[buttonIndex].id);
+          }
+        },
+      );
+    } else {
+      const alertOptions = leads.slice(0, 10).map((l, _i) => ({
+        text: l.full_name,
+        onPress: () => handleLeadUpload(l.id),
+      }));
+      alertOptions.push({ text: t('cancel'), onPress: () => {} });
+      Alert.alert(t('scanner_selectLead'), undefined, alertOptions);
+    }
+  };
+
+  const handleLeadUpload = async (leadId: string) => {
+    setUploading(true);
+    try {
+      const uris = pages.map((p) => p.uri);
+      const pdfUri = await imagesToPdf(uris);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const fileName = `${timestamp}.pdf`;
+
+      await uploadLeadDoc.mutateAsync({ leadId, pdfUri, fileName });
+
+      Alert.alert(t('scanner_leadSuccess'));
+      setPages([]);
+      router.back();
+    } catch (err: any) {
+      console.error('Scanner lead upload failed:', err);
+      Alert.alert(t('error'), err?.message || t('scanner_uploadError'));
+    } finally {
+      setUploading(false);
     }
   };
 

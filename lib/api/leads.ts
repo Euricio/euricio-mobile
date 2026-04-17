@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { supabase, uploadToStorage } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
 
@@ -118,6 +118,46 @@ export function useLeadCount() {
         .select('id', { count: 'exact', head: true });
       if (error) throw error;
       return count ?? 0;
+    },
+  });
+}
+
+export function useUploadLeadDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      leadId,
+      pdfUri,
+      fileName,
+    }: {
+      leadId: string;
+      pdfUri: string;
+      fileName: string;
+    }) => {
+      const userId = useAuthStore.getState().user?.id;
+      if (!userId) throw new Error('Not authenticated');
+
+      const storagePath = `${userId}/leads/${leadId}/${fileName}`;
+      const { size } = await uploadToStorage(
+        'scanned-documents',
+        storagePath,
+        pdfUri,
+        'application/pdf',
+      );
+
+      const { error } = await supabase.from('lead_documents').insert({
+        lead_id: leadId,
+        storage_path: storagePath,
+        file_name: fileName,
+        file_size: size,
+        document_type: 'scan',
+        uploaded_by: userId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
     },
   });
 }
