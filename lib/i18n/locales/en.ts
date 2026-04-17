@@ -1856,6 +1856,11 @@ const en: Record<string, string> = {
   publish_unpublishedAt: 'Unpublished at',
   publish_toggle: 'Show on website',
 
+  // Portal publishing
+  portals_title: 'Publish on Portals',
+  portals_none: 'No portals configured',
+  portals_configureHint: 'Configure portals in the web dashboard',
+
   // Ownership section
   ownership_title: 'Ownership',
   ownership_owner: 'Owner',

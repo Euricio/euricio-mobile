@@ -23,6 +23,13 @@ import {
   usePropertyListing,
   useTogglePublish,
 } from '../../../../lib/api/properties';
+import {
+  useConfiguredPortals,
+  usePropertyPortalStatus,
+  useTogglePortalPublishing,
+  PORTAL_GROUPS,
+  PORTAL_META,
+} from '../../../../lib/api/portalPublishing';
 import { usePropertyImages, PropertyImage } from '../../../../lib/api/propertyImages';
 import {
   usePropertyDocuments,
@@ -215,11 +222,14 @@ export default function PropertyDetailScreen() {
   const { data: listing } = usePropertyListing(id!);
   const deleteProperty = useDeleteProperty();
   const togglePublish = useTogglePublish();
+  const { data: portalConfigs } = useConfiguredPortals();
+  const { data: portalStatuses } = usePropertyPortalStatus(id!);
+  const togglePortalPublishing = useTogglePortalPublishing();
   const uploadDocument = useUploadPropertyDocument();
   const deleteDocument = useDeletePropertyDocument();
   const queryClient = useQueryClient();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const { t, formatPrice, formatDate } = useI18n();
+  const { t, formatPrice, formatDate, locale } = useI18n();
 
   const updateImageSortOrder = useCallback(
     async (imagesList: PropertyImage[], fromIndex: number, toIndex: number) => {
@@ -831,36 +841,52 @@ L.marker([${property.latitude}, ${property.longitude}]).addTo(map).bindPopup('${
       {/* ─── 19. Ownership Section ────────────────────────────── */}
       <OwnershipSection propertyId={property.id} />
 
-      {/* ─── 20. Publish to Website Toggle ────────────────────── */}
+      {/* ─── 20. Portal Publishing ────────────────────────────── */}
       <Card style={styles.section}>
-        <View style={styles.publishRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.sectionTitle}>{t('publish_title')}</Text>
-            {listing?.is_published && listing.published_at && (
-              <Text style={styles.publishDate}>
-                {t('publish_publishedAt')}: {formatDate(listing.published_at)}
-              </Text>
-            )}
-            {listing && !listing.is_published && listing.unpublished_at && (
-              <Text style={styles.publishDate}>
-                {t('publish_unpublishedAt')}: {formatDate(listing.unpublished_at)}
-              </Text>
-            )}
+        <Text style={styles.sectionTitle}>{t('portals_title')}</Text>
+        {!portalConfigs || portalConfigs.length === 0 ? (
+          <View>
+            <Text style={styles.emptyText}>{t('portals_none')}</Text>
+            <Text style={[styles.emptyText, { marginTop: spacing.xs }]}>{t('portals_configureHint')}</Text>
           </View>
-          <Switch
-            value={listing?.is_published ?? false}
-            onValueChange={(value) =>
-              togglePublish.mutate({ propertyId: property.id, isPublished: value })
-            }
-            trackColor={{ false: colors.borderLight, true: colors.primaryLight }}
-            thumbColor={listing?.is_published ? colors.primary : colors.textTertiary}
-          />
-        </View>
-        <Badge
-          label={listing?.is_published ? t('publish_published') : t('publish_unpublished')}
-          variant={listing?.is_published ? 'success' : 'default'}
-          size="sm"
-        />
+        ) : (
+          PORTAL_GROUPS.map((group) => {
+            const configuredInGroup = group.portals.filter((p) =>
+              portalConfigs.some((c) => c.portal === p)
+            );
+            if (configuredInGroup.length === 0) return null;
+            return (
+              <View key={group.label.en} style={styles.portalGroup}>
+                <Text style={styles.portalGroupLabel}>{group.label[locale]}</Text>
+                {configuredInGroup.map((portal) => {
+                  const meta = PORTAL_META[portal];
+                  const status = portalStatuses?.find((s) => s.portal === portal);
+                  const isPublished = status?.is_published ?? false;
+                  return (
+                    <View key={portal} style={styles.portalRow}>
+                      <View style={styles.portalInfo}>
+                        <View style={[styles.portalDot, { backgroundColor: meta.color }]} />
+                        <Text style={styles.portalName}>{meta.name}</Text>
+                      </View>
+                      <Switch
+                        value={isPublished}
+                        onValueChange={(value) =>
+                          togglePortalPublishing.mutate({
+                            propertyId: property.id,
+                            portal,
+                            publish: value,
+                          })
+                        }
+                        trackColor={{ false: colors.borderLight, true: colors.primaryLight }}
+                        thumbColor={isPublished ? colors.primary : colors.textTertiary}
+                      />
+                    </View>
+                  );
+                })}
+              </View>
+            );
+          })
+        )}
       </Card>
 
       {/* ─── 21. Metadata ─────────────────────────────────────── */}
@@ -1302,6 +1328,38 @@ const styles = StyleSheet.create({
   publishDate: {
     fontSize: fontSize.xs,
     color: colors.textSecondary,
+  },
+  // Portal publishing
+  portalGroup: {
+    marginBottom: spacing.sm,
+  },
+  portalGroupLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: spacing.xs,
+  },
+  portalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.xs,
+  },
+  portalInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  portalDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  portalName: {
+    fontSize: fontSize.sm,
+    color: colors.text,
   },
   // Ownership
   legacyOwnerSection: {
