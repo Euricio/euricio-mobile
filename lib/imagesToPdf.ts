@@ -1,41 +1,46 @@
-import * as Print from 'expo-print';
+import { jsPDF } from 'jspdf';
 import * as FileSystem from 'expo-file-system/legacy';
-
-// A4 at 72 PPI
-const A4_W = 595;
-const A4_H = 842;
 
 /**
  * Convert an array of image URIs to a single PDF file.
  * Each image is stretched to fill a full A4 page with no white space.
  *
- * Uses CSS background-image on a fixed-size div instead of <img> elements.
- * This is more reliable in iOS WKWebView's print renderer because
- * background-size:100% 100% forces the image to fill the exact div
- * dimensions, and the div dimensions match the page size exactly.
+ * Uses jsPDF to build the PDF directly from base64 image data,
+ * bypassing expo-print / WKWebView which cannot reliably control
+ * page dimensions on iOS.
  */
 export async function imagesToPdf(imageUris: string[]): Promise<string> {
-  const pages: string[] = [];
+  // A4 in points (jsPDF default unit 'pt')
+  const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
+  const pageW = doc.internal.pageSize.getWidth();  // 595.28
+  const pageH = doc.internal.pageSize.getHeight(); // 841.89
 
-  for (const imgUri of imageUris) {
-    const base64 = await FileSystem.readAsStringAsync(imgUri, {
+  for (let i = 0; i < imageUris.length; i++) {
+    if (i > 0) {
+      doc.addPage('a4', 'portrait');
+    }
+
+    const base64 = await FileSystem.readAsStringAsync(imageUris[i], {
       encoding: FileSystem.EncodingType.Base64,
     });
 
-    // Each page is a div with background-image stretched to fill.
-    // -webkit-print-color-adjust ensures backgrounds print.
-    pages.push(
-      `<div style="width:${A4_W}px;height:${A4_H}px;background:url(data:image/jpeg;base64,${base64}) no-repeat center/100% 100%;-webkit-print-color-adjust:exact;page-break-after:always"></div>`,
+    // addImage stretches the image to the given width/height — no white space
+    doc.addImage(
+      `data:image/jpeg;base64,${base64}`,
+      'JPEG',
+      0,   // x
+      0,   // y
+      pageW,
+      pageH,
     );
   }
 
-  const html = `<html><head><meta name="viewport" content="width=${A4_W}"><style>*{margin:0;padding:0}@page{margin:0}</style></head><body>${pages.join('')}</body></html>`;
-
-  const { uri } = await Print.printToFileAsync({
-    html,
-    width: A4_W,
-    height: A4_H,
-    margins: { top: 0, right: 0, bottom: 0, left: 0 },
+  // Get PDF as base64 and write to cache
+  const pdfBase64 = doc.output('datauristring').split(',')[1];
+  const pdfPath = `${FileSystem.cacheDirectory}scanned-${Date.now()}.pdf`;
+  await FileSystem.writeAsStringAsync(pdfPath, pdfBase64, {
+    encoding: FileSystem.EncodingType.Base64,
   });
-  return uri;
+
+  return pdfPath;
 }
