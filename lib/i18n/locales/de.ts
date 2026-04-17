@@ -1795,6 +1795,85 @@ const de: Record<string, string> = {
   // ─── Phase 5: Team-Verwaltung ────────────────────────────────────
   adminTeam_seatLimit: 'Platzlimit laut Plan',
   adminTeam_generatePassword: 'Passwort generieren',
+
+  // ─── Dokumentenportal (docportal) ─────────────────────────────────
+  'docportal.section.title': 'Dokumentenmanager',
+  'docportal.selectAll': 'Alle auswählen',
+  'docportal.deselectAll': 'Alle abwählen',
+  'docportal.requestDocs': 'Anfragen speichern',
+  'docportal.requestDocs.saving': 'Wird gespeichert...',
+  'docportal.requestDocs.saved': 'Anfragen gespeichert!',
+  'docportal.createAccess': 'Portal-Zugang erstellen',
+  'docportal.manageAccess': 'Portal-Zugänge',
+  'docportal.download': 'Herunterladen',
+  'docportal.addCustom': 'Eigenen Dokumenttyp hinzufügen',
+  'docportal.customName.placeholder': 'Dokumentname...',
+  'docportal.add': 'Hinzufügen',
+  'docportal.removeCustom': 'Eigenen Typ entfernen',
+
+  // Dokumenttypen
+  'docportal.doc.land_register': 'Grundbuchauszug',
+  'docportal.doc.energy_cert': 'Energieausweis',
+  'docportal.doc.ibi_tax': 'IBI-Steuerbescheid',
+  'docportal.doc.community_rules': 'Gemeinschaftsordnung',
+  'docportal.doc.utility_bill': 'Nebenkostenabrechnung',
+  'docportal.doc.id_document': 'Ausweisdokument',
+  'docportal.doc.purchase_deed': 'Kaufurkunde',
+  'docportal.doc.mortgage_docs': 'Hypothekenunterlagen',
+  'docportal.doc.habitability_cert': 'Bewohnbarkeitszertifikat',
+  'docportal.doc.floor_plan': 'Grundriss',
+  'docportal.doc.property_photos': 'Immobilienfotos',
+  'docportal.doc.other': 'Sonstige Dokumente',
+
+  // Kategorien
+  'docportal.category.legal': 'Rechtlich',
+  'docportal.category.technical': 'Technisch',
+  'docportal.category.tax': 'Steuer',
+  'docportal.category.financial': 'Finanziell',
+  'docportal.category.identification': 'Identifikation',
+  'docportal.category.visual': 'Visuell',
+  'docportal.category.other': 'Sonstige',
+  'docportal.category.custom': 'Benutzerdefiniert',
+
+  // Status
+  'docportal.status.not_requested': 'Nicht angefragt',
+  'docportal.status.requested': 'Angefragt',
+  'docportal.status.uploaded': 'Hochgeladen',
+  'docportal.status.verified': 'Verifiziert',
+
+  // Zugangsmodal
+  'docportal.accessModal.title': 'Portal-Zugang erstellen',
+  'docportal.accessModal.email': 'Kunden-E-Mail',
+  'docportal.accessModal.email.label': 'E-Mail',
+  'docportal.accessModal.emailPlaceholder': 'email@beispiel.de',
+  'docportal.accessModal.customerLanguage': 'Sprache',
+  'docportal.accessModal.passwordLabel': 'Passwort',
+  'docportal.accessModal.password': 'Passwort',
+  'docportal.accessModal.generateNew': 'Neu generieren',
+  'docportal.accessModal.requestedDocs': 'Angefragte Dokumente',
+  'docportal.accessModal.docsSelected': 'ausgewählt',
+  'docportal.accessModal.noDocsSelected': 'Keine Dokumente ausgewählt. Bitte wählen Sie mindestens ein Dokument oben aus.',
+  'docportal.accessModal.createAndSend': 'Erstellen & Senden',
+  'docportal.accessModal.creating': 'Wird erstellt...',
+  'docportal.accessModal.success': 'Portal-Zugang erfolgreich erstellt!',
+  'docportal.accessModal.credentials': 'Zugangsdaten',
+  'docportal.accessModal.portalLink': 'Portal-Link',
+  'docportal.accessModal.copied': 'Kopiert!',
+  'docportal.accessModal.copyAll': 'Alle kopieren',
+  'docportal.accessModal.close': 'Fertig',
+  'docportal.accessModal.deactivate': 'Deaktivieren',
+  'docportal.accessModal.activate': 'Aktivieren',
+
+  // E-Mail
+  'docportal.email.sending': 'E-Mail wird gesendet...',
+  'docportal.email.successWithEmail': 'Einladung gesendet an',
+  'docportal.email.error': 'E-Mail konnte nicht gesendet werden.',
+  'docportal.email.smtpWarning': 'SMTP nicht konfiguriert. Zugangsdaten wurden erstellt, aber keine E-Mail gesendet.',
+
+  // Zugangsverwaltung
+  'docportal.access.delete': 'Zugang löschen',
+  'docportal.access.delete_confirm': 'Portal-Zugang für {email} löschen?',
+  'docportal.access.deleted': 'Zugang gelöscht.',
 };
 
 export default de;

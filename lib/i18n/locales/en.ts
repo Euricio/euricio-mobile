@@ -1789,6 +1789,85 @@ const en: Record<string, string> = {
   // ─── Phase 5: Team Management ────────────────────────────────────
   adminTeam_seatLimit: 'Seat limit based on plan',
   adminTeam_generatePassword: 'Generate password',
+
+  // ─── Document Portal (docportal) ──────────────────────────────────
+  'docportal.section.title': 'Document Manager',
+  'docportal.selectAll': 'Select all',
+  'docportal.deselectAll': 'Deselect all',
+  'docportal.requestDocs': 'Save requests',
+  'docportal.requestDocs.saving': 'Saving...',
+  'docportal.requestDocs.saved': 'Requests saved!',
+  'docportal.createAccess': 'Create portal access',
+  'docportal.manageAccess': 'Portal Access',
+  'docportal.download': 'Download',
+  'docportal.addCustom': 'Add custom document type',
+  'docportal.customName.placeholder': 'Document name...',
+  'docportal.add': 'Add',
+  'docportal.removeCustom': 'Remove custom type',
+
+  // Document types
+  'docportal.doc.land_register': 'Land register extract',
+  'docportal.doc.energy_cert': 'Energy certificate',
+  'docportal.doc.ibi_tax': 'IBI tax receipt',
+  'docportal.doc.community_rules': 'Community rules',
+  'docportal.doc.utility_bill': 'Utility bill',
+  'docportal.doc.id_document': 'ID document',
+  'docportal.doc.purchase_deed': 'Purchase deed',
+  'docportal.doc.mortgage_docs': 'Mortgage documents',
+  'docportal.doc.habitability_cert': 'Habitability certificate',
+  'docportal.doc.floor_plan': 'Floor plan',
+  'docportal.doc.property_photos': 'Property photos',
+  'docportal.doc.other': 'Other documents',
+
+  // Categories
+  'docportal.category.legal': 'Legal',
+  'docportal.category.technical': 'Technical',
+  'docportal.category.tax': 'Tax',
+  'docportal.category.financial': 'Financial',
+  'docportal.category.identification': 'Identification',
+  'docportal.category.visual': 'Visual',
+  'docportal.category.other': 'Other',
+  'docportal.category.custom': 'Custom',
+
+  // Status
+  'docportal.status.not_requested': 'Not requested',
+  'docportal.status.requested': 'Requested',
+  'docportal.status.uploaded': 'Uploaded',
+  'docportal.status.verified': 'Verified',
+
+  // Access modal
+  'docportal.accessModal.title': 'Create Portal Access',
+  'docportal.accessModal.email': 'Client email',
+  'docportal.accessModal.email.label': 'Email',
+  'docportal.accessModal.emailPlaceholder': 'email@example.com',
+  'docportal.accessModal.customerLanguage': 'Language',
+  'docportal.accessModal.passwordLabel': 'Password',
+  'docportal.accessModal.password': 'Password',
+  'docportal.accessModal.generateNew': 'Generate new',
+  'docportal.accessModal.requestedDocs': 'Requested documents',
+  'docportal.accessModal.docsSelected': 'selected',
+  'docportal.accessModal.noDocsSelected': 'No documents selected. Please select at least one document above.',
+  'docportal.accessModal.createAndSend': 'Create & Send',
+  'docportal.accessModal.creating': 'Creating...',
+  'docportal.accessModal.success': 'Portal access created successfully!',
+  'docportal.accessModal.credentials': 'Access Credentials',
+  'docportal.accessModal.portalLink': 'Portal link',
+  'docportal.accessModal.copied': 'Copied!',
+  'docportal.accessModal.copyAll': 'Copy all',
+  'docportal.accessModal.close': 'Done',
+  'docportal.accessModal.deactivate': 'Deactivate',
+  'docportal.accessModal.activate': 'Activate',
+
+  // Email
+  'docportal.email.sending': 'Sending email...',
+  'docportal.email.successWithEmail': 'Invitation sent to',
+  'docportal.email.error': 'Could not send email.',
+  'docportal.email.smtpWarning': 'SMTP not configured. Credentials were created but no email was sent.',
+
+  // Access management
+  'docportal.access.delete': 'Delete access',
+  'docportal.access.delete_confirm': 'Delete portal access for {email}?',
+  'docportal.access.deleted': 'Access deleted.',
 };
 
 export default en;

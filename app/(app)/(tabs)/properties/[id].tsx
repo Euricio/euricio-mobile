@@ -42,6 +42,7 @@ import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
 import { CollapsibleSection } from '../../../../components/ui/CollapsibleSection';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
+import { DocumentManager } from '../../../../components/properties/DocumentManager';
 import { useI18n } from '../../../../lib/i18n';
 import { useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
@@ -810,6 +811,13 @@ L.marker([${property.latitude}, ${property.longitude}]).addTo(map).bindPopup('${
           <Text style={styles.emptyText}>{t('propDocs_empty')}</Text>
         )}
       </Card>
+
+      {/* ─── 17b. Document Manager (Checklist + Portal) ─────── */}
+      <DocumentManager
+        propertyId={String(property.id)}
+        propertyName={property.title}
+        propertyAddress={property.address ? `${property.address}${property.city ? `, ${property.city}` : ''}` : undefined}
+      />
 
       {/* ─── 18. Media Management Card ────────────────────────── */}
       <Card
