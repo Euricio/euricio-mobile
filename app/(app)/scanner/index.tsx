@@ -54,36 +54,32 @@ export default function ScannerScreen() {
   // ─── Document Naming Dialog ────────────────────────────────────────
   const [nameModalVisible, setNameModalVisible] = useState(false);
   const [documentName, setDocumentName] = useState('');
+  const [modalStep, setModalStep] = useState<'name' | 'location'>('name');
   const nameInputRef = useRef<TextInput>(null);
-  const pendingActionRef = useRef<((name: string) => void) | null>(null);
+  const confirmedNameRef = useRef('');
 
   const sanitizeFileName = (name: string): string =>
     name.replace(/[^a-zA-Z0-9äöüÄÖÜß _-]/g, '').trim() || 'Scan';
 
-  const askDocumentName = (onConfirm: (name: string) => void) => {
+  const askDocumentName = () => {
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
     const defaultName = `Scan_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
     setDocumentName(defaultName);
-    pendingActionRef.current = onConfirm;
+    setModalStep('name');
     setNameModalVisible(true);
     setTimeout(() => nameInputRef.current?.focus(), 300);
   };
 
   const confirmDocumentName = () => {
     const name = sanitizeFileName(documentName);
-    const action = pendingActionRef.current;
-    pendingActionRef.current = null;
-    setNameModalVisible(false);
-    // Delay the pending action so the modal fully dismisses before the
-    // ActionSheet tries to present — on iOS the two overlap and the
-    // ActionSheet is silently dropped when shown over an animating modal.
-    setTimeout(() => action?.(name), 400);
+    confirmedNameRef.current = name;
+    setModalStep('location');
   };
 
   const cancelDocumentName = () => {
     setNameModalVisible(false);
-    pendingActionRef.current = null;
+    setModalStep('name');
   };
 
   // ─── Persist picked images to a stable cache dir immediately ────────
@@ -220,43 +216,14 @@ export default function ScannerScreen() {
 
   const showSaveOptions = () => {
     if (pages.length === 0) return;
+    askDocumentName();
+  };
 
-    askDocumentName((docName) => {
-      const options = [
-        t('scanner_saveToDevice'),
-        t('scanner_uploadToCloud'),
-        t('scanner_attachToContract'),
-        t('scanner_attachToProperty'),
-        t('scanner_attachToLead'),
-        t('cancel'),
-      ];
-      const cancelIndex = 5;
-
-      if (Platform.OS === 'ios') {
-        ActionSheetIOS.showActionSheetWithOptions(
-          { options, cancelButtonIndex: cancelIndex, title: t('scanner_saveOptions') },
-          (buttonIndex) => {
-            if (buttonIndex === 0) handleShareToDevice(docName);
-            else if (buttonIndex === 1) handleSave(pages.map((p) => p.uri), 'images', undefined, docName);
-            else if (buttonIndex === 2) showContractPicker(docName);
-            else if (buttonIndex === 3) showPropertyPicker(docName);
-            else if (buttonIndex === 4) showLeadPicker(docName);
-          },
-        );
-      } else {
-        Alert.alert(t('scanner_saveOptions'), undefined, [
-          { text: t('scanner_saveToDevice'), onPress: () => handleShareToDevice(docName) },
-          {
-            text: t('scanner_uploadToCloud'),
-            onPress: () => handleSave(pages.map((p) => p.uri), 'images', undefined, docName),
-          },
-          { text: t('scanner_attachToContract'), onPress: () => showContractPicker(docName) },
-          { text: t('scanner_attachToProperty'), onPress: () => showPropertyPicker(docName) },
-          { text: t('scanner_attachToLead'), onPress: () => showLeadPicker(docName) },
-          { text: t('cancel'), style: 'cancel' },
-        ]);
-      }
-    });
+  const handleLocationChoice = (action: (docName: string) => void) => {
+    const docName = confirmedNameRef.current;
+    setNameModalVisible(false);
+    setModalStep('name');
+    setTimeout(() => action(docName), 100);
   };
 
   // ─── Save to device via share sheet ─────────────────────────────────
@@ -605,7 +572,7 @@ export default function ScannerScreen() {
         </>
       )}
 
-      {/* ─── Document Naming Modal ─────────────────────────────────── */}
+      {/* ─── Document Name / Save Location Modal ─────────────────── */}
       <Modal
         visible={nameModalVisible}
         transparent
@@ -617,27 +584,79 @@ export default function ScannerScreen() {
           style={styles.modalOverlay}
         >
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t('scanner_documentNameTitle')}</Text>
-            <TextInput
-              ref={nameInputRef}
-              style={styles.modalInput}
-              value={documentName}
-              onChangeText={setDocumentName}
-              placeholder={t('scanner_documentNamePlaceholder')}
-              placeholderTextColor={colors.textSecondary}
-              autoCorrect={false}
-              selectTextOnFocus
-              returnKeyType="done"
-              onSubmitEditing={confirmDocumentName}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalBtnCancel} onPress={cancelDocumentName}>
-                <Text style={styles.modalBtnCancelText}>{t('cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalBtnConfirm} onPress={confirmDocumentName}>
-                <Text style={styles.modalBtnConfirmText}>{t('save')}</Text>
-              </TouchableOpacity>
-            </View>
+            {modalStep === 'name' ? (
+              <>
+                <Text style={styles.modalTitle}>{t('scanner_documentNameTitle')}</Text>
+                <TextInput
+                  ref={nameInputRef}
+                  style={styles.modalInput}
+                  value={documentName}
+                  onChangeText={setDocumentName}
+                  placeholder={t('scanner_documentNamePlaceholder')}
+                  placeholderTextColor={colors.textSecondary}
+                  autoCorrect={false}
+                  selectTextOnFocus
+                  returnKeyType="done"
+                  onSubmitEditing={confirmDocumentName}
+                />
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity style={styles.modalBtnCancel} onPress={cancelDocumentName}>
+                    <Text style={styles.modalBtnCancelText}>{t('cancel')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.modalBtnConfirm} onPress={confirmDocumentName}>
+                    <Text style={styles.modalBtnConfirmText}>{t('scanner_next')}</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.modalTitle}>{t('scanner_saveOptions')}</Text>
+                <View style={styles.locationList}>
+                  <TouchableOpacity
+                    style={styles.locationRow}
+                    onPress={() => handleLocationChoice((n) => handleShareToDevice(n))}
+                  >
+                    <Ionicons name="phone-portrait-outline" size={22} color={colors.primary} />
+                    <Text style={styles.locationLabel}>{t('scanner_saveToDevice')}</Text>
+                  </TouchableOpacity>
+                  <View style={styles.locationSeparator} />
+                  <TouchableOpacity
+                    style={styles.locationRow}
+                    onPress={() => handleLocationChoice((n) => handleSave(pages.map((p) => p.uri), 'images', undefined, n))}
+                  >
+                    <Ionicons name="cloud-upload-outline" size={22} color={colors.primary} />
+                    <Text style={styles.locationLabel}>{t('scanner_uploadToCloud')}</Text>
+                  </TouchableOpacity>
+                  <View style={styles.locationSeparator} />
+                  <TouchableOpacity
+                    style={styles.locationRow}
+                    onPress={() => handleLocationChoice((n) => showContractPicker(n))}
+                  >
+                    <Ionicons name="document-text-outline" size={22} color={colors.primary} />
+                    <Text style={styles.locationLabel}>{t('scanner_attachToContract')}</Text>
+                  </TouchableOpacity>
+                  <View style={styles.locationSeparator} />
+                  <TouchableOpacity
+                    style={styles.locationRow}
+                    onPress={() => handleLocationChoice((n) => showPropertyPicker(n))}
+                  >
+                    <Ionicons name="home-outline" size={22} color={colors.primary} />
+                    <Text style={styles.locationLabel}>{t('scanner_attachToProperty')}</Text>
+                  </TouchableOpacity>
+                  <View style={styles.locationSeparator} />
+                  <TouchableOpacity
+                    style={styles.locationRow}
+                    onPress={() => handleLocationChoice((n) => showLeadPicker(n))}
+                  >
+                    <Ionicons name="person-outline" size={22} color={colors.primary} />
+                    <Text style={styles.locationLabel}>{t('scanner_attachToLead')}</Text>
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity style={styles.locationCancelBtn} onPress={cancelDocumentName}>
+                  <Text style={styles.locationCancelText}>{t('cancel')}</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -910,5 +929,35 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
     color: colors.white,
+  },
+
+  // Location step
+  locationList: {
+    marginBottom: spacing.md,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.sm,
+  },
+  locationLabel: {
+    fontSize: fontSize.md,
+    color: colors.text,
+    flex: 1,
+  },
+  locationSeparator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
+    marginLeft: spacing.sm + 22 + spacing.md,
+  },
+  locationCancelBtn: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  locationCancelText: {
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
   },
 });

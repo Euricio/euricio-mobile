@@ -824,6 +824,7 @@ const de: Record<string, string> = {
   scanner_documentName: 'Dokumentname',
   scanner_documentNamePlaceholder: 'Name eingeben...',
   scanner_documentNameTitle: 'Dokument benennen',
+  scanner_next: 'Weiter',
 
   // ─── Upgrade / Plan-Gating ────────────────────────────────────────
   upgrade_contracts_title: 'Vertragsgenerator freischalten',
