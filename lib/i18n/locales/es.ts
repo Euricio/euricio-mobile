@@ -622,6 +622,15 @@ const es: Record<string, string> = {
   voice_error: 'Error',
   voice_success: 'Éxito',
 
+  // ─── Call Choice ──────────────────────────────────────────────────
+  call_callTo: 'Llamar a {phone}',
+  call_chooseMethod: 'Elegir método de llamada',
+  call_mobile: 'Llamar por móvil',
+  call_mobileDesc: 'Usando su número de móvil',
+  call_business: 'Número de empresa (fijo)',
+  call_businessDesc: 'A través de Twilio',
+  call_cancel: 'Cancelar',
+
   // ─── Contratos ─────────────────────────────────────────────────────
   contracts_title: 'Contratos',
   contracts_search: 'Buscar contrato...',

@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
-  Linking,
 } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +17,7 @@ import { Avatar } from '../../../../components/ui/Avatar';
 import { EmptyState } from '../../../../components/ui/EmptyState';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
 import { useI18n } from '../../../../lib/i18n';
+import { useCallChoice } from '../../../../lib/call/useCallChoice';
 import {
   colors,
   spacing,
@@ -56,9 +56,11 @@ function isOverdue(dueDate: string | null): boolean {
 function TaskCard({
   task,
   onComplete,
+  onCall,
 }: {
   task: Task;
   onComplete: () => void;
+  onCall: (phone: string) => void;
 }) {
   const { t, formatDate } = useI18n();
   const priorityKey = priorityKeys[task.priority];
@@ -150,7 +152,7 @@ function TaskCard({
         {leadPhone && (
           <TouchableOpacity
             style={styles.callButton}
-            onPress={() => Linking.openURL(`tel:${leadPhone}`)}
+            onPress={() => onCall(leadPhone)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons name="call-outline" size={14} color={colors.success} />
@@ -178,6 +180,7 @@ export default function TasksScreen() {
   const completeTask = useCompleteTask();
   const user = useAuthStore((s) => s.user);
   const { t } = useI18n();
+  const { promptCall, CallChoiceSheet } = useCallChoice();
   const { highlight } = useLocalSearchParams<{ highlight?: string }>();
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
@@ -282,6 +285,7 @@ export default function TasksScreen() {
               <TaskCard
                 task={item}
                 onComplete={() => completeTask.mutate(item.id)}
+                onCall={promptCall}
               />
             </View>
           )}
@@ -319,6 +323,7 @@ export default function TasksScreen() {
       >
         <Ionicons name="add" size={28} color={colors.white} />
       </TouchableOpacity>
+      <CallChoiceSheet />
     </View>
   );
 }
