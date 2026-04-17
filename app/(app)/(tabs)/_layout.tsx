@@ -1,13 +1,55 @@
-import { Tabs } from 'expo-router';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Tabs, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fontWeight } from '../../../constants/theme';
+import { colors, fontWeight, spacing, fontSize } from '../../../constants/theme';
 import { useI18n } from '../../../lib/i18n';
+import { useUnreadCount } from '../../../lib/api/notifications';
 
 type TabIconName = React.ComponentProps<typeof Ionicons>['name'];
 
 function TabIcon({ name, color, size }: { name: TabIconName; color: string; size: number }) {
   return <Ionicons name={name} size={size} color={color} />;
 }
+
+function NotificationBell() {
+  const { data: unreadCount } = useUnreadCount();
+  return (
+    <TouchableOpacity
+      onPress={() => router.push('/(app)/notifications/')}
+      style={bellStyles.container}
+    >
+      <Ionicons name="notifications-outline" size={22} color={colors.text} />
+      {(unreadCount ?? 0) > 0 && (
+        <View style={bellStyles.badge}>
+          <Text style={bellStyles.badgeText}>
+            {unreadCount! > 99 ? '99+' : unreadCount}
+          </Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+const bellStyles = StyleSheet.create({
+  container: { padding: spacing.xs, marginRight: spacing.sm },
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: colors.error,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: fontWeight.bold,
+  },
+});
 
 export default function TabLayout() {
   const { t } = useI18n();
@@ -43,6 +85,7 @@ export default function TabLayout() {
         options={{
           title: t('tab_dashboard'),
           headerTitle: t('tab_dashboard'),
+          headerRight: () => <NotificationBell />,
           tabBarIcon: ({ color, size }) => (
             <TabIcon name="home-outline" color={color} size={size} />
           ),

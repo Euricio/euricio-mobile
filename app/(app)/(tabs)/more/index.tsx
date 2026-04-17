@@ -406,6 +406,36 @@ export default function MoreScreen() {
         </View>
       </Card>
       <Card
+        onPress={() => router.push('/(app)/settings/account/')}
+        style={styles.hrCard}
+      >
+        <View style={styles.hrRow}>
+          <View style={[styles.hrIcon, { backgroundColor: colors.primary + '15' }]}>
+            <Ionicons name="person-circle-outline" size={24} color={colors.primary} />
+          </View>
+          <View style={styles.hrInfo}>
+            <Text style={styles.hrTitle}>{t('account_title')}</Text>
+            <Text style={styles.hrSubtitle}>{t('account_subtitle')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        </View>
+      </Card>
+      <Card
+        onPress={() => router.push('/(app)/notifications/')}
+        style={styles.hrCard}
+      >
+        <View style={styles.hrRow}>
+          <View style={[styles.hrIcon, { backgroundColor: '#F59E0B' + '15' }]}>
+            <Ionicons name="notifications-outline" size={24} color="#F59E0B" />
+          </View>
+          <View style={styles.hrInfo}>
+            <Text style={styles.hrTitle}>{t('notifications_title')}</Text>
+            <Text style={styles.hrSubtitle}>{t('notifications_subtitle')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        </View>
+      </Card>
+      <Card
         onPress={() => router.push('/(app)/settings/upgrades/')}
         style={styles.hrCard}
       >

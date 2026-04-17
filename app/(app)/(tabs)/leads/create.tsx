@@ -27,10 +27,22 @@ export default function CreateLeadScreen() {
     { value: 'sonstige', label: t('leadSource_sonstige') },
   ];
 
+  const languageOptions = [
+    { value: 'de', label: t('lang_de') },
+    { value: 'en', label: t('lang_en') },
+    { value: 'es', label: t('lang_es') },
+    { value: 'fr', label: t('lang_fr') },
+    { value: 'pt', label: t('lang_pt') },
+    { value: 'it', label: t('lang_it') },
+    { value: 'other', label: t('lang_other') },
+  ];
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [source, setSource] = useState('');
+  const [language, setLanguage] = useState('');
+  const [budget, setBudget] = useState('');
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -53,6 +65,8 @@ export default function CreateLeadScreen() {
     if (email.trim()) payload.email = email.trim();
     if (phone.trim()) payload.phone = phone.trim();
     if (source) payload.source = source;
+    if (language) payload.preferred_language = language;
+    if (budget.trim()) payload.budget = parseFloat(budget.trim());
     if (notes.trim()) payload.notes = notes.trim();
 
     createLead.mutate(
@@ -115,6 +129,20 @@ export default function CreateLeadScreen() {
           value={source}
           onChange={setSource}
           placeholder={t('lead_sourcePlaceholder')}
+        />
+        <FormSelect
+          label={t('lead_language')}
+          options={languageOptions}
+          value={language}
+          onChange={setLanguage}
+          placeholder={t('lead_languagePlaceholder')}
+        />
+        <FormInput
+          label={t('lead_budget')}
+          value={budget}
+          onChangeText={setBudget}
+          placeholder={t('lead_budgetPlaceholder')}
+          keyboardType="numeric"
         />
         <FormInput
           label={t('lead_notes')}

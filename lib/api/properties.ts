@@ -77,6 +77,11 @@ export interface Property {
   description: string | null;
   notes: string | null;
 
+  // Owner
+  owner_name: string | null;
+  owner_phone: string | null;
+  owner_email: string | null;
+
   // Land breakdown
   land_classification: string | null;
   land_buildable_m2: number | null;

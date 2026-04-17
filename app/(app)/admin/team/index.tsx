@@ -10,6 +10,7 @@ import {
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTeamMembers, TeamMember } from '../../../../lib/api/admin-team';
+import { useSubscription } from '../../../../lib/api/subscription';
 import { useI18n } from '../../../../lib/i18n';
 import { SearchBar } from '../../../../components/ui/SearchBar';
 import { Card } from '../../../../components/ui/Card';
@@ -98,6 +99,8 @@ export default function AdminTeamListScreen() {
     refetch,
     isRefetching,
   } = useTeamMembers(apiStatus, search);
+  const { data: subscription } = useSubscription();
+  const seatLimit = subscription?.limits?.team_seats ?? subscription?.limits?.seats ?? null;
 
   const activeCount = useMemo(
     () => (members ?? []).filter((m) => m.is_active).length,
@@ -159,7 +162,7 @@ export default function AdminTeamListScreen() {
         <Text style={styles.seatText}>
           {t('adminTeam_seats', {
             used: String(activeCount),
-            total: '10',
+            total: seatLimit != null ? String(seatLimit) : '∞',
           })}
         </Text>
       </View>

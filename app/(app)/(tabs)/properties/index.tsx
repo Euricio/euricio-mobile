@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,12 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useProperties, Property } from '../../../../lib/api/properties';
 import { usePropertyImages, getCoverImage } from '../../../../lib/api/propertyImages';
+import { useSubscription } from '../../../../lib/api/subscription';
 import { SearchBar } from '../../../../components/ui/SearchBar';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
@@ -126,13 +128,48 @@ function PropertyCard({ property }: { property: Property }) {
 
 export default function PropertiesListScreen() {
   const [search, setSearch] = useState('');
-  const { t } = useI18n();
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const { t, formatPrice } = useI18n();
   const {
     data: properties,
     isLoading,
     refetch,
     isRefetching,
   } = useProperties(search);
+  const { data: subscription } = useSubscription();
+
+  const used = properties?.length ?? 0;
+  const total = subscription?.limits?.properties ?? 0;
+
+  const markersData = useMemo(() => {
+    if (!properties) return [];
+    return properties
+      .filter((p) => p.latitude != null && p.longitude != null)
+      .map((p) => ({
+        lat: p.latitude!,
+        lng: p.longitude!,
+        title: p.title.replace(/'/g, "\\'"),
+        price: formatPrice(p.price).replace(/'/g, "\\'"),
+      }));
+  }, [properties, formatPrice]);
+
+  const mapHtml = `<!DOCTYPE html>
+<html><head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>body{margin:0}#map{width:100%;height:100vh}</style>
+</head><body>
+<div id="map"></div>
+<script>
+var map = L.map('map').setView([36.5, -4.9], 10);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM'}).addTo(map);
+var markers = ${JSON.stringify(markersData)};
+markers.forEach(function(m){
+  L.marker([m.lat,m.lng]).addTo(map).bindPopup('<b>'+m.title+'</b><br>'+m.price);
+});
+if(markers.length>0){var g=L.featureGroup(markers.map(function(m){return L.marker([m.lat,m.lng])}));map.fitBounds(g.getBounds().pad(0.1));}
+</script></body></html>`;
 
   return (
     <View style={styles.container}>
@@ -153,8 +190,56 @@ export default function PropertiesListScreen() {
         />
       </View>
 
+      {/* View Toggle & Limit Counter */}
+      <View style={styles.toggleRow}>
+        <View style={styles.toggleButtons}>
+          <TouchableOpacity
+            style={[styles.toggleButton, viewMode === 'list' && styles.toggleButtonActive]}
+            onPress={() => setViewMode('list')}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="list-outline"
+              size={16}
+              color={viewMode === 'list' ? colors.white : colors.primary}
+            />
+            <Text style={[styles.toggleText, viewMode === 'list' && styles.toggleTextActive]}>
+              {t('prop_listView')}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.toggleButton, viewMode === 'map' && styles.toggleButtonActive]}
+            onPress={() => setViewMode('map')}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="map-outline"
+              size={16}
+              color={viewMode === 'map' ? colors.white : colors.primary}
+            />
+            <Text style={[styles.toggleText, viewMode === 'map' && styles.toggleTextActive]}>
+              {t('prop_mapView')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        {total > 0 && (
+          <Text style={styles.limitText}>
+            {t('prop_limitCounter', { used, total })}
+          </Text>
+        )}
+      </View>
+
       {isLoading ? (
         <LoadingScreen />
+      ) : viewMode === 'map' ? (
+        <View style={styles.mapContainer}>
+          <WebView
+            originWhitelist={['*']}
+            source={{ html: mapHtml }}
+            style={styles.mapWebView}
+            javaScriptEnabled
+          />
+        </View>
       ) : (
         <FlatList
           data={properties}
@@ -203,6 +288,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     backgroundColor: colors.surface,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  toggleButtons: {
+    flexDirection: 'row',
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  toggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    gap: spacing.xs,
+  },
+  toggleButtonActive: {
+    backgroundColor: colors.primary,
+  },
+  toggleText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.primary,
+  },
+  toggleTextActive: {
+    color: colors.white,
+  },
+  limitText: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    fontWeight: fontWeight.medium,
+  },
+  mapContainer: {
+    flex: 1,
+  },
+  mapWebView: {
+    flex: 1,
   },
   list: {
     padding: spacing.md,

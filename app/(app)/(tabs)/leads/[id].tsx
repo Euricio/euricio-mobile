@@ -12,6 +12,8 @@ import {
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useLead, useDeleteLead } from '../../../../lib/api/leads';
+import { usePipelineStages, getStageName, useMoveLeadToStage } from '../../../../lib/api/pipeline';
+import { useSendPortalInvite } from '../../../../lib/api/email';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Avatar } from '../../../../components/ui/Avatar';
@@ -37,10 +39,13 @@ function getStatusConfig(t: (key: string) => string): Record<string, { label: st
 }
 
 export default function LeadDetailScreen() {
-  const { t, formatDate } = useI18n();
+  const { t, formatDate, formatPrice, locale } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: lead, isLoading, refetch, isRefetching } = useLead(id!);
   const deleteLead = useDeleteLead();
+  const { data: stages } = usePipelineStages();
+  const moveToStage = useMoveLeadToStage();
+  const sendPortalInvite = useSendPortalInvite();
   const statusConfig = getStatusConfig(t);
 
   if (isLoading) {
@@ -75,6 +80,49 @@ export default function LeadDetailScreen() {
         Alert.alert(t('error'), t('whatsapp_error')),
       );
     }
+  };
+
+  const handleTelegram = () => {
+    if (lead.phone) {
+      const phone = lead.phone.replace(/\D/g, '');
+      Linking.openURL(`tg://resolve?phone=${phone}`).catch(() =>
+        Alert.alert(t('error'), t('telegram_error')),
+      );
+    }
+  };
+
+  const handleMoveToStage = () => {
+    if (!stages || stages.length === 0) return;
+    const buttons = stages.map((stage) => ({
+      text: getStageName(stage, locale),
+      onPress: () => {
+        moveToStage.mutate(
+          { leadId: lead.id, stageKey: stage.stage_key },
+          {
+            onSuccess: () => refetch(),
+          },
+        );
+      },
+    }));
+    buttons.push({ text: t('cancel'), onPress: () => {} });
+    Alert.alert(t('lead_moveToStage'), undefined, buttons);
+  };
+
+  const handlePortalInvite = () => {
+    if (!lead.email) return;
+    sendPortalInvite.mutate(
+      {
+        customerEmail: lead.email,
+        customerName: lead.full_name,
+        portalPassword: '',
+        propertyAddress: '',
+        requiredDocuments: [],
+      },
+      {
+        onSuccess: () => Alert.alert(t('lead_portalInviteSent')),
+        onError: () => Alert.alert(t('error'), t('lead_portalInviteError')),
+      },
+    );
   };
 
   const handleEmail = () => {
@@ -152,6 +200,26 @@ export default function LeadDetailScreen() {
         <Avatar name={lead.full_name} size={72} />
         <Text style={styles.name}>{lead.full_name}</Text>
         <Badge label={status.label} variant={status.variant} size="md" />
+        {lead.pipeline_stage && stages && (() => {
+          const currentStage = stages.find((s) => s.stage_key === lead.pipeline_stage);
+          if (!currentStage) return null;
+          return (
+            <TouchableOpacity onPress={handleMoveToStage}>
+              <View style={[styles.pipelineBadge, { backgroundColor: currentStage.color }]}>
+                <Text style={styles.pipelineBadgeText}>
+                  {getStageName(currentStage, locale)}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })()}
+        {!lead.pipeline_stage && stages && stages.length > 0 && (
+          <TouchableOpacity onPress={handleMoveToStage}>
+            <View style={[styles.pipelineBadge, { backgroundColor: colors.textTertiary }]}>
+              <Text style={styles.pipelineBadgeText}>{t('lead_pipelineStage')}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Quick Actions */}
@@ -169,6 +237,13 @@ export default function LeadDetailScreen() {
           color="#25D366"
           disabled={!lead.phone}
           onPress={handleWhatsApp}
+        />
+        <ActionButton
+          icon="paper-plane-outline"
+          label={t('lead_telegramAction')}
+          color="#0088cc"
+          disabled={!lead.phone}
+          onPress={handleTelegram}
         />
         <ActionButton
           icon="mail-outline"
@@ -212,6 +287,18 @@ export default function LeadDetailScreen() {
         />
       </Card>
 
+      {/* Language & Budget */}
+      {(lead.preferred_language || lead.budget) && (
+        <Card>
+          {lead.preferred_language && (
+            <DetailRow icon="language-outline" label={t('lead_language')} value={lead.preferred_language} />
+          )}
+          {lead.budget != null && (
+            <DetailRow icon="cash-outline" label={t('lead_budget')} value={formatPrice(lead.budget)} />
+          )}
+        </Card>
+      )}
+
       {/* Notes */}
       {lead.notes && (
         <Card style={styles.notesCard}>
@@ -234,6 +321,20 @@ export default function LeadDetailScreen() {
           </Text>
         </View>
       </Card>
+
+      {/* Portal Invitation */}
+      {lead.email && (
+        <View style={styles.portalInviteContainer}>
+          <Button
+            title={t('lead_portalInvite')}
+            variant="outline"
+            icon="mail-open-outline"
+            onPress={handlePortalInvite}
+            loading={sendPortalInvite.isPending}
+            disabled={sendPortalInvite.isPending}
+          />
+        </View>
+      )}
 
       {/* Delete */}
       <View style={styles.deleteContainer}>
@@ -411,6 +512,21 @@ const styles = StyleSheet.create({
   activityPlaceholderText: {
     fontSize: fontSize.sm,
     color: colors.textTertiary,
+  },
+  pipelineBadge: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+    marginTop: spacing.xs,
+  },
+  pipelineBadgeText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
+    color: colors.white,
+  },
+  portalInviteContainer: {
+    marginTop: spacing.sm,
+    marginHorizontal: spacing.md,
   },
   deleteContainer: {
     marginTop: spacing.lg,

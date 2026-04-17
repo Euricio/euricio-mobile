@@ -37,10 +37,22 @@ export default function EditLeadScreen() {
     { value: 'lost', label: t('leadStatus_lost') },
   ];
 
+  const languageOptions = [
+    { value: 'de', label: t('lang_de') },
+    { value: 'en', label: t('lang_en') },
+    { value: 'es', label: t('lang_es') },
+    { value: 'fr', label: t('lang_fr') },
+    { value: 'pt', label: t('lang_pt') },
+    { value: 'it', label: t('lang_it') },
+    { value: 'other', label: t('lang_other') },
+  ];
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [source, setSource] = useState('');
+  const [language, setLanguage] = useState('');
+  const [budget, setBudget] = useState('');
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState('new');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -51,6 +63,8 @@ export default function EditLeadScreen() {
       setEmail(lead.email ?? '');
       setPhone(lead.phone ?? '');
       setSource(lead.source ?? '');
+      setLanguage(lead.preferred_language ?? '');
+      setBudget(lead.budget != null ? String(lead.budget) : '');
       setNotes(lead.notes ?? '');
       setStatus(lead.status ?? 'new');
     }
@@ -79,6 +93,8 @@ export default function EditLeadScreen() {
         email: email.trim() || null,
         phone: phone.trim() || null,
         source: source || null,
+        preferred_language: language || null,
+        budget: budget.trim() ? parseFloat(budget.trim()) : null,
         notes: notes.trim() || null,
         status,
       },
@@ -149,6 +165,20 @@ export default function EditLeadScreen() {
           value={source}
           onChange={setSource}
           placeholder={t('lead_sourcePlaceholder')}
+        />
+        <FormSelect
+          label={t('lead_language')}
+          options={languageOptions}
+          value={language}
+          onChange={setLanguage}
+          placeholder={t('lead_languagePlaceholder')}
+        />
+        <FormInput
+          label={t('lead_budget')}
+          value={budget}
+          onChangeText={setBudget}
+          placeholder={t('lead_budgetPlaceholder')}
+          keyboardType="numeric"
         />
         <FormInput
           label={t('lead_notes')}
