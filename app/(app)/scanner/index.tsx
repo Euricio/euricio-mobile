@@ -72,9 +72,13 @@ export default function ScannerScreen() {
 
   const confirmDocumentName = () => {
     const name = sanitizeFileName(documentName);
-    setNameModalVisible(false);
-    pendingActionRef.current?.(name);
+    const action = pendingActionRef.current;
     pendingActionRef.current = null;
+    setNameModalVisible(false);
+    // Delay the pending action so the modal fully dismisses before the
+    // ActionSheet tries to present — on iOS the two overlap and the
+    // ActionSheet is silently dropped when shown over an animating modal.
+    setTimeout(() => action?.(name), 400);
   };
 
   const cancelDocumentName = () => {
