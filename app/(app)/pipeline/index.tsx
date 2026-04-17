@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   Linking,
   Alert,
+  LayoutAnimation,
+  UIManager,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
@@ -19,7 +22,6 @@ import {
   getStageName,
 } from '../../../lib/api/pipeline';
 import type { PipelineStage, PipelineLead } from '../../../lib/api/pipeline';
-import { Card } from '../../../components/ui/Card';
 import { LoadingScreen } from '../../../components/ui/LoadingScreen';
 import {
   colors,
@@ -29,6 +31,13 @@ import {
   borderRadius,
   shadow,
 } from '../../../constants/theme';
+
+if (
+  Platform.OS === 'android' &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const PRIORITY_COLORS: Record<string, string> = {
   urgent: colors.error,
@@ -57,9 +66,6 @@ function LeadCard({
   }, [lead.phone]);
 
   const handleLongPress = useCallback(() => {
-    const options = stages.map((s) => getStageName(s, locale));
-    options.push(t('cancel'));
-
     Alert.alert(t('pipeline_moveToStage'), lead.full_name, [
       ...stages.map((s) => ({
         text: getStageName(s, locale),
@@ -113,13 +119,15 @@ function LeadCard({
   );
 }
 
-function StageColumn({
+function AccordionStage({
   stage,
   leads,
   allStages,
   locale,
   onMove,
   t,
+  expanded,
+  onToggle,
 }: {
   stage: PipelineStage;
   leads: PipelineLead[];
@@ -127,37 +135,52 @@ function StageColumn({
   locale: Locale;
   onMove: (leadId: string, stageKey: string) => void;
   t: (key: string, params?: Record<string, string | number>) => string;
+  expanded: boolean;
+  onToggle: () => void;
 }) {
   return (
-    <View style={styles.column}>
-      <View style={styles.columnHeader}>
-        <View style={[styles.stageColorDot, { backgroundColor: stage.color || colors.textTertiary }]} />
-        <Text style={styles.columnTitle} numberOfLines={1}>
+    <View style={styles.accordionSection}>
+      <TouchableOpacity
+        style={styles.accordionHeader}
+        onPress={onToggle}
+        activeOpacity={0.7}
+      >
+        <View
+          style={[
+            styles.stageColorDot,
+            { backgroundColor: stage.color || colors.textTertiary },
+          ]}
+        />
+        <Text style={styles.stageName} numberOfLines={1}>
           {getStageName(stage, locale)}
         </Text>
         <View style={styles.countBadge}>
           <Text style={styles.countText}>{leads.length}</Text>
         </View>
-      </View>
-      <ScrollView
-        style={styles.columnScroll}
-        showsVerticalScrollIndicator={false}
-      >
-        {leads.length === 0 ? (
-          <Text style={styles.emptyStage}>{t('pipeline_noLeads')}</Text>
-        ) : (
-          leads.map((lead) => (
-            <LeadCard
-              key={lead.id}
-              lead={lead}
-              stages={allStages}
-              locale={locale}
-              onMove={onMove}
-              t={t}
-            />
-          ))
-        )}
-      </ScrollView>
+        <Ionicons
+          name={expanded ? 'chevron-down' : 'chevron-forward'}
+          size={18}
+          color={colors.textTertiary}
+        />
+      </TouchableOpacity>
+      {expanded && (
+        <View style={styles.accordionBody}>
+          {leads.length === 0 ? (
+            <Text style={styles.emptyStage}>{t('pipeline_noLeads')}</Text>
+          ) : (
+            leads.map((lead) => (
+              <LeadCard
+                key={lead.id}
+                lead={lead}
+                stages={allStages}
+                locale={locale}
+                onMove={onMove}
+                t={t}
+              />
+            ))
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -179,13 +202,35 @@ export default function PipelineScreen() {
       if (map[key]) {
         map[key].push(lead);
       } else if (stages.length > 0) {
-        // Put into first stage if unknown
         const firstKey = stages[0].stage_key;
         map[firstKey]?.push(lead);
       }
     }
     return map;
   }, [stages, leads]);
+
+  // Stages with leads start expanded; empty stages start collapsed
+  const [expandedStages, setExpandedStages] = useState<Record<string, boolean>>(() => {
+    return {};
+  });
+
+  // Derive effective expanded state: explicit toggle overrides, otherwise expand if has leads
+  const isExpanded = useCallback(
+    (stageKey: string) => {
+      if (stageKey in expandedStages) return expandedStages[stageKey];
+      const stageLeads = leadsByStage[stageKey];
+      return stageLeads != null && stageLeads.length > 0;
+    },
+    [expandedStages, leadsByStage],
+  );
+
+  const toggleStage = useCallback((stageKey: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedStages((prev) => ({
+      ...prev,
+      [stageKey]: prev[stageKey] !== undefined ? !prev[stageKey] : !(leadsByStage[stageKey]?.length > 0),
+    }));
+  }, [leadsByStage]);
 
   const handleMove = useCallback(
     (leadId: string, stageKey: string) => {
@@ -212,13 +257,11 @@ export default function PipelineScreen() {
         }}
       />
       <ScrollView
-        horizontal
-        pagingEnabled={false}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.boardContent}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
         {(stages ?? []).map((stage) => (
-          <StageColumn
+          <AccordionStage
             key={stage.id}
             stage={stage}
             leads={leadsByStage[stage.stage_key] ?? []}
@@ -226,6 +269,8 @@ export default function PipelineScreen() {
             locale={locale}
             onMove={handleMove}
             t={t}
+            expanded={isExpanded(stage.stage_key)}
+            onToggle={() => toggleStage(stage.stage_key)}
           />
         ))}
       </ScrollView>
@@ -233,30 +278,26 @@ export default function PipelineScreen() {
   );
 }
 
-const COLUMN_WIDTH = 280;
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
   },
-  boardContent: {
-    padding: spacing.sm,
+  scrollContent: {
+    padding: spacing.md,
+    paddingBottom: 120,
     gap: spacing.sm,
   },
-  column: {
-    width: COLUMN_WIDTH,
+  accordionSection: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
     ...shadow.sm,
-    maxHeight: '100%',
+    overflow: 'hidden',
   },
-  columnHeader: {
+  accordionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
     gap: spacing.sm,
   },
   stageColorDot: {
@@ -264,7 +305,7 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
   },
-  columnTitle: {
+  stageName: {
     flex: 1,
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
@@ -281,15 +322,15 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
   },
-  columnScroll: {
-    flex: 1,
-    padding: spacing.sm,
+  accordionBody: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
   },
   emptyStage: {
     fontSize: fontSize.sm,
     color: colors.textTertiary,
     textAlign: 'center',
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.md,
   },
   leadCard: {
     backgroundColor: colors.background,
