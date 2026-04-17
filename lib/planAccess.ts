@@ -1,8 +1,9 @@
-const PREMIUM_PLANS = ['business', 'enterprise'];
+const PREMIUM_PLANS = ['professional', 'enterprise'];
 
 export interface ProfileWithPlan {
   plan?: string | null;
   is_internal?: boolean | null;
+  role?: string | null;
 }
 
 export function hasPremiumPlan(profile: ProfileWithPlan | null | undefined): boolean {
@@ -14,6 +15,10 @@ export function isInternal(profile: ProfileWithPlan | null | undefined): boolean
   return profile?.is_internal === true;
 }
 
+export function isAdmin(profile: ProfileWithPlan | null | undefined): boolean {
+  return profile?.role === 'admin';
+}
+
 export function canAccessPdfTools(profile: ProfileWithPlan | null | undefined): boolean {
-  return hasPremiumPlan(profile) || isInternal(profile);
+  return isAdmin(profile) || isInternal(profile) || hasPremiumPlan(profile);
 }

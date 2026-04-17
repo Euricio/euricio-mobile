@@ -7,13 +7,26 @@ export function useProfile() {
   return useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch profile
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('full_name, role, position, phone, plan, is_internal')
+        .select('full_name, role, position, phone, is_internal')
         .eq('id', user!.id)
         .single();
-      if (error) throw error;
-      return data;
+      if (profileError) throw profileError;
+
+      // Fetch subscription plan
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('plan_id, status')
+        .eq('owner_id', user!.id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      return {
+        ...profile,
+        plan: subscription?.plan_id ?? null,
+      };
     },
     enabled: !!user?.id,
   });
