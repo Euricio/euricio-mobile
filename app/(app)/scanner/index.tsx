@@ -134,8 +134,9 @@ export default function ScannerScreen() {
         const asset = result.assets[0];
         handleSave([asset.uri], 'pdf');
       }
-    } catch {
-      Alert.alert(t('error'), t('scanner_uploadError'));
+    } catch (err: any) {
+      console.error('Scanner file pick failed:', err);
+      Alert.alert(t('error'), err?.message || t('scanner_uploadError'));
     }
   };
 
@@ -208,8 +209,9 @@ export default function ScannerScreen() {
       Alert.alert(t('scanner_saveSuccess'));
       setPages([]);
       router.back();
-    } catch {
-      Alert.alert(t('error'), t('scanner_uploadError'));
+    } catch (err: any) {
+      console.error('Scanner share-to-device failed:', err);
+      Alert.alert(t('error'), err?.message || t('scanner_uploadError'));
     } finally {
       setUploading(false);
     }
@@ -224,8 +226,9 @@ export default function ScannerScreen() {
       Alert.alert(contractId ? t('scanner_attachSuccess') : t('scanner_saveSuccess'));
       setPages([]);
       router.back();
-    } catch {
-      Alert.alert(t('error'), t('scanner_uploadError'));
+    } catch (err: any) {
+      console.error('Scanner upload failed:', err);
+      Alert.alert(t('error'), err?.message || t('scanner_uploadError'));
     } finally {
       setUploading(false);
     }
