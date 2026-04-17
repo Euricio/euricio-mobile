@@ -139,7 +139,7 @@ export function useUploadLeadDocument() {
       if (!userId) throw new Error('Not authenticated');
 
       const storagePath = `${userId}/leads/${leadId}/${fileName}`;
-      const { size } = await uploadToStorage(
+      const { size, sanitizedPath } = await uploadToStorage(
         'scanned-documents',
         storagePath,
         pdfUri,
@@ -148,7 +148,7 @@ export function useUploadLeadDocument() {
 
       const { error } = await supabase.from('lead_documents').insert({
         lead_id: leadId,
-        storage_path: storagePath,
+        storage_path: sanitizedPath,
         file_name: fileName,
         file_size: size,
         document_type: 'scan',

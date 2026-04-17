@@ -390,7 +390,7 @@ export default function ScannerScreen() {
       const fileName = docName ? `${docName}.pdf` : `${timestamp}.pdf`;
       const storagePath = `${userId}/properties/${propertyId}/${fileName}`;
 
-      const { size } = await uploadToStorage(
+      const { size, sanitizedPath } = await uploadToStorage(
         'property-documents',
         storagePath,
         pdfUri,
@@ -399,7 +399,7 @@ export default function ScannerScreen() {
 
       const { error } = await supabase.from('property_documents').insert({
         property_id: propertyId,
-        storage_path: storagePath,
+        storage_path: sanitizedPath,
         file_name: fileName,
         file_size: size,
         document_type: 'scan',

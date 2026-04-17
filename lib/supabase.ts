@@ -56,16 +56,36 @@ export async function getFreshAccessToken(): Promise<string> {
 }
 
 /**
+ * Sanitize a file name for Supabase Storage keys.
+ * Removes accents/diacritics, replaces spaces with underscores,
+ * and strips any remaining non-ASCII or special characters.
+ */
+export function sanitizeStorageKey(path: string): string {
+  return path
+    .split('/')
+    .map((segment) =>
+      segment
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // remove accents
+        .replace(/\s+/g, '_')            // spaces → underscores
+        .replace(/[^a-zA-Z0-9._-]/g, '') // strip remaining special chars
+    )
+    .join('/');
+}
+
+/**
  * Upload a local file to Supabase Storage.
  * Works around React Native's broken FormData/Blob handling by reading
  * the file as base64, decoding to Uint8Array, and using supabase-js upload.
+ * The storagePath is automatically sanitized for safe storage keys.
  */
 export async function uploadToStorage(
   bucket: string,
   storagePath: string,
   fileUri: string,
   contentType: string,
-): Promise<{ size: number }> {
+): Promise<{ size: number; sanitizedPath: string }> {
+  storagePath = sanitizeStorageKey(storagePath);
   const base64Data = await FileSystem.readAsStringAsync(fileUri, {
     encoding: FileSystem.EncodingType.Base64,
   });
@@ -92,5 +112,5 @@ export async function uploadToStorage(
     throw new Error(`Upload failed: ${error.message}`);
   }
 
-  return { size: bytes.length };
+  return { size: bytes.length, sanitizedPath: storagePath };
 }

@@ -241,7 +241,7 @@ export function useUploadPropertyDocument() {
       const timestamp = Date.now();
       const storagePath = `${propertyId}/${timestamp}-${fileName}`;
 
-      const { size } = await uploadToStorage(
+      const { size, sanitizedPath } = await uploadToStorage(
         'property-documents',
         storagePath,
         uri,
@@ -252,7 +252,7 @@ export function useUploadPropertyDocument() {
         .from('property_documents')
         .insert({
           property_id: propertyId,
-          storage_path: storagePath,
+          storage_path: sanitizedPath,
           file_name: fileName,
           file_size: fileSize ?? size,
           document_type: documentType,
