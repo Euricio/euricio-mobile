@@ -629,6 +629,7 @@ const de: Record<string, string> = {
   call_mobileDesc: 'Über Ihre Handynummer',
   call_business: 'Geschäftsnummer (Festnetz)',
   call_businessDesc: 'Über Twilio',
+  call_businessUnavailable: 'Nicht verfügbar — Verbindung wird hergestellt',
   call_cancel: 'Abbrechen',
 
   // ─── Contracts / Verträge ──────────────────────────────────────────

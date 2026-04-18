@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  Linking,
   Alert,
   LayoutAnimation,
   UIManager,
@@ -52,20 +53,20 @@ function LeadCard({
   locale,
   onMove,
   t,
-  onCall,
 }: {
   lead: PipelineLead;
   stages: PipelineStage[];
   locale: Locale;
   onMove: (leadId: string, stageKey: string) => void;
   t: (key: string, params?: Record<string, string | number>) => string;
-  onCall: (phone: string) => void;
 }) {
+  const { promptCall, CallChoiceSheet } = useCallChoice();
+
   const handleCall = useCallback(() => {
     if (lead.phone) {
-      onCall(lead.phone);
+      promptCall(lead.phone);
     }
-  }, [lead.phone, onCall]);
+  }, [lead.phone, promptCall]);
 
   const handleLongPress = useCallback(() => {
     Alert.alert(t('pipeline_moveToStage'), lead.full_name, [
@@ -79,7 +80,7 @@ function LeadCard({
 
   const budget = lead.budget ?? lead.properties?.[0]?.price ?? null;
 
-  return (
+  return (<>
     <TouchableOpacity
       onLongPress={handleLongPress}
       activeOpacity={0.7}
@@ -118,7 +119,8 @@ function LeadCard({
         <Text style={styles.leadSource}>{lead.source}</Text>
       )}
     </TouchableOpacity>
-  );
+    <CallChoiceSheet />
+  </>);
 }
 
 function AccordionStage({
@@ -130,7 +132,6 @@ function AccordionStage({
   t,
   expanded,
   onToggle,
-  onCall,
 }: {
   stage: PipelineStage;
   leads: PipelineLead[];
@@ -140,7 +141,6 @@ function AccordionStage({
   t: (key: string, params?: Record<string, string | number>) => string;
   expanded: boolean;
   onToggle: () => void;
-  onCall: (phone: string) => void;
 }) {
   return (
     <View style={styles.accordionSection}>
@@ -180,7 +180,6 @@ function AccordionStage({
                 locale={locale}
                 onMove={onMove}
                 t={t}
-                onCall={onCall}
               />
             ))
           )}
@@ -195,7 +194,6 @@ export default function PipelineScreen() {
   const { data: stages, isLoading: stagesLoading } = usePipelineStages();
   const { data: leads, isLoading: leadsLoading } = usePipelineLeads();
   const moveLead = useMoveLeadToStage();
-  const { promptCall, CallChoiceSheet } = useCallChoice();
 
   const leadsByStage = useMemo(() => {
     if (!stages || !leads) return {};
@@ -277,11 +275,9 @@ export default function PipelineScreen() {
             t={t}
             expanded={isExpanded(stage.stage_key)}
             onToggle={() => toggleStage(stage.stage_key)}
-            onCall={promptCall}
           />
         ))}
       </ScrollView>
-      <CallChoiceSheet />
     </View>
   );
 }

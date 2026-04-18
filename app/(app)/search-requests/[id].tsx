@@ -4,6 +4,7 @@ import {
   Text,
   ScrollView,
   StyleSheet,
+  Linking,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +20,6 @@ import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { LoadingScreen } from '../../../components/ui/LoadingScreen';
 import { useI18n } from '../../../lib/i18n';
-import { useCallChoice } from '../../../lib/call/useCallChoice';
 import {
   colors,
   spacing,
@@ -43,7 +43,6 @@ export default function SearchRequestDetailScreen() {
   const { data: matches } = useSearchRequestMatches(id);
   const importAsLead = useImportSearchRequestAsLead();
   const updateStatus = useUpdateSearchRequestStatus();
-  const { promptCall, CallChoiceSheet } = useCallChoice();
 
   const handleImport = () => {
     if (!request) return;
@@ -60,7 +59,7 @@ export default function SearchRequestDetailScreen() {
 
   const handleCall = () => {
     if (!request?.contact_phone) return;
-    promptCall(request.contact_phone);
+    Linking.openURL(`tel:${request.contact_phone}`);
   };
 
   if (isLoading || !request) return <LoadingScreen />;
@@ -265,7 +264,6 @@ export default function SearchRequestDetailScreen() {
           />
         )}
       </View>
-      <CallChoiceSheet />
     </ScrollView>
   );
 }

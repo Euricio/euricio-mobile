@@ -9,7 +9,6 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
-import { useCallChoice } from '../../../../lib/call/useCallChoice';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useLead, useDeleteLead } from '../../../../lib/api/leads';
@@ -19,6 +18,7 @@ import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Avatar } from '../../../../components/ui/Avatar';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
+import { useCallChoice } from '../../../../lib/call/useCallChoice';
 import { Button } from '../../../../components/ui/Button';
 import {
   colors,
@@ -48,7 +48,6 @@ export default function LeadDetailScreen() {
   const moveToStage = useMoveLeadToStage();
   const sendPortalInvite = useSendPortalInvite();
   const statusConfig = getStatusConfig(t);
-  const { promptCall, CallChoiceSheet } = useCallChoice();
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -68,6 +67,8 @@ export default function LeadDetailScreen() {
     label: lead.status,
     variant: 'default' as const,
   };
+
+  const { promptCall, CallChoiceSheet } = useCallChoice();
 
   const handleCall = () => {
     if (lead.phone) {

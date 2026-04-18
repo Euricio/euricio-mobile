@@ -629,6 +629,7 @@ const en: Record<string, string> = {
   call_mobileDesc: 'Using your mobile number',
   call_business: 'Business number (landline)',
   call_businessDesc: 'Via Twilio',
+  call_businessUnavailable: 'Unavailable — connecting',
   call_cancel: 'Cancel',
 
   // ─── Contracts ─────────────────────────────────────────────────────

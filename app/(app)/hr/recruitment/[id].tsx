@@ -13,7 +13,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useI18n } from '../../../../lib/i18n';
-import { useCallChoice } from '../../../../lib/call/useCallChoice';
 import {
   useCandidate,
   useUpdateCandidate,
@@ -43,7 +42,6 @@ export default function CandidateDetailScreen() {
   const { data: candidate, isLoading } = useCandidate(id);
   const updateCandidate = useUpdateCandidate();
   const deleteCandidate = useDeleteCandidate();
-  const { promptCall, CallChoiceSheet } = useCallChoice();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -183,7 +181,7 @@ export default function CandidateDetailScreen() {
           </View>
           <View style={styles.actionRow}>
             {phone ? (
-              <TouchableOpacity style={styles.actionBtn} onPress={() => promptCall(phone)}>
+              <TouchableOpacity style={styles.actionBtn} onPress={() => Linking.openURL(`tel:${phone}`)}>
                 <Ionicons name="call-outline" size={18} color={colors.success} />
                 <Text style={styles.actionText}>{t('recruit_call')}</Text>
               </TouchableOpacity>
@@ -353,7 +351,6 @@ export default function CandidateDetailScreen() {
           <Button title={t('cancel')} variant="outline" onPress={() => router.back()} />
         </View>
       </ScrollView>
-      <CallChoiceSheet />
     </KeyboardAvoidingView>
   );
 }

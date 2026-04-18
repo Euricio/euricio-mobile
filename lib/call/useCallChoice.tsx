@@ -17,13 +17,22 @@ import { useAuthStore } from '../../store/authStore';
 import { supabase } from '../supabase';
 import { colors, spacing, fontSize, fontWeight } from '../../constants/theme';
 
+/**
+ * Call choice hook — shows a bottom sheet letting the user pick
+ * between native mobile call and Twilio business number.
+ *
+ * The Twilio option is always visible but GREYED OUT when the
+ * Voice SDK is not initialized (isInitialized === false).
+ * This way the original tel: behavior is never broken.
+ */
 export function useCallChoice() {
-  const { makeCall, dialNumber, isInitialized } = useVoice();
+  const { makeCall, isInitialized } = useVoice();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const [visible, setVisible] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
 
+  // Check if user has a Twilio voice connection at all (DB check)
   const { data: voiceConnection } = useQuery({
     queryKey: ['voice-connection', user?.id],
     queryFn: async () => {
@@ -60,17 +69,23 @@ export function useCallChoice() {
     enabled: !!user,
   });
 
+  const hasTwilioConfig = !!voiceConnection;
+  const twilioReady = isInitialized;
+  const outboundNumber = voiceConnection?.default_outbound_number ?? null;
+
   const promptCall = useCallback(
     (phone: string) => {
       if (!phone) return;
-      if (!voiceConnection) {
+      // If no Twilio configured at all, just do native call (no dialog)
+      if (!hasTwilioConfig) {
         Linking.openURL(`tel:${phone}`);
         return;
       }
+      // Show choice dialog
       setPhoneNumber(phone);
       setVisible(true);
     },
-    [voiceConnection],
+    [hasTwilioConfig],
   );
 
   const handleMobile = useCallback(() => {
@@ -79,23 +94,16 @@ export function useCallChoice() {
   }, [phoneNumber]);
 
   const handleBusiness = useCallback(() => {
+    if (!twilioReady) return; // safety — button is disabled
     setVisible(false);
-    if (isInitialized) {
-      // SDK is ready — call directly and navigate to call screen
-      makeCall(phoneNumber);
-      router.push({ pathname: '/(app)/call/[id]', params: { id: phoneNumber } });
-    } else {
-      // SDK not ready yet — use dialNumber which sets pendingDial
-      // The FloatingDialer will auto-dial when status becomes 'ready'
-      dialNumber(phoneNumber);
-    }
-  }, [phoneNumber, makeCall, dialNumber, isInitialized, router]);
+    // Use makeCall from VoiceContext (unchanged, original behavior)
+    makeCall(phoneNumber);
+    router.push({ pathname: '/(app)/call/[id]', params: { id: phoneNumber } });
+  }, [phoneNumber, makeCall, twilioReady, router]);
 
   const handleClose = useCallback(() => {
     setVisible(false);
   }, []);
-
-  const outboundNumber = voiceConnection?.default_outbound_number ?? null;
 
   const CallChoiceSheet = useCallback(
     () => (
@@ -103,12 +111,13 @@ export function useCallChoice() {
         visible={visible}
         phoneNumber={phoneNumber}
         outboundNumber={outboundNumber}
+        twilioReady={twilioReady}
         onMobile={handleMobile}
         onBusiness={handleBusiness}
         onClose={handleClose}
       />
     ),
-    [visible, phoneNumber, outboundNumber, handleMobile, handleBusiness, handleClose],
+    [visible, phoneNumber, outboundNumber, twilioReady, handleMobile, handleBusiness, handleClose],
   );
 
   return { promptCall, CallChoiceSheet };
@@ -118,6 +127,7 @@ function CallChoiceModal({
   visible,
   phoneNumber,
   outboundNumber,
+  twilioReady,
   onMobile,
   onBusiness,
   onClose,
@@ -125,6 +135,7 @@ function CallChoiceModal({
   visible: boolean;
   phoneNumber: string;
   outboundNumber: string | null;
+  twilioReady: boolean;
   onMobile: () => void;
   onBusiness: () => void;
   onClose: () => void;
@@ -141,7 +152,7 @@ function CallChoiceModal({
             {t('call_callTo', { phone: phoneNumber })}
           </Text>
 
-          {/* Mobile option */}
+          {/* Mobile option — always available */}
           <TouchableOpacity style={styles.option} onPress={onMobile} activeOpacity={0.7}>
             <View style={[styles.optionIcon, { backgroundColor: colors.success + '15' }]}>
               <Ionicons name="phone-portrait-outline" size={22} color={colors.success} />
@@ -153,19 +164,45 @@ function CallChoiceModal({
             <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
           </TouchableOpacity>
 
-          {/* Business / Twilio option */}
-          <TouchableOpacity style={styles.option} onPress={onBusiness} activeOpacity={0.7}>
-            <View style={[styles.optionIcon, { backgroundColor: colors.primary + '15' }]}>
-              <Ionicons name="business-outline" size={22} color={colors.primary} />
+          {/* Business / Twilio option — greyed out when SDK not ready */}
+          <TouchableOpacity
+            style={[styles.option, !twilioReady && styles.optionDisabled]}
+            onPress={onBusiness}
+            activeOpacity={twilioReady ? 0.7 : 1}
+            disabled={!twilioReady}
+          >
+            <View
+              style={[
+                styles.optionIcon,
+                { backgroundColor: twilioReady ? colors.primary + '15' : colors.border + '30' },
+              ]}
+            >
+              <Ionicons
+                name="business-outline"
+                size={22}
+                color={twilioReady ? colors.primary : colors.textTertiary}
+              />
             </View>
             <View style={styles.optionText}>
-              <Text style={styles.optionTitle}>{t('call_business')}</Text>
+              <Text
+                style={[
+                  styles.optionTitle,
+                  !twilioReady && { color: colors.textTertiary },
+                ]}
+              >
+                {t('call_business')}
+              </Text>
               <Text style={styles.optionDesc}>
-                {t('call_businessDesc')}
-                {outboundNumber ? ` · ${outboundNumber}` : ''}
+                {twilioReady
+                  ? `${t('call_businessDesc')}${outboundNumber ? ` · ${outboundNumber}` : ''}`
+                  : t('call_businessUnavailable')}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+            {twilioReady ? (
+              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+            ) : (
+              <Ionicons name="lock-closed-outline" size={16} color={colors.textTertiary} />
+            )}
           </TouchableOpacity>
 
           {/* Cancel */}
@@ -211,6 +248,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.md,
     gap: spacing.md,
+  },
+  optionDisabled: {
+    opacity: 0.5,
   },
   optionIcon: {
     width: 44,

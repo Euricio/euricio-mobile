@@ -5,11 +5,11 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
 import { useI18n } from '../../../lib/i18n';
-import { useCallChoice } from '../../../lib/call/useCallChoice';
 import { usePartners } from '../../../lib/api/partners';
 import type { Partner } from '../../../lib/api/partners';
 import { Card } from '../../../components/ui/Card';
@@ -61,7 +61,7 @@ function normalizeCategory(raw: string): string {
   return CATEGORY_ALIAS[lower] ?? raw;
 }
 
-function PartnerCard({ partner, t, onCall }: { partner: Partner; t: (key: string) => string; onCall: (phone: string) => void }) {
+function PartnerCard({ partner, t }: { partner: Partner; t: (key: string) => string }) {
   const fullName = [partner.first_name, partner.last_name].filter(Boolean).join(' ');
   const category = normalizeCategory(partner.category);
 
@@ -109,7 +109,7 @@ function PartnerCard({ partner, t, onCall }: { partner: Partner; t: (key: string
           />
           {partner.phone && (
             <TouchableOpacity
-              onPress={() => onCall(partner.phone!)}
+              onPress={() => Linking.openURL(`tel:${partner.phone}`)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons name="call-outline" size={18} color={colors.primary} />
@@ -125,7 +125,6 @@ export default function PartnersScreen() {
   const { t } = useI18n();
   const [search, setSearch] = useState('');
   const { data: partners, isLoading } = usePartners(search);
-  const { promptCall, CallChoiceSheet } = useCallChoice();
 
   const stats = useMemo(() => {
     const all = partners ?? [];
@@ -181,7 +180,7 @@ export default function PartnersScreen() {
         <FlatList
           data={partners}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <PartnerCard partner={item} t={t} onCall={promptCall} />}
+          renderItem={({ item }) => <PartnerCard partner={item} t={t} />}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <EmptyState
@@ -191,7 +190,6 @@ export default function PartnersScreen() {
           }
         />
       )}
-      <CallChoiceSheet />
     </View>
   );
 }
