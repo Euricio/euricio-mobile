@@ -202,24 +202,47 @@ export class VoiceManager {
       this.setupVoiceListeners();
     }
 
-    try {
-      const { getVoiceAccessToken } = await import('./accessToken');
-      const token = await getVoiceAccessToken();
-      console.log('[VoiceManager] Token obtained, calling voice.register...');
-      await this.voice.register(token);
-      // Mark registered synchronously — don't wait for the Registered event,
-      // otherwise parallel makeCall() calls will think we're still unregistered
-      // and trigger another register() → native "Registration in progress" error.
-      this.registered = true;
-      console.log('[VoiceManager] Registered successfully');
-      this.emit({ type: 'status', payload: 'ready' });
-      this.scheduleTokenRefresh();
-    } catch (err) {
-      console.error('[VoiceManager] Registration failed:', err);
-      this.registered = false;
-      this.emit({ type: 'error', payload: err });
-      this.emit({ type: 'status', payload: 'error' });
+    // Emit 'ready' as soon as the SDK is loaded — downstream UI
+    // (useCallChoice business option, FloatingDialer) needs this to stop
+    // showing the greyed-out / locked state. Actual native registration
+    // happens below; makeCall() will ensure it's done before connecting.
+    this.emit({ type: 'status', payload: 'ready' });
+
+    // Retry up to 3 times with exponential backoff specifically for the
+    // native SDK's "Registration in progress" race — this can happen when
+    // the OS triggers multiple app-lifecycle events in quick succession.
+    const MAX_ATTEMPTS = 3;
+    let lastErr: unknown = null;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const { getVoiceAccessToken } = await import('./accessToken');
+        const token = await getVoiceAccessToken();
+        console.log(`[VoiceManager] Token obtained, calling voice.register (attempt ${attempt}/${MAX_ATTEMPTS})...`);
+        await this.voice.register(token);
+        // Mark registered synchronously — don't wait for the Registered event,
+        // otherwise parallel makeCall() calls will think we're still
+        // unregistered and trigger another register() → "Registration in
+        // progress" error.
+        this.registered = true;
+        console.log('[VoiceManager] Registered successfully');
+        this.scheduleTokenRefresh();
+        return;
+      } catch (err) {
+        lastErr = err;
+        const msg = err instanceof Error ? err.message : String(err);
+        const isRace = /registration in progress/i.test(msg);
+        console.warn(`[VoiceManager] register attempt ${attempt} failed:`, msg, isRace ? '(retrying)' : '');
+        if (!isRace || attempt === MAX_ATTEMPTS) break;
+        // Backoff: 400ms, 1200ms, (not reached)
+        await new Promise((r) => setTimeout(r, 400 * attempt * attempt));
+      }
     }
+
+    console.error('[VoiceManager] Registration failed after retries:', lastErr);
+    this.registered = false;
+    this.emit({ type: 'error', payload: lastErr });
+    // Don't emit 'error' status — we already emitted 'ready' above so the
+    // UI stays usable. makeCall() will retry registration on next call.
   }
 
   async unregister(): Promise<void> {
@@ -270,7 +293,16 @@ export class VoiceManager {
   async makeCall(to: string): Promise<boolean> {
     console.log('[VoiceManager] makeCall:', to, '| native:', this.nativeAvailable, '| voice:', !!this.voice, '| registered:', this.registered, '| activeCall:', !!this.activeCall, '| inFlight:', !!this.registerInFlight);
 
-    if (this.activeCall) return false;
+    if (this.activeCall) {
+      console.warn('[VoiceManager] makeCall aborted: another call is active');
+      return false;
+    }
+
+    // First call ever? SDK hasn't been loaded yet. Load it now.
+    if (!this.nativeAvailable && sdkAvailable === null) {
+      console.log('[VoiceManager] SDK not loaded yet, loading now...');
+      await this.register();
+    }
 
     // If a registration is currently running (e.g. Provider mount race),
     // wait for it instead of launching a parallel register().
@@ -286,7 +318,16 @@ export class VoiceManager {
       await this.register();
     }
 
-    if (!this.nativeAvailable || !this.voice) return false;
+    if (!this.nativeAvailable || !this.voice) {
+      console.warn('[VoiceManager] makeCall aborted: SDK not available');
+      return false;
+    }
+
+    if (!this.registered) {
+      console.warn('[VoiceManager] makeCall aborted: registration failed, cannot place call');
+      this.emit({ type: 'error', payload: new Error('Voice SDK registration failed') });
+      return false;
+    }
     this.emit({ type: 'status', payload: 'connecting' });
 
     try {

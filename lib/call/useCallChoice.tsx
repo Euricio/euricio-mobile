@@ -26,7 +26,7 @@ import { colors, spacing, fontSize, fontWeight } from '../../constants/theme';
  * This way the original tel: behavior is never broken.
  */
 export function useCallChoice() {
-  const { makeCall, isInitialized } = useVoice();
+  const { makeCall } = useVoice();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const [visible, setVisible] = useState(false);
@@ -70,7 +70,12 @@ export function useCallChoice() {
   });
 
   const hasTwilioConfig = !!voiceConnection;
-  const twilioReady = isInitialized;
+  // Activate the business option as soon as Twilio is configured in the
+  // backend. The native SDK will register on first use inside makeCall().
+  // Previously this was tied to isInitialized, which could stay false
+  // forever if the initial registration lost a race on app start — leaving
+  // the option permanently greyed out even though calls would work fine.
+  const twilioReady = hasTwilioConfig;
   const outboundNumber = voiceConnection?.default_outbound_number ?? null;
 
   const promptCall = useCallback(
@@ -93,12 +98,17 @@ export function useCallChoice() {
     Linking.openURL(`tel:${phoneNumber}`);
   }, [phoneNumber]);
 
-  const handleBusiness = useCallback(() => {
+  const handleBusiness = useCallback(async () => {
     if (!twilioReady) return; // safety — button is disabled
     setVisible(false);
-    // Use makeCall from VoiceContext (unchanged, original behavior)
-    makeCall(phoneNumber);
+    // Navigate first so the call UI is visible while makeCall() awaits
+    // (first call triggers SDK load + native registration which can take
+    // a moment). If the call fails, the call screen will show the error.
     router.push({ pathname: '/(app)/call/[id]', params: { id: phoneNumber } });
+    const started = await makeCall(phoneNumber);
+    if (!started) {
+      console.warn('[useCallChoice] makeCall returned false — voice SDK not ready');
+    }
   }, [phoneNumber, makeCall, twilioReady, router]);
 
   const handleClose = useCallback(() => {

@@ -541,6 +541,8 @@ const en: Record<string, string> = {
   voice_dialer: 'Dialer',
   voice_enterNumber: 'Enter number',
   voice_connecting: 'Connecting...',
+  voice_notReadyTitle: 'Voice not ready',
+  voice_notReadyMessage: 'The voice connection is still being established. Please wait a moment and try again.',
   voice_ringing: 'Ringing...',
   voice_connected: 'Connected',
   voice_disconnected: 'Disconnected',

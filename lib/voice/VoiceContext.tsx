@@ -11,7 +11,7 @@ interface VoiceContextType {
   callDuration: number;
   isInitialized: boolean;
   incomingCall: IncomingCallInfo | null;
-  makeCall: (toNumber: string) => Promise<void>;
+  makeCall: (toNumber: string) => Promise<boolean>;
   hangUp: () => Promise<void>;
   toggleMute: () => Promise<void>;
   toggleHold: () => Promise<void>;

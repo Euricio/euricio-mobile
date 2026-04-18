@@ -541,6 +541,8 @@ const es: Record<string, string> = {
   voice_dialer: 'Teclado',
   voice_enterNumber: 'Introducir número',
   voice_connecting: 'Conectando...',
+  voice_notReadyTitle: 'Voz no disponible',
+  voice_notReadyMessage: 'La conexión de voz todavía se está estableciendo. Espera un momento e inténtalo de nuevo.',
   voice_ringing: 'Sonando...',
   voice_connected: 'Conectado',
   voice_disconnected: 'Desconectado',

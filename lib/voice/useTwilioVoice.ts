@@ -16,7 +16,8 @@ interface UseTwilioVoiceReturn {
   callDuration: number;
   isInitialized: boolean;
   incomingCall: IncomingCallInfo | null;
-  makeCall: (toNumber: string) => Promise<void>;
+  /** Returns true if the call was actually placed, false if the SDK wasn't ready. */
+  makeCall: (toNumber: string) => Promise<boolean>;
   hangUp: () => Promise<void>;
   toggleMute: () => Promise<void>;
   toggleHold: () => Promise<void>;
@@ -131,7 +132,13 @@ export function useTwilioVoice(): UseTwilioVoiceReturn {
     setIsMuted(false);
     setIsOnHold(false);
     setCallDuration(0);
-    return managerRef.current.makeCall(toNumber);
+    const started = await managerRef.current.makeCall(toNumber);
+    // If SDK loaded lazily during makeCall(), mark as initialized so the UI
+    // stops showing the greyed-out state for subsequent calls.
+    if (managerRef.current.isNativeAvailable()) {
+      setIsInitialized(true);
+    }
+    return started;
   }, []);
 
   const hangUp = useCallback(async () => {
