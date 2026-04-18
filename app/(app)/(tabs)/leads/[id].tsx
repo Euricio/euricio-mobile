@@ -48,6 +48,7 @@ export default function LeadDetailScreen() {
   const moveToStage = useMoveLeadToStage();
   const sendPortalInvite = useSendPortalInvite();
   const statusConfig = getStatusConfig(t);
+  const { promptCall, CallChoiceSheet } = useCallChoice();
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -67,8 +68,6 @@ export default function LeadDetailScreen() {
     label: lead.status,
     variant: 'default' as const,
   };
-
-  const { promptCall, CallChoiceSheet } = useCallChoice();
 
   const handleCall = () => {
     if (lead.phone) {
