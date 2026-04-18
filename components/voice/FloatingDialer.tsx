@@ -9,6 +9,7 @@ import {
   FlatList,
   Animated,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useVoice } from '../../lib/voice/VoiceContext';
@@ -57,13 +58,24 @@ export default function FloatingDialer() {
     }
   }, [pendingDial, status, makeCall, clearPendingDial]);
 
+  const [isDialing, setIsDialing] = useState(false);
+
   const handleDial = async () => {
-    if (dialerNumber.length > 0) {
+    if (dialerNumber.length === 0 || isDialing) return;
+    setIsDialing(true);
+    try {
       const started = await makeCall(dialerNumber);
       if (started) {
         setDialerExpanded(false);
+      } else {
+        // Surface why nothing happened instead of failing silently.
+        Alert.alert(
+          t('voice_notReadyTitle'),
+          t('voice_notReadyMessage'),
+        );
       }
-      // If not started (SDK not ready), dialer stays open
+    } finally {
+      setIsDialing(false);
     }
   };
 
@@ -185,10 +197,10 @@ export default function FloatingDialer() {
             <TouchableOpacity
               style={[
                 styles.callButton,
-                dialerNumber.length === 0 && styles.callButtonDisabled,
+                (dialerNumber.length === 0 || isDialing) && styles.callButtonDisabled,
               ]}
               onPress={handleDial}
-              disabled={dialerNumber.length === 0}
+              disabled={dialerNumber.length === 0 || isDialing}
               activeOpacity={0.7}
             >
               <Ionicons name="call" size={28} color={colors.white} />

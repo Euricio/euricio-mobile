@@ -541,6 +541,8 @@ const de: Record<string, string> = {
   voice_dialer: 'Wähltastatur',
   voice_enterNumber: 'Nummer eingeben',
   voice_connecting: 'Verbindung wird hergestellt...',
+  voice_notReadyTitle: 'Verbindung nicht bereit',
+  voice_notReadyMessage: 'Die Voice-Verbindung wird noch hergestellt. Bitte warte einen Moment und versuche es erneut.',
   voice_ringing: 'Klingelt...',
   voice_connected: 'Verbunden',
   voice_disconnected: 'Nicht verbunden',
