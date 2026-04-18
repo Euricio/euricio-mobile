@@ -127,20 +127,54 @@ export class VoiceManager {
     });
   }
 
+  private connectTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private clearConnectTimeout() {
+    if (this.connectTimeoutTimer) {
+      clearTimeout(this.connectTimeoutTimer);
+      this.connectTimeoutTimer = null;
+    }
+  }
+
   private attachCallListeners(call: any) {
     if (!TwilioCall) return;
 
+    // Fail-safe timeout: if the native SDK never fires Connected/Ringing/
+    // Disconnected within 20s, break out of "connecting" so the UI isn't
+    // permanently stuck. This protects against the known iOS SDK issue
+    // where outbound call events don't fire without specific capabilities.
+    this.clearConnectTimeout();
+    this.connectTimeoutTimer = setTimeout(() => {
+      console.warn('[VoiceManager] Call timed out waiting for Connected/Ringing event');
+      try { call.disconnect(); } catch { /* ignore */ }
+      this.activeCall = null;
+      this.emit({
+        type: 'error',
+        payload: new Error(
+          'Timeout: no se recibió confirmación de la llamada. Revisa la configuración de Twilio (TwiML App + aplicación nativa).',
+        ),
+      });
+      this.emit({ type: 'status', payload: 'error' });
+    }, 20_000);
+
     call.on(TwilioCall.Event.Connected, () => {
+      console.log('[VoiceManager] Call.Event.Connected');
+      this.clearConnectTimeout();
       this.emit({ type: 'callConnected' });
       this.emit({ type: 'status', payload: 'connected' });
     });
 
     call.on(TwilioCall.Event.Ringing, () => {
+      console.log('[VoiceManager] Call.Event.Ringing');
+      // Cancel the timeout — once Ringing fires we know the SDK is alive.
+      this.clearConnectTimeout();
       this.emit({ type: 'callRinging' });
       this.emit({ type: 'status', payload: 'ringing' });
     });
 
     call.on(TwilioCall.Event.Disconnected, () => {
+      console.log('[VoiceManager] Call.Event.Disconnected');
+      this.clearConnectTimeout();
       this.activeCall = null;
       this.emit({ type: 'callDisconnected' });
       this.emit({ type: 'status', payload: 'disconnected' });
@@ -148,6 +182,8 @@ export class VoiceManager {
     });
 
     call.on(TwilioCall.Event.ConnectFailure, (error: unknown) => {
+      console.error('[VoiceManager] Call.Event.ConnectFailure:', error);
+      this.clearConnectTimeout();
       this.activeCall = null;
       this.emit({ type: 'error', payload: error });
       this.emit({ type: 'status', payload: 'error' });

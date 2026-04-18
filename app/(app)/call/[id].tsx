@@ -22,6 +22,7 @@ export default function CallScreen() {
   const { t } = useI18n();
   const {
     status,
+    error,
     callDuration,
     isMuted,
     isOnHold,
@@ -44,10 +45,21 @@ export default function CallScreen() {
         return formatDuration(callDuration);
       case 'disconnected':
         return t('voice_callEnded');
+      case 'error':
+        return error || 'Error';
       default:
         return t('call_connecting');
     }
   })();
+
+  // Auto-return from call screen when the call could not be placed or
+  // disconnected so the user isn’t stuck on a blank "Conectando..." screen.
+  React.useEffect(() => {
+    if (status === 'error' || status === 'disconnected') {
+      const t = setTimeout(() => router.back(), 2500);
+      return () => clearTimeout(t);
+    }
+  }, [status]);
 
   return (
     <View style={styles.container}>
