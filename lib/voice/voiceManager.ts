@@ -215,7 +215,13 @@ export class VoiceManager {
   /* ── Outbound calls ────────────────────────────────────────── */
 
   async makeCall(to: string): Promise<void> {
-    if (!this.nativeAvailable || !this.voice || this.activeCall) return;
+    // If not yet registered, try to register on the fly
+    if (!this.nativeAvailable || !this.voice) {
+      await this.register();
+      // After register attempt, check again
+      if (!this.nativeAvailable || !this.voice) return;
+    }
+    if (this.activeCall) return;
     this.emit({ type: 'status', payload: 'connecting' });
 
     try {

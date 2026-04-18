@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useVoice } from '../voice/VoiceContext';
+import { VoiceManager } from '../voice/voiceManager';
 import { useI18n } from '../i18n';
 import { useAuthStore } from '../../store/authStore';
 import { supabase } from '../supabase';
@@ -80,8 +81,16 @@ export function useCallChoice() {
 
   const handleBusiness = useCallback(async () => {
     setVisible(false);
-    await makeCall(phoneNumber);
+    // Navigate to call screen first so user sees UI immediately
     router.push({ pathname: '/(app)/call/[id]', params: { id: phoneNumber } });
+    // Ensure VoiceManager is registered before placing the call
+    const manager = VoiceManager.getInstance();
+    if (!manager.isRegistered()) {
+      await manager.register();
+      // Small delay to let SDK settle after registration
+      await new Promise(r => setTimeout(r, 500));
+    }
+    await makeCall(phoneNumber);
   }, [phoneNumber, makeCall, router]);
 
   const handleClose = useCallback(() => {
