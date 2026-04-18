@@ -154,11 +154,12 @@ export class VoiceManager {
     const available = await loadSdk();
     if (!available || !TwilioVoice) {
       this.nativeAvailable = false;
-      // Silently remain in idle — no error for Expo Go
+      console.log('[VoiceManager] SDK not available, skipping registration');
       return;
     }
 
     this.nativeAvailable = true;
+    console.log('[VoiceManager] SDK available, registering...');
 
     if (!this.voice) {
       this.voice = new TwilioVoice();
@@ -168,9 +169,12 @@ export class VoiceManager {
     try {
       const { getVoiceAccessToken } = await import('./accessToken');
       const token = await getVoiceAccessToken();
+      console.log('[VoiceManager] Token obtained, calling voice.register...');
       await this.voice.register(token);
+      console.log('[VoiceManager] Registered successfully');
       this.scheduleTokenRefresh();
     } catch (err) {
+      console.error('[VoiceManager] Registration failed:', err);
       this.emit({ type: 'error', payload: err });
       this.emit({ type: 'status', payload: 'error' });
     }
@@ -215,7 +219,17 @@ export class VoiceManager {
   /* ── Outbound calls ────────────────────────────────────────── */
 
   async makeCall(to: string): Promise<boolean> {
-    if (!this.nativeAvailable || !this.voice || this.activeCall) return false;
+    console.log('[VoiceManager] makeCall:', to, '| native:', this.nativeAvailable, '| voice:', !!this.voice, '| registered:', this.registered, '| activeCall:', !!this.activeCall);
+
+    if (this.activeCall) return false;
+
+    // If SDK is available but not registered, try to register now
+    if (this.nativeAvailable && this.voice && !this.registered) {
+      console.log('[VoiceManager] Not registered, attempting registration before call...');
+      await this.register();
+    }
+
+    if (!this.nativeAvailable || !this.voice) return false;
     this.emit({ type: 'status', payload: 'connecting' });
 
     try {
