@@ -67,6 +67,8 @@ export class VoiceManager {
   private registered = false;
   private tokenRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   private nativeAvailable = false;
+  /** In-flight registration promise — guarantees only one register() runs at a time. */
+  private registerInFlight: Promise<void> | null = null;
 
   private constructor() {}
 
@@ -154,7 +156,36 @@ export class VoiceManager {
 
   /* ── Registration ──────────────────────────────────────────── */
 
+  /**
+   * Register the Twilio Voice SDK.
+   *
+   * Guarantees:
+   *  - Only ONE native `voice.register()` runs at a time. Parallel callers
+   *    (Provider mount, makeCall auto-register, token refresh) all await the
+   *    same in-flight promise instead of triggering duplicate native calls
+   *    that cause "Registration in progress. Please try again later".
+   *  - If already registered, returns immediately (idempotent).
+   *  - On failure, the in-flight slot is cleared so the next caller can retry.
+   */
   async register(): Promise<void> {
+    // Already registered — nothing to do.
+    if (this.registered) {
+      return;
+    }
+
+    // A registration is already running — reuse the same promise.
+    if (this.registerInFlight) {
+      console.log('[VoiceManager] register() already in progress, awaiting existing promise');
+      return this.registerInFlight;
+    }
+
+    this.registerInFlight = this._doRegister().finally(() => {
+      this.registerInFlight = null;
+    });
+    return this.registerInFlight;
+  }
+
+  private async _doRegister(): Promise<void> {
     // Load SDK on first register attempt
     const available = await loadSdk();
     if (!available || !TwilioVoice) {
@@ -176,10 +207,16 @@ export class VoiceManager {
       const token = await getVoiceAccessToken();
       console.log('[VoiceManager] Token obtained, calling voice.register...');
       await this.voice.register(token);
+      // Mark registered synchronously — don't wait for the Registered event,
+      // otherwise parallel makeCall() calls will think we're still unregistered
+      // and trigger another register() → native "Registration in progress" error.
+      this.registered = true;
       console.log('[VoiceManager] Registered successfully');
+      this.emit({ type: 'status', payload: 'ready' });
       this.scheduleTokenRefresh();
     } catch (err) {
       console.error('[VoiceManager] Registration failed:', err);
+      this.registered = false;
       this.emit({ type: 'error', payload: err });
       this.emit({ type: 'status', payload: 'error' });
     }
@@ -201,6 +238,13 @@ export class VoiceManager {
     if (this.tokenRefreshTimer) clearTimeout(this.tokenRefreshTimer);
     this.tokenRefreshTimer = setTimeout(async () => {
       try {
+        // If a registration is already in flight (e.g. user triggered a call
+        // at the refresh moment), wait for it instead of starting a duplicate.
+        if (this.registerInFlight) {
+          await this.registerInFlight;
+          this.scheduleTokenRefresh();
+          return;
+        }
         const { getVoiceAccessToken } = await import('./accessToken');
         const token = await getVoiceAccessToken();
         if (this.voice) {
@@ -224,12 +268,20 @@ export class VoiceManager {
   /* ── Outbound calls ────────────────────────────────────────── */
 
   async makeCall(to: string): Promise<boolean> {
-    console.log('[VoiceManager] makeCall:', to, '| native:', this.nativeAvailable, '| voice:', !!this.voice, '| registered:', this.registered, '| activeCall:', !!this.activeCall);
+    console.log('[VoiceManager] makeCall:', to, '| native:', this.nativeAvailable, '| voice:', !!this.voice, '| registered:', this.registered, '| activeCall:', !!this.activeCall, '| inFlight:', !!this.registerInFlight);
 
     if (this.activeCall) return false;
 
-    // If SDK is available but not registered, try to register now
-    if (this.nativeAvailable && this.voice && !this.registered) {
+    // If a registration is currently running (e.g. Provider mount race),
+    // wait for it instead of launching a parallel register().
+    if (this.registerInFlight) {
+      console.log('[VoiceManager] registration in flight, awaiting before call...');
+      try { await this.registerInFlight; } catch { /* handled inside */ }
+    }
+
+    // If SDK is available but not registered, try to register now.
+    // register() is idempotent + guarded, so duplicate calls are safe.
+    if (this.nativeAvailable && !this.registered) {
       console.log('[VoiceManager] Not registered, attempting registration before call...');
       await this.register();
     }
