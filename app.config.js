@@ -34,9 +34,9 @@ module.exports = ({ config }) => ({
         'Euricio benötigt Zugriff auf das Mikrofon für Telefonate.',
       UIBackgroundModes: ['voip', 'audio', 'fetch', 'remote-notification'],
     },
-    entitlements: {
-      'aps-environment': 'production',
-    },
+    // Note: aps-environment entitlement omitted — Push Notifications
+    // provisioning profile not yet configured. Outbound calls work without it;
+    // incoming call push notifications require this + re-provisioning.
   },
 
   android: {
