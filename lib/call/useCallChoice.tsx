@@ -12,14 +12,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useVoice } from '../voice/VoiceContext';
-import { VoiceManager } from '../voice/voiceManager';
 import { useI18n } from '../i18n';
 import { useAuthStore } from '../../store/authStore';
 import { supabase } from '../supabase';
 import { colors, spacing, fontSize, fontWeight } from '../../constants/theme';
 
 export function useCallChoice() {
-  const { makeCall } = useVoice();
+  const { makeCall, dialNumber, isInitialized } = useVoice();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const [visible, setVisible] = useState(false);
@@ -79,19 +78,18 @@ export function useCallChoice() {
     Linking.openURL(`tel:${phoneNumber}`);
   }, [phoneNumber]);
 
-  const handleBusiness = useCallback(async () => {
+  const handleBusiness = useCallback(() => {
     setVisible(false);
-    // Navigate to call screen first so user sees UI immediately
-    router.push({ pathname: '/(app)/call/[id]', params: { id: phoneNumber } });
-    // Ensure VoiceManager is registered before placing the call
-    const manager = VoiceManager.getInstance();
-    if (!manager.isRegistered()) {
-      await manager.register();
-      // Small delay to let SDK settle after registration
-      await new Promise(r => setTimeout(r, 500));
+    if (isInitialized) {
+      // SDK is ready — call directly and navigate to call screen
+      makeCall(phoneNumber);
+      router.push({ pathname: '/(app)/call/[id]', params: { id: phoneNumber } });
+    } else {
+      // SDK not ready yet — use dialNumber which sets pendingDial
+      // The FloatingDialer will auto-dial when status becomes 'ready'
+      dialNumber(phoneNumber);
     }
-    await makeCall(phoneNumber);
-  }, [phoneNumber, makeCall, router]);
+  }, [phoneNumber, makeCall, dialNumber, isInitialized, router]);
 
   const handleClose = useCallback(() => {
     setVisible(false);
