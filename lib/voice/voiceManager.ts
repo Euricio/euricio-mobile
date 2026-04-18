@@ -291,57 +291,67 @@ export class VoiceManager {
   /* ── Outbound calls ────────────────────────────────────────── */
 
   async makeCall(to: string): Promise<boolean> {
-    console.log('[VoiceManager] makeCall:', to, '| native:', this.nativeAvailable, '| voice:', !!this.voice, '| registered:', this.registered, '| activeCall:', !!this.activeCall, '| inFlight:', !!this.registerInFlight);
+    console.log('[VoiceManager] makeCall:', to, '| native:', this.nativeAvailable, '| voice:', !!this.voice, '| registered:', this.registered, '| activeCall:', !!this.activeCall);
 
     if (this.activeCall) {
       console.warn('[VoiceManager] makeCall aborted: another call is active');
       return false;
     }
 
-    // First call ever? SDK hasn't been loaded yet. Load it now.
-    if (!this.nativeAvailable && sdkAvailable === null) {
-      console.log('[VoiceManager] SDK not loaded yet, loading now...');
-      await this.register();
-    }
-
-    // If a registration is currently running (e.g. Provider mount race),
-    // wait for it instead of launching a parallel register().
-    if (this.registerInFlight) {
-      console.log('[VoiceManager] registration in flight, awaiting before call...');
-      try { await this.registerInFlight; } catch { /* handled inside */ }
-    }
-
-    // If SDK is available but not registered, try to register now.
-    // register() is idempotent + guarded, so duplicate calls are safe.
-    if (this.nativeAvailable && !this.registered) {
-      console.log('[VoiceManager] Not registered, attempting registration before call...');
-      await this.register();
+    // Make sure the native SDK is loaded and the Voice instance exists.
+    // NOTE: We intentionally do NOT require register() to succeed before
+    // placing outbound calls. register() is for INCOMING calls (VoIP push
+    // notifications) and needs APNs entitlements. Outbound calls only need
+    // voice.connect(token, params) — no registration, no push, no APNs.
+    // This used to block calls when register() failed due to missing
+    // aps-environment entitlement.
+    if (!this.nativeAvailable) {
+      await this.ensureSdkLoaded();
     }
 
     if (!this.nativeAvailable || !this.voice) {
-      console.warn('[VoiceManager] makeCall aborted: SDK not available');
+      console.warn('[VoiceManager] makeCall aborted: native SDK not available');
+      this.emit({ type: 'error', payload: new Error('Voice SDK not available in this build') });
       return false;
     }
 
-    if (!this.registered) {
-      console.warn('[VoiceManager] makeCall aborted: registration failed, cannot place call');
-      this.emit({ type: 'error', payload: new Error('Voice SDK registration failed') });
-      return false;
-    }
     this.emit({ type: 'status', payload: 'connecting' });
 
     try {
       const { getVoiceAccessToken } = await import('./accessToken');
       const token = await getVoiceAccessToken();
+      console.log('[VoiceManager] Token obtained, calling voice.connect...');
       const call = await this.voice.connect(token, { params: { To: to } });
+      console.log('[VoiceManager] voice.connect returned call object');
       this.activeCall = call;
       this.attachCallListeners(call);
       return true;
     } catch (err) {
+      console.error('[VoiceManager] voice.connect failed:', err);
       this.emit({ type: 'error', payload: err });
       this.emit({ type: 'status', payload: 'error' });
       return false;
     }
+  }
+
+  /**
+   * Load the native SDK and instantiate the Voice object without
+   * registering for incoming calls. Used by makeCall() to prepare for
+   * outbound calls without requiring APNs/push setup.
+   */
+  private async ensureSdkLoaded(): Promise<void> {
+    const available = await loadSdk();
+    if (!available || !TwilioVoice) {
+      this.nativeAvailable = false;
+      return;
+    }
+    this.nativeAvailable = true;
+    if (!this.voice) {
+      this.voice = new TwilioVoice();
+      this.setupVoiceListeners();
+    }
+    // Emit ready so the UI reflects that outbound calls are available.
+    this.emit({ type: 'status', payload: 'ready' });
   }
 
   /* ── Incoming calls ────────────────────────────────────────── */
