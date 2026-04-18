@@ -195,6 +195,9 @@ export default function CreatePropertyScreen() {
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
 
+  // Commission
+  const [commissionPercentage, setCommissionPercentage] = useState('');
+
   // Land breakdown
   const [landClassification, setLandClassification] = useState('');
   const [landBuildableM2, setLandBuildableM2] = useState('');
@@ -281,6 +284,9 @@ export default function CreatePropertyScreen() {
 
     // Lead
     if (leadId) payload.lead_id = parseInt(leadId, 10);
+
+    // Commission
+    if (commissionPercentage) payload.commission_percentage = parseFloat(commissionPercentage);
 
     // Land breakdown
     // Note: land_classification, land_buildable_m2 do not exist in DB yet
@@ -423,6 +429,13 @@ export default function CreatePropertyScreen() {
           label={t('prop_priceNegotiable')}
           value={priceNegotiable}
           onChange={setPriceNegotiable}
+        />
+        <FormInput
+          label={t('prop_commissionPercent')}
+          value={commissionPercentage}
+          onChangeText={setCommissionPercentage}
+          placeholder="z.B. 5"
+          keyboardType="numeric"
         />
         <FormInput
           label={t('prop_area')}
