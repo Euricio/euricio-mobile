@@ -34,6 +34,9 @@ module.exports = ({ config }) => ({
         'Euricio benötigt Zugriff auf das Mikrofon für Telefonate.',
       UIBackgroundModes: ['voip', 'audio', 'fetch', 'remote-notification'],
     },
+    entitlements: {
+      'aps-environment': 'production',
+    },
   },
 
   android: {

@@ -34,6 +34,7 @@ type Listener = (event: VoiceEvent) => void;
 /* ── Lazy SDK references (set after dynamic import) ───────── */
 let TwilioVoice: typeof import('@twilio/voice-react-native-sdk').Voice | null = null;
 let TwilioCall: typeof import('@twilio/voice-react-native-sdk').Call | null = null;
+let TwilioCallInvite: typeof import('@twilio/voice-react-native-sdk').CallInvite | null = null;
 let sdkAvailable: boolean | null = null; // null = not checked yet
 
 function loadSdkSync(): boolean {
@@ -44,6 +45,7 @@ function loadSdkSync(): boolean {
     const mod = require('@twilio/voice-react-native-sdk');
     TwilioVoice = mod.Voice;
     TwilioCall = mod.Call;
+    TwilioCallInvite = mod.CallInvite;
     sdkAvailable = true;
   } catch {
     console.log('[VoiceManager] Twilio SDK not available (Expo Go?)');
@@ -102,11 +104,14 @@ export class VoiceManager {
         },
       });
       this.emit({ type: 'status', payload: 'ringing' });
-    });
 
-    this.voice.on(TwilioVoice.Event.CancelledCallInvite, () => {
-      this.pendingInvite = null;
-      this.emit({ type: 'status', payload: 'ready' });
+      // SDK 2.0: CancelledCallInvite moved from Voice to CallInvite
+      if (TwilioCallInvite) {
+        invite.on(TwilioCallInvite.Event.Cancelled, () => {
+          this.pendingInvite = null;
+          this.emit({ type: 'status', payload: 'ready' });
+        });
+      }
     });
 
     this.voice.on(TwilioVoice.Event.Registered, () => {
