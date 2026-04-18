@@ -128,6 +128,12 @@ export class VoiceManager {
   }
 
   private connectTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Last error from makeCall, so callers can read it synchronously. */
+  private lastError: string | null = null;
+
+  getLastError(): string | null {
+    return this.lastError;
+  }
 
   private clearConnectTimeout() {
     if (this.connectTimeoutTimer) {
@@ -330,8 +336,13 @@ export class VoiceManager {
     console.log('[VoiceManager] makeCall:', to, '| native:', this.nativeAvailable, '| voice:', !!this.voice, '| registered:', this.registered, '| activeCall:', !!this.activeCall);
 
     if (this.activeCall) {
-      console.warn('[VoiceManager] makeCall aborted: another call is active');
-      return false;
+      // A previous call is still hanging around (e.g. events never fired
+      // and the UI left the call screen). Force-disconnect it so the user
+      // isn’t blocked from placing a new call.
+      console.warn('[VoiceManager] makeCall: stale activeCall detected, force-disconnecting');
+      try { await this.activeCall.disconnect(); } catch { /* ignore */ }
+      this.activeCall = null;
+      this.clearConnectTimeout();
     }
 
     // Make sure the native SDK is loaded and the Voice instance exists.
@@ -347,9 +358,11 @@ export class VoiceManager {
 
     if (!this.nativeAvailable || !this.voice) {
       console.warn('[VoiceManager] makeCall aborted: native SDK not available');
-      this.emit({ type: 'error', payload: new Error('Voice SDK not available in this build') });
+      this.lastError = 'SDK nativo no disponible (¿Expo Go? ¿Build antiguo?)';
+      this.emit({ type: 'error', payload: new Error(this.lastError) });
       return false;
     }
+    this.lastError = null;
 
     this.emit({ type: 'status', payload: 'connecting' });
 
@@ -364,6 +377,7 @@ export class VoiceManager {
       return true;
     } catch (err) {
       console.error('[VoiceManager] voice.connect failed:', err);
+      this.lastError = err instanceof Error ? err.message : String(err);
       this.emit({ type: 'error', payload: err });
       this.emit({ type: 'status', payload: 'error' });
       return false;
@@ -415,10 +429,29 @@ export class VoiceManager {
   /* ── Active call controls ──────────────────────────────────── */
 
   async hangup(): Promise<void> {
+    this.clearConnectTimeout();
     if (this.activeCall) {
-      await this.activeCall.disconnect();
+      try { await this.activeCall.disconnect(); } catch { /* ignore */ }
+      this.activeCall = null;
+      // Force status back to ready — if events didn’t fire during the call
+      // we still need to free the UI from the call screen.
+      this.emit({ type: 'callDisconnected' });
+      this.emit({ type: 'status', payload: 'ready' });
+    }
+  }
+
+  /**
+   * Nuke any hanging call state. Useful when the user wants to retry after
+   * a stuck-connecting state.
+   */
+  resetCallState(): void {
+    console.log('[VoiceManager] resetCallState');
+    this.clearConnectTimeout();
+    if (this.activeCall) {
+      try { this.activeCall.disconnect(); } catch { /* ignore */ }
       this.activeCall = null;
     }
+    this.emit({ type: 'status', payload: 'ready' });
   }
 
   async toggleMute(): Promise<boolean> {

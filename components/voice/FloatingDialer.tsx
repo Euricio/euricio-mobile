@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useVoice } from '../../lib/voice/VoiceContext';
+import { VoiceManager } from '../../lib/voice/voiceManager';
 import { useI18n } from '../../lib/i18n';
 import { colors, spacing, fontSize, fontWeight, borderRadius } from '../../constants/theme';
 
@@ -70,13 +71,13 @@ export default function FloatingDialer() {
         setDialerExpanded(false);
       } else {
         // Surface why nothing happened instead of failing silently.
-        // Include the actual error message if we have one — makes it
-        // possible to diagnose "still hangs" issues from a screenshot.
-        const baseMsg = t('voice_notReadyMessage');
-        const detail = error ? `\n\n${error}` : '';
+        // Read the error DIRECTLY from the manager — not via React state,
+        // which hasn’t flushed yet when we get here.
+        const syncError = VoiceManager.getInstance().getLastError();
+        const detail = syncError ? `\n\n${syncError}` : (error ? `\n\n${error}` : '');
         Alert.alert(
           t('voice_notReadyTitle'),
-          baseMsg + detail,
+          t('voice_notReadyMessage') + detail,
         );
       }
     } finally {
