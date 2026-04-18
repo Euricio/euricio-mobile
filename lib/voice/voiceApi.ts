@@ -15,11 +15,33 @@ async function authHeaders(): Promise<Record<string, string>> {
 
 async function api<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const headers = await authHeaders();
-  const res = await fetch(`${API_URL}${path}`, {
+  const url = `${API_URL}${path}`;
+  const res = await fetch(url, {
     ...opts,
     headers: { ...headers, ...opts.headers },
   });
-  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  if (!res.ok) {
+    // Read the error body so we can surface the actual backend error
+    // instead of a generic "API 500: Internal Server Error".
+    let body = '';
+    try { body = await res.text(); } catch { /* ignore */ }
+    console.error('[voiceApi] request failed', {
+      url,
+      method: opts.method || 'GET',
+      status: res.status,
+      statusText: res.statusText,
+      body: body.slice(0, 500),
+    });
+    // Try to parse a JSON error message if the backend returned one.
+    let detail = res.statusText;
+    try {
+      const parsed = JSON.parse(body);
+      detail = parsed.error || parsed.message || parsed.detail || detail;
+    } catch { /* not JSON — keep the raw body snippet */
+      if (body) detail = body.slice(0, 200);
+    }
+    throw new Error(`API ${res.status}: ${detail}`);
+  }
   return res.json();
 }
 
@@ -270,8 +292,11 @@ export const deleteAudioAsset = (id: string) =>
 
 /* ── Test Call ───────────────────────────────────────────────── */
 
-export const makeTestCall = (to: string) =>
+export const makeTestCall = (phoneNumber: string) =>
   api('/api/twilio/voice/test-call', {
     method: 'POST',
-    body: JSON.stringify({ to }),
+    // Backend expects { phoneNumber } — not { to }. Sending the wrong
+    // field produced a silent 400 "phoneNumber is required" that surfaced
+    // in the UI as the generic "Llamada de prueba fallida" alert.
+    body: JSON.stringify({ phoneNumber }),
   });

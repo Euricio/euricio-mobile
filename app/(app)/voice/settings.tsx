@@ -81,7 +81,11 @@ export default function VoiceSettings() {
   const testCallMut = useMutation({
     mutationFn: () => makeTestCall(testNumber),
     onSuccess: () => Alert.alert(t('voice_success'), t('voice_testCallStarted')),
-    onError: () => Alert.alert(t('voice_error'), t('voice_testCallFailed')),
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[voice/settings] testCall failed:', msg);
+      Alert.alert(t('voice_error'), `${t('voice_testCallFailed')}\n\n${msg}`);
+    },
   });
 
   const togglePermission = useMutation({
