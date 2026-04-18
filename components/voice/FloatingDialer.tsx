@@ -35,6 +35,7 @@ export default function FloatingDialer() {
   const { t } = useI18n();
   const {
     status,
+    error,
     callDuration,
     isMuted,
     dialerNumber,
@@ -69,9 +70,13 @@ export default function FloatingDialer() {
         setDialerExpanded(false);
       } else {
         // Surface why nothing happened instead of failing silently.
+        // Include the actual error message if we have one — makes it
+        // possible to diagnose "still hangs" issues from a screenshot.
+        const baseMsg = t('voice_notReadyMessage');
+        const detail = error ? `\n\n${error}` : '';
         Alert.alert(
           t('voice_notReadyTitle'),
-          t('voice_notReadyMessage'),
+          baseMsg + detail,
         );
       }
     } finally {
