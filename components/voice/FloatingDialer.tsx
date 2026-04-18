@@ -57,10 +57,13 @@ export default function FloatingDialer() {
     }
   }, [pendingDial, status, makeCall, clearPendingDial]);
 
-  const handleDial = () => {
+  const handleDial = async () => {
     if (dialerNumber.length > 0) {
-      makeCall(dialerNumber);
-      setDialerExpanded(false);
+      const started = await makeCall(dialerNumber);
+      if (started) {
+        setDialerExpanded(false);
+      }
+      // If not started (SDK not ready), dialer stays open
     }
   };
 

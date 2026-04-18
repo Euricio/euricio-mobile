@@ -126,12 +126,12 @@ export function useTwilioVoice(): UseTwilioVoiceReturn {
     };
   }, [startTimer, stopTimer]);
 
-  const makeCall = useCallback(async (toNumber: string) => {
+  const makeCall = useCallback(async (toNumber: string): Promise<boolean> => {
     setError(null);
     setIsMuted(false);
     setIsOnHold(false);
     setCallDuration(0);
-    await managerRef.current.makeCall(toNumber);
+    return managerRef.current.makeCall(toNumber);
   }, []);
 
   const hangUp = useCallback(async () => {

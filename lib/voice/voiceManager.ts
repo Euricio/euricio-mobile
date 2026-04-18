@@ -214,8 +214,8 @@ export class VoiceManager {
 
   /* ── Outbound calls ────────────────────────────────────────── */
 
-  async makeCall(to: string): Promise<void> {
-    if (!this.nativeAvailable || !this.voice || this.activeCall) return;
+  async makeCall(to: string): Promise<boolean> {
+    if (!this.nativeAvailable || !this.voice || this.activeCall) return false;
     this.emit({ type: 'status', payload: 'connecting' });
 
     try {
@@ -224,9 +224,11 @@ export class VoiceManager {
       const call = await this.voice.connect(token, { params: { To: to } });
       this.activeCall = call;
       this.attachCallListeners(call);
+      return true;
     } catch (err) {
       this.emit({ type: 'error', payload: err });
       this.emit({ type: 'status', payload: 'error' });
+      return false;
     }
   }
 
