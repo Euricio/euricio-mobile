@@ -197,6 +197,9 @@ export default function EditPropertyScreen() {
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
 
+  // Commission
+  const [commissionPercentage, setCommissionPercentage] = useState('');
+
   // Land breakdown
   const [landClassification, setLandClassification] = useState('');
   const [landBuildableM2, setLandBuildableM2] = useState('');
@@ -275,6 +278,7 @@ export default function EditPropertyScreen() {
     setRentalYield(property.rental_yield != null ? String(property.rental_yield) : '');
     setDescription(property.description ?? '');
     setNotes(property.notes ?? '');
+    setCommissionPercentage(property.commission_percentage != null ? String(property.commission_percentage) : '');
     setLandClassification(property.land_classification ?? '');
     setLandBuildableM2(property.land_buildable_m2 != null ? String(property.land_buildable_m2) : '');
     setTerrenoUrbanoM2(property.terreno_urbano_m2 != null ? String(property.terreno_urbano_m2) : '');
@@ -351,6 +355,7 @@ export default function EditPropertyScreen() {
       rental_yield: rentalYield ? parseFloat(rentalYield) : null,
       description: description.trim() || null,
       notes: notes.trim() || null,
+      commission_percentage: commissionPercentage ? parseFloat(commissionPercentage) : null,
       terreno_urbano_m2: terrenoUrbanoM2 ? parseFloat(terrenoUrbanoM2) : null,
       terreno_agricola_m2: terrenoAgricolaM2 ? parseFloat(terrenoAgricolaM2) : null,
       terreno_forestal_m2: terrenoForestalM2 ? parseFloat(terrenoForestalM2) : null,
@@ -435,6 +440,7 @@ export default function EditPropertyScreen() {
         <SectionLabel text={t('propSection_priceArea')} />
         <FormInput label={t('prop_price')} value={price} onChangeText={setPrice} placeholder={t('prop_pricePlaceholder')} keyboardType="numeric" />
         <FormToggle label={t('prop_priceNegotiable')} value={priceNegotiable} onChange={setPriceNegotiable} />
+        <FormInput label={t('prop_commissionPercent')} value={commissionPercentage} onChangeText={setCommissionPercentage} placeholder="z.B. 5" keyboardType="numeric" />
         <FormInput label={t('prop_area')} value={sizeM2} onChangeText={setSizeM2} placeholder={t('prop_areaPlaceholder')} keyboardType="numeric" />
         <FormInput label={t('prop_rooms')} value={rooms} onChangeText={setRooms} placeholder={t('prop_roomsPlaceholder')} keyboardType="numeric" />
         <FormInput label={t('prop_bathrooms')} value={bathrooms} onChangeText={setBathrooms} placeholder={t('prop_bathroomsPlaceholder')} keyboardType="numeric" />

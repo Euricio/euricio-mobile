@@ -612,6 +612,34 @@ export default function PropertyDetailScreen() {
         </Card>
       )}
 
+      {/* ─── 6b. Commission (intern) ─────────────────────────── */}
+      {property.commission_percentage != null && (
+        <Card style={styles.section}>
+          <View style={styles.commissionHeader}>
+            <Ionicons name="lock-closed-outline" size={14} color={colors.textTertiary} />
+            <Text style={styles.commissionHeaderText}>
+              {t('prop_commission')} ({t('prop_commissionPrivate')})
+            </Text>
+          </View>
+          <View style={styles.commissionRow}>
+            <View style={styles.commissionCol}>
+              <Text style={styles.commissionValue}>
+                {property.commission_percentage.toFixed(2).replace('.', ',')} %
+              </Text>
+              <Text style={styles.commissionLabel}>{t('prop_commissionAgreed')}</Text>
+            </View>
+            <View style={styles.commissionCol}>
+              <Text style={styles.commissionValue}>
+                {property.price != null
+                  ? formatPrice(Math.round(property.price * property.commission_percentage / 100))
+                  : '–'}
+              </Text>
+              <Text style={styles.commissionLabel}>{t('prop_commissionCalculated')}</Text>
+            </View>
+          </View>
+        </Card>
+      )}
+
       {/* ─── 7. Address Details ────────────────────────────────── */}
       {hasAddress && (
         <Card style={styles.section}>
@@ -1201,6 +1229,37 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.textTertiary,
     paddingVertical: 1,
+  },
+  // Commission card
+  commissionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  commissionHeaderText: {
+    fontSize: fontSize.xs,
+    color: colors.textTertiary,
+    fontWeight: fontWeight.medium,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  commissionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  commissionCol: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  commissionValue: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.text,
+  },
+  commissionLabel: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
   },
   // Collapsible wrapper
   collapsibleWrapper: {

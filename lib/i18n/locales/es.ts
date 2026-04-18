@@ -1906,6 +1906,13 @@ const es: Record<string, string> = {
   prop_ownerActions: 'Acciones',
   prop_ownerNotes: 'Notas',
 
+  // Commission
+  prop_commission: 'Comisión',
+  prop_commissionPrivate: 'Interno',
+  prop_commissionAgreed: 'Acordada',
+  prop_commissionCalculated: 'Calculada',
+  prop_commissionPercent: 'Comisión %',
+
   // Land breakdown
   propSection_land: 'Desglose del terreno',
   land_classification: 'Clasificación',

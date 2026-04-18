@@ -1912,6 +1912,13 @@ const de: Record<string, string> = {
   prop_ownerActions: 'Aktionen',
   prop_ownerNotes: 'Notizen',
 
+  // Commission
+  prop_commission: 'Provision',
+  prop_commissionPrivate: 'Intern',
+  prop_commissionAgreed: 'Vereinbart',
+  prop_commissionCalculated: 'Berechnet',
+  prop_commissionPercent: 'Provision %',
+
   // Land breakdown
   propSection_land: 'Grundstücksaufteilung',
   land_classification: 'Klassifizierung',

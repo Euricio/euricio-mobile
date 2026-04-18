@@ -90,6 +90,9 @@ export interface Property {
   terreno_forestal_m2: number | null;
   terreno_pastizal_m2: number | null;
 
+  // Commission
+  commission_percentage: number | null;
+
   // Estimated value
   estimated_value: number | null;
   estimated_value_date: string | null;
