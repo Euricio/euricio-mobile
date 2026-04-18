@@ -34,9 +34,10 @@ module.exports = ({ config }) => ({
         'Euricio benötigt Zugriff auf das Mikrofon für Telefonate.',
       UIBackgroundModes: ['voip', 'audio', 'fetch', 'remote-notification'],
     },
-    entitlements: {
-      'aps-environment': 'production',
-    },
+    // Note: aps-environment entitlement temporarily removed so EAS can reuse
+    // the existing Distribution Certificate in non-interactive CI builds.
+    // Outbound calls work without it. Add back + run `eas credentials -p ios`
+    // interactively when enabling incoming-call push notifications.
   },
 
   android: {
