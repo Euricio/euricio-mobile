@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, Switch,
-  TextInput, TouchableOpacity, Alert, ActivityIndicator,
+  TouchableOpacity, Alert, ActivityIndicator,
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../../lib/i18n';
 import { useBusyStatus, useSetBusy, RedirectMode } from '../../../lib/api/busyStatus';
 import { BusyRedirectOptions } from '../../../components/voice/BusyRedirectOptions';
+import { BusyPresetPicker, BusyPresetValues } from '../../../components/voice/BusyPresetPicker';
 import { Card } from '../../../components/ui/Card';
 import { LoadingScreen } from '../../../components/ui/LoadingScreen';
+import { useAuthStore } from '../../../store/authStore';
 import { StyleSheet as RNStyleSheet, ViewStyle } from 'react-native';
 import { colors, spacing, fontSize, fontWeight, borderRadius } from '../../../constants/theme';
 
@@ -17,9 +19,20 @@ export default function BusyModeScreen() {
   const { t } = useI18n();
   const { data: busyStatus, isLoading } = useBusyStatus();
   const setBusy = useSetBusy();
+  const user = useAuthStore(s => s.user);
+  const displayName =
+    (busyStatus as any)?.display_name ||
+    (user?.user_metadata as any)?.full_name ||
+    user?.email ||
+    '';
 
   const [showForm, setShowForm] = useState(false);
-  const [reason, setReason] = useState('');
+  const [preset, setPreset] = useState<BusyPresetValues>({
+    busy_preset: 'in_appointment',
+    busy_callback_time: '',
+    busy_reason: '',
+    announcement: '',
+  });
   const [redirect, setRedirect] = useState<{
     announcement: string;
     redirect_mode: RedirectMode;
@@ -30,7 +43,7 @@ export default function BusyModeScreen() {
   if (isLoading) return <LoadingScreen />;
 
   async function handleToggleOn() {
-    setReason('');
+    setPreset({ busy_preset: 'in_appointment', busy_callback_time: '', busy_reason: '', announcement: '' });
     setRedirect({ announcement: '', redirect_mode: 'next_in_flow', redirect_agent_id: null, redirect_number: '' });
     setShowForm(true);
   }
@@ -45,14 +58,21 @@ export default function BusyModeScreen() {
 
   async function handleConfirmBusy() {
     try {
+      const reason =
+        preset.busy_preset === 'custom'
+          ? preset.busy_reason
+          : t(`busy.presets.${preset.busy_preset}.label`);
       await setBusy.mutateAsync({
         is_busy: true,
         busy_reason: reason || undefined,
-        busy_announcement: redirect.announcement || undefined,
+        busy_announcement: preset.announcement || undefined,
         busy_redirect_mode: redirect.redirect_mode,
         busy_redirect_agent_id: redirect.redirect_agent_id,
         busy_redirect_number: redirect.redirect_number || undefined,
-      });
+        // extra fields understood by server
+        busy_preset: preset.busy_preset,
+        busy_callback_time: preset.busy_callback_time || undefined,
+      } as any);
       setShowForm(false);
     } catch (err) {
       Alert.alert(t('error'), err instanceof Error ? err.message : 'Error');
@@ -65,7 +85,6 @@ export default function BusyModeScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: t('busy_set_title'), headerBackTitle: t('back') }} />
 
-      {/* Status card */}
       <Card style={RNStyleSheet.flatten([styles.statusCard, isBusy && styles.statusCardBusy]) as ViewStyle}>
         <View style={styles.statusRow}>
           <View style={styles.statusLeft}>
@@ -94,21 +113,18 @@ export default function BusyModeScreen() {
         </View>
       </Card>
 
-      {/* Set busy form */}
       {showForm && (
         <Card style={styles.formCard}>
           <Text style={styles.formTitle}>{t('busy_set_title')}</Text>
 
-          <Text style={styles.fieldLabel}>{t('busy_reason_placeholder')}</Text>
-          <TextInput
-            value={reason}
-            onChangeText={setReason}
-            placeholder={t('busy_reason_placeholder')}
-            style={styles.input}
-            placeholderTextColor={colors.textTertiary}
+          <BusyPresetPicker
+            values={preset}
+            displayName={displayName}
+            onChange={setPreset}
           />
 
-          <BusyRedirectOptions values={redirect} onChange={setRedirect} />
+          <View style={{ height: spacing.md }} />
+          <BusyRedirectOptions values={redirect} onChange={setRedirect} hideAnnouncement />
 
           <View style={styles.formButtons}>
             <TouchableOpacity
@@ -131,7 +147,6 @@ export default function BusyModeScreen() {
         </Card>
       )}
 
-      {/* Info when busy */}
       {isBusy && !showForm && (
         <Card style={styles.infoCard}>
           <Ionicons name="information-circle-outline" size={18} color={colors.error} />
@@ -161,11 +176,6 @@ const styles = StyleSheet.create({
   statusTime: { fontSize: fontSize.xs, color: colors.textTertiary, marginTop: 1 },
   formCard: { padding: spacing.lg, gap: spacing.sm },
   formTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.text, marginBottom: spacing.sm },
-  fieldLabel: { fontSize: fontSize.sm, color: colors.textSecondary, marginBottom: 4 },
-  input: {
-    borderWidth: 1, borderColor: colors.border, borderRadius: borderRadius.md,
-    padding: spacing.sm, fontSize: fontSize.sm, color: colors.text, backgroundColor: colors.surface,
-  },
   formButtons: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   btn: { flex: 1, padding: spacing.md, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center' },
   btnBusy: { backgroundColor: colors.error },

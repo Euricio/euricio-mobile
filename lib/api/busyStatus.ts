@@ -28,6 +28,17 @@ async function api<T>(path: string, opts: RequestInit = {}): Promise<T> {
 
 export type RedirectMode = 'next_in_flow' | 'specific_agent' | 'external_number';
 
+export type BusyPresetKey =
+  | 'in_appointment'
+  | 'at_notary'
+  | 'at_viewing'
+  | 'on_call'
+  | 'in_meeting'
+  | 'off_duty'
+  | 'on_vacation'
+  | 'sick_leave'
+  | 'custom';
+
 export interface BusyStatus {
   is_busy: boolean;
   busy_reason: string | null;
@@ -36,6 +47,9 @@ export interface BusyStatus {
   busy_redirect_mode: RedirectMode;
   busy_redirect_agent_id: string | null;
   busy_redirect_number: string | null;
+  busy_preset: BusyPresetKey | null;
+  busy_callback_time: string | null;
+  display_name: string | null;
 }
 
 export interface CalendarEvent {
@@ -59,8 +73,9 @@ export interface BusyMissedCall {
   caller_name: string | null;
   call_sid: string | null;
   received_at: string;
-  busy_source: 'manual_toggle' | 'calendar_event' | null;
+  busy_source: 'manual_toggle' | 'calendar_event' | 'appointment' | null;
   calendar_event_id: string | null;
+  appointment_id: number | null;
   read_at: string | null;
   created_at: string;
 }
