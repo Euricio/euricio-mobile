@@ -1,0 +1,27 @@
+title = "Euricio Mobile gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "supabase-jwt"
+description = "Supabase-issued JWT (any role) committed to the mobile repo"
+regex = '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'''
+tags = ["supabase", "credentials"]
+
+[[rules]]
+id = "twilio-account-sid"
+description = "Twilio Account SID"
+regex = '''AC[0-9a-f]{32}'''
+tags = ["twilio", "credentials"]
+
+[allowlist]
+paths = [
+  '''(^|/)node_modules/''',
+  '''(^|/)\.expo/''',
+  '''(^|/)dist/''',
+  '''(^|/)ios/''',
+  '''(^|/)android/''',
+  '''package-lock\.json$''',
+  '''yarn\.lock$''',
+]

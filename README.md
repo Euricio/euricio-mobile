@@ -57,7 +57,7 @@ npx expo start
 
 | Variable | Beschreibung |
 |---|---|
-| `EXPO_PUBLIC_SUPABASE_URL` | Supabase Projekt-URL (`https://vddfghfvmnrbotmxhvvi.supabase.co`) |
+| `EXPO_PUBLIC_SUPABASE_URL` | Supabase Projekt-URL (von `supabase.com` → Project Settings → API) |
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anonymous Key (aus Supabase Dashboard → Settings → API) |
 | `EXPO_PUBLIC_API_URL` | Backend-API URL (`https://crm.euricio.es`) |
 

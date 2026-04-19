@@ -1,7 +1,11 @@
 import { supabase } from '../supabase';
 import { useQuery } from '@tanstack/react-query';
 
-const STORAGE_BASE = 'https://vddfghfvmnrbotmxhvvi.supabase.co/storage/v1/object/public/property-images';
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+if (!SUPABASE_URL) {
+  throw new Error('EXPO_PUBLIC_SUPABASE_URL is not set');
+}
+const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/property-images`;
 
 export interface PropertyImage {
   id: string;

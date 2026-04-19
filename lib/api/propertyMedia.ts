@@ -2,8 +2,10 @@ import { supabase, uploadToStorage } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
 
-const SUPABASE_URL =
-  process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://vddfghfvmnrbotmxhvvi.supabase.co';
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+if (!SUPABASE_URL) {
+  throw new Error('EXPO_PUBLIC_SUPABASE_URL is not set');
+}
 const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/property-images`;
 
 // ─── Types ───────────────────────────────────────────────────────────
