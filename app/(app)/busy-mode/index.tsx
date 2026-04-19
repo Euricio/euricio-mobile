@@ -1,0 +1,177 @@
+import React, { useState } from 'react';
+import {
+  View, Text, ScrollView, StyleSheet, Switch,
+  TextInput, TouchableOpacity, Alert, ActivityIndicator,
+} from 'react-native';
+import { Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useI18n } from '../../../lib/i18n';
+import { useBusyStatus, useSetBusy, RedirectMode } from '../../../lib/api/busyStatus';
+import { BusyRedirectOptions } from '../../../components/voice/BusyRedirectOptions';
+import { Card } from '../../../components/ui/Card';
+import { LoadingScreen } from '../../../components/ui/LoadingScreen';
+import { StyleSheet as RNStyleSheet, ViewStyle } from 'react-native';
+import { colors, spacing, fontSize, fontWeight, borderRadius } from '../../../constants/theme';
+
+export default function BusyModeScreen() {
+  const { t } = useI18n();
+  const { data: busyStatus, isLoading } = useBusyStatus();
+  const setBusy = useSetBusy();
+
+  const [showForm, setShowForm] = useState(false);
+  const [reason, setReason] = useState('');
+  const [redirect, setRedirect] = useState<{
+    announcement: string;
+    redirect_mode: RedirectMode;
+    redirect_agent_id: string | null;
+    redirect_number: string;
+  }>({ announcement: '', redirect_mode: 'next_in_flow', redirect_agent_id: null, redirect_number: '' });
+
+  if (isLoading) return <LoadingScreen />;
+
+  async function handleToggleOn() {
+    setReason('');
+    setRedirect({ announcement: '', redirect_mode: 'next_in_flow', redirect_agent_id: null, redirect_number: '' });
+    setShowForm(true);
+  }
+
+  async function handleToggleOff() {
+    try {
+      await setBusy.mutateAsync({ is_busy: false });
+    } catch (err) {
+      Alert.alert(t('error'), err instanceof Error ? err.message : 'Error');
+    }
+  }
+
+  async function handleConfirmBusy() {
+    try {
+      await setBusy.mutateAsync({
+        is_busy: true,
+        busy_reason: reason || undefined,
+        busy_announcement: redirect.announcement || undefined,
+        busy_redirect_mode: redirect.redirect_mode,
+        busy_redirect_agent_id: redirect.redirect_agent_id,
+        busy_redirect_number: redirect.redirect_number || undefined,
+      });
+      setShowForm(false);
+    } catch (err) {
+      Alert.alert(t('error'), err instanceof Error ? err.message : 'Error');
+    }
+  }
+
+  const isBusy = busyStatus?.is_busy ?? false;
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Stack.Screen options={{ title: t('busy_set_title'), headerBackTitle: t('back') }} />
+
+      {/* Status card */}
+      <Card style={RNStyleSheet.flatten([styles.statusCard, isBusy && styles.statusCardBusy]) as ViewStyle}>
+        <View style={styles.statusRow}>
+          <View style={styles.statusLeft}>
+            <View style={[styles.dot, { backgroundColor: isBusy ? colors.error : colors.success }]} />
+            <View>
+              <Text style={styles.statusLabel}>
+                {isBusy ? t('busy_toggle_busy') : t('busy_toggle_available')}
+              </Text>
+              {isBusy && busyStatus?.busy_reason && (
+                <Text style={styles.statusReason}>{busyStatus.busy_reason}</Text>
+              )}
+              {isBusy && busyStatus?.busy_set_at && (
+                <Text style={styles.statusTime}>
+                  {new Date(busyStatus.busy_set_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              )}
+            </View>
+          </View>
+          <Switch
+            value={isBusy}
+            onValueChange={v => v ? handleToggleOn() : handleToggleOff()}
+            trackColor={{ false: colors.border, true: 'rgba(239,68,68,0.4)' }}
+            thumbColor={isBusy ? colors.error : colors.surface}
+            disabled={setBusy.isPending}
+          />
+        </View>
+      </Card>
+
+      {/* Set busy form */}
+      {showForm && (
+        <Card style={styles.formCard}>
+          <Text style={styles.formTitle}>{t('busy_set_title')}</Text>
+
+          <Text style={styles.fieldLabel}>{t('busy_reason_placeholder')}</Text>
+          <TextInput
+            value={reason}
+            onChangeText={setReason}
+            placeholder={t('busy_reason_placeholder')}
+            style={styles.input}
+            placeholderTextColor={colors.textTertiary}
+          />
+
+          <BusyRedirectOptions values={redirect} onChange={setRedirect} />
+
+          <View style={styles.formButtons}>
+            <TouchableOpacity
+              style={[styles.btn, styles.btnBusy]}
+              onPress={handleConfirmBusy}
+              disabled={setBusy.isPending}
+            >
+              {setBusy.isPending
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <Text style={styles.btnBusyText}>{t('busy_set_button')}</Text>
+              }
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.btn, styles.btnCancel]}
+              onPress={() => setShowForm(false)}
+            >
+              <Text style={styles.btnCancelText}>{t('cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </Card>
+      )}
+
+      {/* Info when busy */}
+      {isBusy && !showForm && (
+        <Card style={styles.infoCard}>
+          <Ionicons name="information-circle-outline" size={18} color={colors.error} />
+          <Text style={styles.infoText}>
+            {busyStatus?.busy_redirect_mode === 'next_in_flow'
+              ? t('busy_redirect_next_in_flow')
+              : busyStatus?.busy_redirect_mode === 'specific_agent'
+              ? t('busy_redirect_specific_agent')
+              : t('busy_redirect_external_number')}
+          </Text>
+        </Card>
+      )}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  content: { padding: spacing.lg, gap: spacing.md },
+  statusCard: { padding: spacing.lg },
+  statusCardBusy: { borderColor: colors.error, borderWidth: 1 },
+  statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  statusLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 },
+  dot: { width: 12, height: 12, borderRadius: 6 },
+  statusLabel: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: colors.text },
+  statusReason: { fontSize: fontSize.sm, color: colors.textSecondary, marginTop: 2 },
+  statusTime: { fontSize: fontSize.xs, color: colors.textTertiary, marginTop: 1 },
+  formCard: { padding: spacing.lg, gap: spacing.sm },
+  formTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.text, marginBottom: spacing.sm },
+  fieldLabel: { fontSize: fontSize.sm, color: colors.textSecondary, marginBottom: 4 },
+  input: {
+    borderWidth: 1, borderColor: colors.border, borderRadius: borderRadius.md,
+    padding: spacing.sm, fontSize: fontSize.sm, color: colors.text, backgroundColor: colors.surface,
+  },
+  formButtons: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
+  btn: { flex: 1, padding: spacing.md, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center' },
+  btnBusy: { backgroundColor: colors.error },
+  btnBusyText: { color: '#fff', fontWeight: fontWeight.bold, fontSize: fontSize.sm },
+  btnCancel: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  btnCancelText: { color: colors.text, fontSize: fontSize.sm },
+  infoCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md },
+  infoText: { fontSize: fontSize.sm, color: colors.error, flex: 1 },
+});

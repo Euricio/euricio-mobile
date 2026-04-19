@@ -2163,6 +2163,42 @@ const de: Record<string, string> = {
   'portal.saving': 'Speichern...',
   'portal.saved': 'Gespeichert',
   'portal.save': 'Speichern',
+
+  // ─── Busy-Mode & Busy-Kalender ─────────────────────────────────────
+  busy_toggle_available: 'Verfügbar',
+  busy_toggle_busy: 'Besetzt',
+  busy_set_title: 'Als besetzt markieren',
+  busy_reason_placeholder: 'Grund (optional)',
+  busy_set_button: 'Jetzt besetzt stellen',
+  busy_announcement_label: 'Ansagetext für Anrufer',
+  busy_announcement_placeholder: 'z. B. Ich bin gerade in einem Meeting...',
+  busy_redirect_label: 'Weiterleitung',
+  busy_redirect_next_in_flow: 'Nächste Station im Flow',
+  busy_redirect_specific_agent: 'Bestimmter Agent',
+  busy_redirect_external_number: 'Externe Nummer',
+  busy_redirect_select_agent: 'Agent auswählen...',
+  busy_redirect_external_placeholder: '+49...',
+
+  // ─── Busy-Kalender ─────────────────────────────────────────────────
+  calendar_title: 'Terminkalender',
+  calendar_new_event: 'Neuer Termin',
+  calendar_event_title: 'Titel',
+  calendar_event_description: 'Beschreibung',
+  calendar_event_start: 'Beginn',
+  calendar_event_end: 'Ende',
+  calendar_blocks_calls: 'Sperrt Anrufe',
+  calendar_no_events: 'Keine Termine vorhanden',
+
+  // ─── Verpasste Anrufe ──────────────────────────────────────────────
+  missed_calls_title: 'Verpasste Anrufe',
+  missed_calls_empty: 'Keine verpassten Anrufe',
+  missed_calls_count: '{count} ungelesene Anrufe',
+  missed_call_from: 'Von: {number}',
+  missed_call_at: '{time}',
+  missed_call_source_toggle: 'Manuell besetzt',
+  missed_call_source_event: 'Kalenderereignis',
+  mark_read: 'Als gelesen markieren',
+  confirm_delete: 'Wirklich löschen?',
 };
 
 export default de;

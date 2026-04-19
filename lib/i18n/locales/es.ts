@@ -2157,6 +2157,42 @@ const es: Record<string, string> = {
   'portal.saving': 'Guardando...',
   'portal.saved': 'Guardado',
   'portal.save': 'Guardar',
+
+  // ─── Busy-Mode & Calendario ────────────────────────────────────────
+  busy_toggle_available: 'Disponible',
+  busy_toggle_busy: 'Ocupado',
+  busy_set_title: 'Marcar como ocupado',
+  busy_reason_placeholder: 'Motivo (opcional)',
+  busy_set_button: 'Marcar ocupado ahora',
+  busy_announcement_label: 'Mensaje de anuncio para llamantes',
+  busy_announcement_placeholder: 'p. ej. Estoy en una reunión...',
+  busy_redirect_label: 'Redirección',
+  busy_redirect_next_in_flow: 'Siguiente paso en el flujo',
+  busy_redirect_specific_agent: 'Agente específico',
+  busy_redirect_external_number: 'Número externo',
+  busy_redirect_select_agent: 'Seleccionar agente...',
+  busy_redirect_external_placeholder: '+34...',
+
+  // ─── Calendario ocupado ────────────────────────────────────────────
+  calendar_title: 'Calendario',
+  calendar_new_event: 'Nuevo evento',
+  calendar_event_title: 'Título',
+  calendar_event_description: 'Descripción',
+  calendar_event_start: 'Inicio',
+  calendar_event_end: 'Fin',
+  calendar_blocks_calls: 'Bloquea llamadas',
+  calendar_no_events: 'No hay eventos',
+
+  // ─── Llamadas perdidas ───────────────────────────────────────────────
+  missed_calls_title: 'Llamadas perdidas',
+  missed_calls_empty: 'No hay llamadas perdidas',
+  missed_calls_count: '{count} llamadas no leídas',
+  missed_call_from: 'De: {number}',
+  missed_call_at: '{time}',
+  missed_call_source_toggle: 'Ocupado manual',
+  missed_call_source_event: 'Evento de calendario',
+  mark_read: 'Marcar como leído',
+  confirm_delete: '¿Eliminar realmente?',
 };
 
 export default es;

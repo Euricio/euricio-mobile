@@ -92,6 +92,27 @@ export default function AppLayout() {
               animation: 'slide_from_bottom',
             }}
           />
+          <Stack.Screen
+            name="busy-mode"
+            options={{
+              headerShown: true,
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="busy-calendar"
+            options={{
+              headerShown: true,
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="missed-calls"
+            options={{
+              headerShown: true,
+              animation: 'slide_from_right',
+            }}
+          />
         </Stack>
         <FloatingScannerFab />
         <VoiceOverlay />
