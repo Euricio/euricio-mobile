@@ -2157,6 +2157,42 @@ const en: Record<string, string> = {
   'portal.saving': 'Saving...',
   'portal.saved': 'Saved',
   'portal.save': 'Save',
+
+  // ─── Busy-Mode & Busy-Calendar ────────────────────────────────────
+  busy_toggle_available: 'Available',
+  busy_toggle_busy: 'Busy',
+  busy_set_title: 'Set as Busy',
+  busy_reason_placeholder: 'Reason (optional)',
+  busy_set_button: 'Set Busy Now',
+  busy_announcement_label: 'Announcement for callers',
+  busy_announcement_placeholder: 'e.g. I\'m currently in a meeting...',
+  busy_redirect_label: 'Redirect',
+  busy_redirect_next_in_flow: 'Next step in flow',
+  busy_redirect_specific_agent: 'Specific agent',
+  busy_redirect_external_number: 'External number',
+  busy_redirect_select_agent: 'Select agent...',
+  busy_redirect_external_placeholder: '+1...',
+
+  // ─── Busy-Calendar ───────────────────────────────────────────────
+  calendar_title: 'Busy Calendar',
+  calendar_new_event: 'New Event',
+  calendar_event_title: 'Title',
+  calendar_event_description: 'Description',
+  calendar_event_start: 'Start',
+  calendar_event_end: 'End',
+  calendar_blocks_calls: 'Blocks calls',
+  calendar_no_events: 'No events found',
+
+  // ─── Missed Calls ──────────────────────────────────────────────────
+  missed_calls_title: 'Missed Calls',
+  missed_calls_empty: 'No missed calls',
+  missed_calls_count: '{count} unread calls',
+  missed_call_from: 'From: {number}',
+  missed_call_at: '{time}',
+  missed_call_source_toggle: 'Manual busy',
+  missed_call_source_event: 'Calendar event',
+  mark_read: 'Mark as read',
+  confirm_delete: 'Really delete?',
 };
 
 export default en;
