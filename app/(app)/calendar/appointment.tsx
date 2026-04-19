@@ -4,8 +4,8 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
+  Switch,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +18,10 @@ import {
   useDeleteAppointment,
 } from '../../../lib/api/calendar';
 import { useLeads } from '../../../lib/api/leads';
+import { useBusyStatus, RedirectMode } from '../../../lib/api/busyStatus';
+import { useAuthStore } from '../../../store/authStore';
+import { BusyPresetPicker, BusyPresetValues } from '../../../components/voice/BusyPresetPicker';
+import { BusyRedirectOptions } from '../../../components/voice/BusyRedirectOptions';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { FormInput } from '../../../components/ui/FormInput';
@@ -40,6 +44,13 @@ export default function AppointmentScreen() {
 
   const { data: existingAppt, isLoading: apptLoading } = useAppointment(params.id || '');
   const { data: leads } = useLeads();
+  const { data: busyStatus } = useBusyStatus();
+  const user = useAuthStore(s => s.user);
+  const displayName =
+    (busyStatus as any)?.display_name ||
+    (user?.user_metadata as any)?.full_name ||
+    user?.email ||
+    '';
   const createAppt = useCreateAppointment();
   const updateAppt = useUpdateAppointment();
   const deleteAppt = useDeleteAppointment();
@@ -52,6 +63,21 @@ export default function AppointmentScreen() {
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [leadId, setLeadId] = useState<string | null>(null);
+
+  // Deep Work
+  const [blocksCalls, setBlocksCalls] = useState(false);
+  const [preset, setPreset] = useState<BusyPresetValues>({
+    busy_preset: 'in_appointment',
+    busy_callback_time: '',
+    busy_reason: '',
+    announcement: '',
+  });
+  const [redirect, setRedirect] = useState<{
+    announcement: string;
+    redirect_mode: RedirectMode;
+    redirect_agent_id: string | null;
+    redirect_number: string;
+  }>({ announcement: '', redirect_mode: 'next_in_flow', redirect_agent_id: null, redirect_number: '' });
 
   useEffect(() => {
     if (existingAppt) {
@@ -69,6 +95,20 @@ export default function AppointmentScreen() {
       setLocation(existingAppt.location || '');
       setNotes(existingAppt.notes || '');
       setLeadId(existingAppt.lead_id);
+      const e: any = existingAppt;
+      setBlocksCalls(!!e.blocks_calls);
+      setPreset({
+        busy_preset: e.busy_preset || 'in_appointment',
+        busy_callback_time: e.busy_callback_time || '',
+        busy_reason: '',
+        announcement: e.announcement || '',
+      });
+      setRedirect({
+        announcement: e.announcement || '',
+        redirect_mode: (e.redirect_mode as RedirectMode) || 'next_in_flow',
+        redirect_agent_id: e.redirect_agent_id || null,
+        redirect_number: e.redirect_number || '',
+      });
     }
   }, [existingAppt]);
 
@@ -79,6 +119,25 @@ export default function AppointmentScreen() {
     }
     const startAt = `${date}T${startTime}:00`;
     const endAt = `${date}T${endTime}:00`;
+    const deepWorkPayload: any = blocksCalls
+      ? {
+          blocks_calls: true,
+          busy_preset: preset.busy_preset,
+          busy_callback_time: preset.busy_callback_time || null,
+          announcement: preset.announcement || null,
+          redirect_mode: redirect.redirect_mode,
+          redirect_agent_id: redirect.redirect_agent_id,
+          redirect_number: redirect.redirect_number || null,
+        }
+      : {
+          blocks_calls: false,
+          busy_preset: null,
+          busy_callback_time: null,
+          announcement: null,
+          redirect_mode: null,
+          redirect_agent_id: null,
+          redirect_number: null,
+        };
     const payload = {
       title: title.trim(),
       type: type as 'visit' | 'call' | 'meeting' | 'other',
@@ -88,6 +147,7 @@ export default function AppointmentScreen() {
       notes: notes.trim() || null,
       lead_id: leadId,
       status: 'scheduled',
+      ...deepWorkPayload,
     };
 
     try {
@@ -213,6 +273,32 @@ export default function AppointmentScreen() {
         />
       </Card>
 
+      <Card>
+        <View style={styles.deepWorkRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.deepWorkTitle}>{t('busy.deep_work_section_title')}</Text>
+            <Text style={styles.deepWorkHint}>{t('busy.deep_work_hint')}</Text>
+          </View>
+          <Switch
+            value={blocksCalls}
+            onValueChange={setBlocksCalls}
+            trackColor={{ false: colors.border, true: 'rgba(239,68,68,0.4)' }}
+            thumbColor={blocksCalls ? colors.error : colors.surface}
+          />
+        </View>
+
+        {blocksCalls && (
+          <View style={{ marginTop: spacing.md, gap: spacing.md }}>
+            <BusyPresetPicker
+              values={preset}
+              displayName={displayName}
+              onChange={setPreset}
+            />
+            <BusyRedirectOptions values={redirect} onChange={setRedirect} hideAnnouncement />
+          </View>
+        )}
+      </Card>
+
       <View style={styles.actions}>
         <Button
           title={t('save')}
@@ -232,6 +318,7 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.md,
     paddingBottom: 120,
+    gap: spacing.md,
   },
   timeRow: {
     flexDirection: 'row',
@@ -242,5 +329,20 @@ const styles = StyleSheet.create({
   },
   actions: {
     marginTop: spacing.lg,
+  },
+  deepWorkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  deepWorkTitle: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.text,
+  },
+  deepWorkHint: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
 });

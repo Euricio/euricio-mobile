@@ -14,9 +14,10 @@ interface BusyRedirectValues {
 interface Props {
   values: BusyRedirectValues;
   onChange: (v: BusyRedirectValues) => void;
+  hideAnnouncement?: boolean;
 }
 
-export function BusyRedirectOptions({ values, onChange }: Props) {
+export function BusyRedirectOptions({ values, onChange, hideAnnouncement }: Props) {
   const { t } = useI18n();
   const { data: teamMembers = [] } = useVoiceTeamMembers();
 
@@ -31,20 +32,23 @@ export function BusyRedirectOptions({ values, onChange }: Props) {
 
   return (
     <View style={styles.container}>
-      {/* Announcement */}
-      <Text style={styles.label}>{t('busy_announcement_label')}</Text>
-      <TextInput
-        value={values.announcement}
-        onChangeText={text => set({ announcement: text })}
-        placeholder={t('busy_announcement_placeholder')}
-        multiline
-        numberOfLines={3}
-        style={styles.textarea}
-        placeholderTextColor={colors.textTertiary}
-      />
+      {!hideAnnouncement && (
+        <>
+          <Text style={styles.label}>{t('busy_announcement_label')}</Text>
+          <TextInput
+            value={values.announcement}
+            onChangeText={text => set({ announcement: text })}
+            placeholder={t('busy_announcement_placeholder')}
+            multiline
+            numberOfLines={3}
+            style={styles.textarea}
+            placeholderTextColor={colors.textTertiary}
+          />
+        </>
+      )}
 
       {/* Redirect mode */}
-      <Text style={[styles.label, { marginTop: spacing.md }]}>{t('busy_redirect_label')}</Text>
+      <Text style={[styles.label, hideAnnouncement ? undefined : { marginTop: spacing.md }]}>{t('busy_redirect_label')}</Text>
       {modes.map(mode => (
         <TouchableOpacity
           key={mode.key}

@@ -100,13 +100,6 @@ export default function AppLayout() {
             }}
           />
           <Stack.Screen
-            name="busy-calendar"
-            options={{
-              headerShown: true,
-              animation: 'slide_from_right',
-            }}
-          />
-          <Stack.Screen
             name="missed-calls"
             options={{
               headerShown: true,
