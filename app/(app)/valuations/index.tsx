@@ -377,10 +377,17 @@ export default function ValuationToolScreen() {
     generatePdf.mutate(
       { methods: sendMethods, results: getResultsPayload(), language: sendLang, property_id: propertyId ? parseInt(propertyId) : undefined },
       {
-        onSuccess: (data) => {
-          Alert.alert(t('valuation_pdfReady'), t('valuation_pdfReadyMsg'));
+        onSuccess: () => {
+          // Share sheet already opened — just close modal silently
+          setSendOpen(false);
         },
-        onError: () => Alert.alert(t('error'), t('valuation_pdfError')),
+        onError: (err: any) => {
+          // User cancelled share? don't show error. Check message.
+          const msg = err?.message || '';
+          if (!/cancel|dismiss/i.test(msg)) {
+            Alert.alert(t('error'), t('valuation_pdfError'));
+          }
+        },
       },
     );
   };

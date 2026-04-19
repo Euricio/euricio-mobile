@@ -1,5 +1,7 @@
 import { supabase } from '../supabase';
 import { useMutation } from '@tanstack/react-query';
+import { File, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://crm.euricio.es';
 
@@ -288,11 +290,44 @@ export function useGenerateValuationPdf() {
       results: Record<string, VergleichswertResult | SubstanzwertResult | ErtragswertResult>;
       language: string;
       property_id?: number;
-    }) =>
-      api<{ url: string }>('/api/valuations/generate-pdf', {
+    }): Promise<{ uri: string; filename: string }> => {
+      const headers = await authHeaders();
+      const res = await fetch(`${API_URL}/api/valuations/generate-pdf`, {
         method: 'POST',
+        headers,
         body: JSON.stringify(params),
-      }),
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        throw new Error(body || `API ${res.status}: ${res.statusText}`);
+      }
+
+      // Extract filename from Content-Disposition header (fallback: generic name)
+      const disposition = res.headers.get('content-disposition') || '';
+      const match = disposition.match(/filename="?([^";]+)"?/i);
+      const filename = match?.[1] || `valuation-${Date.now()}.pdf`;
+
+      // Download PDF binary → write to cache directory
+      const buffer = await res.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      const file = new File(Paths.cache, filename);
+      if (file.exists) {
+        file.delete();
+      }
+      file.create();
+      file.write(bytes);
+
+      // Open native share sheet so user can Save to Files, AirDrop, etc.
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: filename,
+          UTI: 'com.adobe.pdf',
+        });
+      }
+
+      return { uri: file.uri, filename };
+    },
   });
 }
 
