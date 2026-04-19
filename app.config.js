@@ -22,7 +22,7 @@ module.exports = ({ config }) => ({
   splash: {
     image: './assets/splash-icon.png',
     resizeMode: 'contain',
-    backgroundColor: '#1E3A5F',
+    backgroundColor: '#1B5E3F',
   },
 
   ios: {
@@ -43,7 +43,7 @@ module.exports = ({ config }) => ({
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#1E3A5F',
+      backgroundColor: '#1B5E3F',
     },
     package: 'com.euricio.crm',
     permissions: [
