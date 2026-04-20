@@ -1,8 +1,15 @@
 import React from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { useQueryClient } from '@tanstack/react-query';
 import { refreshWidgetSnapshot } from '../lib/widgets/snapshot';
 import { useAuth } from '../lib/auth/authContext';
+
+// In Expo Go the native widget modules are not linked, so there is no point
+// in polling the snapshot endpoint. Detect Expo Go at runtime so dev builds
+// and production builds still refresh as normal.
+const IS_EXPO_GO =
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 /**
  * WidgetBootstrap — keeps the home-screen widget snapshot fresh.
@@ -48,6 +55,10 @@ export default function WidgetBootstrap() {
   // Initial + foreground refresh
   React.useEffect(() => {
     if (!isAuthenticated) return;
+    if (IS_EXPO_GO) {
+      // Widget native modules aren't available in Expo Go; skip entirely.
+      return;
+    }
 
     // Run once on mount.
     doRefresh();
@@ -64,6 +75,7 @@ export default function WidgetBootstrap() {
   // React to cache changes that mean the widget data is stale.
   React.useEffect(() => {
     if (!isAuthenticated) return;
+    if (IS_EXPO_GO) return;
 
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
       if (!event) return;

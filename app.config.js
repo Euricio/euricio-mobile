@@ -1,4 +1,41 @@
 /** @type {import('expo/config').ExpoConfig} */
+
+// Widget plugins require custom native code (WidgetKit extension on iOS,
+// AppWidgetProvider on Android) which Expo Go cannot ship. When running in
+// Expo Go set EXPO_GO=1 and the widget plugins are skipped so the JS side
+// still loads cleanly; the widget itself just won't appear on the home
+// screen. For real widget testing use a Dev Client / EAS preview build.
+const WIDGETS_DISABLED = process.env.EXPO_GO === '1';
+
+const basePlugins = [
+  'expo-router',
+  'expo-secure-store',
+  'expo-updates',
+];
+
+const widgetPlugins = [
+  '@bacons/apple-targets',
+  [
+    'react-native-android-widget',
+    {
+      widgets: [
+        {
+          name: 'EuricioNextCall',
+          label: 'Euricio · Next Call',
+          minWidth: '180dp',
+          minHeight: '110dp',
+          targetCellWidth: 3,
+          targetCellHeight: 2,
+          description:
+            'Nächster Call, offene Aufgaben, Fokus-Status auf einen Blick.',
+          previewImage: './assets/adaptive-icon.png',
+          updatePeriodMillis: 1800000,
+        },
+      ],
+    },
+  ],
+];
+
 module.exports = ({ config }) => ({
   ...config,
   name: 'Euricio',
@@ -68,34 +105,7 @@ module.exports = ({ config }) => ({
     bundler: 'metro',
   },
 
-  plugins: [
-    'expo-router',
-    'expo-secure-store',
-    'expo-updates',
-    // iOS Widget Target (WidgetKit / SwiftUI) via @bacons/apple-targets.
-    // Expects targets/widget/expo-target.config.js + Swift sources.
-    '@bacons/apple-targets',
-    // Android Widget (Glance-like, JSX-based) via react-native-android-widget.
-    [
-      'react-native-android-widget',
-      {
-        widgets: [
-          {
-            name: 'EuricioNextCall',
-            label: 'Euricio · Next Call',
-            minWidth: '180dp',
-            minHeight: '110dp',
-            targetCellWidth: 3,
-            targetCellHeight: 2,
-            description:
-              'Nächster Call, offene Aufgaben, Fokus-Status auf einen Blick.',
-            previewImage: './assets/adaptive-icon.png',
-            updatePeriodMillis: 1800000, // 30 min (OS clamps to ≥ 30 min)
-          },
-        ],
-      },
-    ],
-  ],
+  plugins: WIDGETS_DISABLED ? basePlugins : [...basePlugins, ...widgetPlugins],
 
   experiments: {
     typedRoutes: true,
