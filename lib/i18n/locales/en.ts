@@ -2269,6 +2269,18 @@ const en: Record<string, string> = {
   call_ws_note_placeholder: 'What was the call about?',
   calendar_focus_active: 'Focus mode active',
   calendar_focus_until: 'until',
+
+  // ─── Phase 3 · Home Screen Widget ───
+  widget_next_call: 'Next call',
+  widget_focus_mode: 'Focus on',
+  widget_open_tasks: 'Open tasks',
+  widget_callbacks_due: 'Callbacks',
+  widget_no_calls: 'No calls',
+  widget_no_calls_sub: 'in the next 24 h',
+  widget_open_app: 'Open Euricio',
+  widget_settings_title: 'Home widget',
+  widget_settings_description:
+    'Shows your next call, open tasks and focus state right on the home screen.',
 };
 
 export default en;

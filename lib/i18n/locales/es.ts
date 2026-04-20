@@ -2269,6 +2269,18 @@ const es: Record<string, string> = {
   call_ws_note_placeholder: '¿De qué trató la llamada?',
   calendar_focus_active: 'Modo enfoque activo',
   calendar_focus_until: 'hasta',
+
+  // ─── Phase 3 · Home Screen Widget ───
+  widget_next_call: 'Próxima llamada',
+  widget_focus_mode: 'Modo foco',
+  widget_open_tasks: 'Tareas abiertas',
+  widget_callbacks_due: 'Devoluciones',
+  widget_no_calls: 'Sin llamadas',
+  widget_no_calls_sub: 'en las próximas 24 h',
+  widget_open_app: 'Abrir Euricio',
+  widget_settings_title: 'Widget de inicio',
+  widget_settings_description:
+    'Muestra tu próxima llamada, tareas pendientes y estado de foco directamente en la pantalla de inicio.',
 };
 
 export default es;

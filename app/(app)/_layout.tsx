@@ -9,6 +9,7 @@ import FloatingDialer from '../../components/voice/FloatingDialer';
 import FloatingScannerFab from '../../components/scanner/FloatingScannerFab';
 import IncomingCallOverlay from '../../components/voice/IncomingCallOverlay';
 import { registerForPush, wirePushTapHandler } from '../../lib/push/registerPush';
+import WidgetBootstrap from '../../components/WidgetBootstrap';
 
 function PushBootstrap() {
   React.useEffect(() => {
@@ -130,6 +131,7 @@ export default function AppLayout() {
         <FloatingScannerFab />
         <VoiceOverlay />
         <PushBootstrap />
+        <WidgetBootstrap />
       </View>
     </VoiceProvider>
   );
