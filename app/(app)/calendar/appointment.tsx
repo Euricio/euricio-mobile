@@ -21,6 +21,7 @@ import { useLeads } from '../../../lib/api/leads';
 import { useBusyStatus, RedirectMode } from '../../../lib/api/busyStatus';
 import { useAuthStore } from '../../../store/authStore';
 import { BusyPresetPicker, BusyPresetValues } from '../../../components/voice/BusyPresetPicker';
+import type { AnnouncementLang } from '../../../lib/busyPresets';
 import { BusyRedirectOptions } from '../../../components/voice/BusyRedirectOptions';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -71,6 +72,7 @@ export default function AppointmentScreen() {
     busy_callback_time: '',
     busy_reason: '',
     announcement: '',
+    busy_announcement_language: 'es',
   });
   const [redirect, setRedirect] = useState<{
     announcement: string;
@@ -102,6 +104,7 @@ export default function AppointmentScreen() {
         busy_callback_time: e.busy_callback_time || '',
         busy_reason: '',
         announcement: e.announcement || '',
+        busy_announcement_language: (e.busy_announcement_language as AnnouncementLang) || 'es',
       });
       setRedirect({
         announcement: e.announcement || '',
@@ -124,6 +127,7 @@ export default function AppointmentScreen() {
           blocks_calls: true,
           busy_preset: preset.busy_preset,
           busy_callback_time: preset.busy_callback_time || null,
+          busy_announcement_language: preset.busy_announcement_language,
           announcement: preset.announcement || null,
           redirect_mode: redirect.redirect_mode,
           redirect_agent_id: redirect.redirect_agent_id,
@@ -133,6 +137,7 @@ export default function AppointmentScreen() {
           blocks_calls: false,
           busy_preset: null,
           busy_callback_time: null,
+          busy_announcement_language: null,
           announcement: null,
           redirect_mode: null,
           redirect_agent_id: null,

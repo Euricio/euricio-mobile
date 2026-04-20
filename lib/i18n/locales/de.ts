@@ -2185,6 +2185,8 @@ const de: Record<string, string> = {
   'busy.preset_label': 'Was machst du gerade?',
   'busy.callback_time_label': 'Rückruf möglich ab (optional)',
   'busy.announcement_preview': 'Vorschau Ansage',
+  'busy.announcement_language_label': 'Ansagesprache (für Anrufer)',
+  'busy.announcement_language_hint': 'Unabhängig von der Menüsprache',
   'busy.custom_reason_label': 'Grund',
   'busy.custom_announcement_label': 'Eigener Ansagetext',
   'busy.deep_work_section_title': 'Während dieses Termins nicht stören',

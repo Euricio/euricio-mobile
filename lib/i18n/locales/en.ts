@@ -2179,6 +2179,8 @@ const en: Record<string, string> = {
   'busy.preset_label': 'What are you doing?',
   'busy.callback_time_label': 'Callback available from (optional)',
   'busy.announcement_preview': 'Announcement preview',
+  'busy.announcement_language_label': 'Announcement language (for the caller)',
+  'busy.announcement_language_hint': 'Independent of the menu language',
   'busy.custom_reason_label': 'Reason',
   'busy.custom_announcement_label': 'Custom announcement',
   'busy.deep_work_section_title': 'Do not disturb during this appointment',

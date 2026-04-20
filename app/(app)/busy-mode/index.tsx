@@ -9,6 +9,7 @@ import { useI18n } from '../../../lib/i18n';
 import { useBusyStatus, useSetBusy, RedirectMode } from '../../../lib/api/busyStatus';
 import { BusyRedirectOptions } from '../../../components/voice/BusyRedirectOptions';
 import { BusyPresetPicker, BusyPresetValues } from '../../../components/voice/BusyPresetPicker';
+import type { AnnouncementLang } from '../../../lib/busyPresets';
 import { Card } from '../../../components/ui/Card';
 import { LoadingScreen } from '../../../components/ui/LoadingScreen';
 import { useAuthStore } from '../../../store/authStore';
@@ -16,7 +17,9 @@ import { StyleSheet as RNStyleSheet, ViewStyle } from 'react-native';
 import { colors, spacing, fontSize, fontWeight, borderRadius } from '../../../constants/theme';
 
 export default function BusyModeScreen() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const defaultLang: AnnouncementLang =
+    locale === 'de' ? 'de' : locale === 'en' ? 'en' : 'es';
   const { data: busyStatus, isLoading } = useBusyStatus();
   const setBusy = useSetBusy();
   const user = useAuthStore(s => s.user);
@@ -32,6 +35,7 @@ export default function BusyModeScreen() {
     busy_callback_time: '',
     busy_reason: '',
     announcement: '',
+    busy_announcement_language: defaultLang,
   });
   const [redirect, setRedirect] = useState<{
     announcement: string;
@@ -43,7 +47,7 @@ export default function BusyModeScreen() {
   if (isLoading) return <LoadingScreen />;
 
   async function handleToggleOn() {
-    setPreset({ busy_preset: 'in_appointment', busy_callback_time: '', busy_reason: '', announcement: '' });
+    setPreset({ busy_preset: 'in_appointment', busy_callback_time: '', busy_reason: '', announcement: '', busy_announcement_language: defaultLang });
     setRedirect({ announcement: '', redirect_mode: 'next_in_flow', redirect_agent_id: null, redirect_number: '' });
     setShowForm(true);
   }
@@ -72,6 +76,7 @@ export default function BusyModeScreen() {
         // extra fields understood by server
         busy_preset: preset.busy_preset,
         busy_callback_time: preset.busy_callback_time || undefined,
+        busy_announcement_language: preset.busy_announcement_language,
       } as any);
       setShowForm(false);
     } catch (err) {

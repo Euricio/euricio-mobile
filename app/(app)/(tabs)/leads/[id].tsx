@@ -29,6 +29,56 @@ import {
   shadow,
 } from '../../../../constants/theme';
 import { useI18n } from '../../../../lib/i18n';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../../../../lib/supabase';
+
+type VoiceCallLog = {
+  id: string;
+  call_sid: string | null;
+  from_number: string | null;
+  to_number: string | null;
+  direction: string;
+  status: string;
+  duration: number | null;
+  start_time: string;
+  is_missed: boolean | null;
+  caller_name: string | null;
+  user_id: string | null;
+  handled_by_name?: string | null;
+};
+
+function useLeadVoiceCallLogs(leadId: string | undefined) {
+  return useQuery({
+    queryKey: ['lead-voice-call-logs', leadId],
+    queryFn: async () => {
+      if (!leadId) return [] as VoiceCallLog[];
+      const { data } = await supabase
+        .from('voice_call_logs')
+        .select('*')
+        .eq('lead_id', Number(leadId))
+        .order('start_time', { ascending: false });
+      const logs = (data || []) as VoiceCallLog[];
+      const userIds = Array.from(new Set(logs.map(l => l.user_id).filter((x): x is string => !!x)));
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', userIds);
+        const map = new Map((profiles || []).map(p => [p.id as string, p.full_name as string | null]));
+        for (const l of logs) if (l.user_id) l.handled_by_name = map.get(l.user_id) ?? null;
+      }
+      return logs;
+    },
+    enabled: !!leadId,
+  });
+}
+
+function formatDuration(sec: number | null): string {
+  if (!sec || sec < 1) return '—';
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}m ${s}s`;
+}
 
 function getStatusConfig(t: (key: string) => string): Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'error' | 'info' | 'primary' }> {
   return {
@@ -45,6 +95,7 @@ export default function LeadDetailScreen() {
   const { data: lead, isLoading, refetch, isRefetching } = useLead(id!);
   const deleteLead = useDeleteLead();
   const { data: stages } = usePipelineStages();
+  const { data: voiceCallLogs = [] } = useLeadVoiceCallLogs(id);
   const moveToStage = useMoveLeadToStage();
   const sendPortalInvite = useSendPortalInvite();
   const statusConfig = getStatusConfig(t);
@@ -309,6 +360,50 @@ export default function LeadDetailScreen() {
         </Card>
       )}
 
+      {/* Voice call history */}
+      {voiceCallLogs.length > 0 && (
+        <Card>
+          <Text style={styles.cardTitle}>
+            {locale === 'de' ? 'Telefonie-Verlauf' : locale === 'es' ? 'Historial de llamadas' : 'Call history'}
+          </Text>
+          {voiceCallLogs.map(vc => (
+            <View key={vc.id} style={voiceStyles.row}>
+              <View style={voiceStyles.iconWrap}>
+                <Ionicons
+                  name={vc.is_missed ? 'call-outline' : vc.direction === 'inbound' ? 'arrow-down' : 'arrow-up'}
+                  size={14}
+                  color={vc.is_missed ? colors.error : colors.primary}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={voiceStyles.number}>
+                  {vc.direction === 'inbound' ? (vc.caller_name || vc.from_number || '—') : (vc.to_number || '—')}
+                </Text>
+                <Text style={voiceStyles.meta}>
+                  {new Date(vc.start_time).toLocaleString(locale === 'de' ? 'de-DE' : locale === 'es' ? 'es-ES' : 'en-GB', {
+                    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                  })}
+                  {'  ·  '}{formatDuration(vc.duration)}
+                </Text>
+                {vc.handled_by_name && (
+                  <Text style={voiceStyles.handler}>
+                    {(locale === 'de' ? 'Bearbeitet von: ' : locale === 'es' ? 'Atendido por: ' : 'Handled by: ')}
+                    {vc.handled_by_name}
+                  </Text>
+                )}
+              </View>
+              {vc.is_missed && (
+                <View style={voiceStyles.missedBadge}>
+                  <Text style={voiceStyles.missedBadgeText}>
+                    {locale === 'de' ? 'Verpasst' : locale === 'es' ? 'Perdida' : 'Missed'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          ))}
+        </Card>
+      )}
+
       {/* Activity placeholder */}
       <Card style={styles.activityCard}>
         <Text style={styles.cardTitle}>{t('lead_activities')}</Text>
@@ -535,5 +630,35 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginHorizontal: spacing.md,
     marginBottom: spacing.md,
+  },
+});
+
+const voiceStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.borderLight,
+  },
+  iconWrap: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: colors.successLight,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  number: { fontSize: fontSize.sm, color: colors.text, fontWeight: fontWeight.medium },
+  meta: { fontSize: fontSize.xs, color: colors.textSecondary, marginTop: 1 },
+  handler: { fontSize: fontSize.xs, color: colors.textTertiary, marginTop: 1 },
+  missedBadge: {
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+    backgroundColor: 'rgba(239,68,68,0.12)',
+  },
+  missedBadgeText: {
+    fontSize: 10,
+    color: colors.error,
+    fontWeight: fontWeight.semibold,
   },
 });
