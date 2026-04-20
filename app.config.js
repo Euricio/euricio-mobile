@@ -28,6 +28,15 @@ module.exports = ({ config }) => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.euricio.crm',
+    // appleTeamId muss vor dem ersten prebuild/eas build gesetzt werden,
+    // damit @bacons/apple-targets das Widget-Target signieren kann.
+    // Setze entweder hier oder via EAS credentials in der Build-Profile.
+    // appleTeamId: 'XXXXXXXXXX',
+    entitlements: {
+      'com.apple.security.application-groups': [
+        'group.com.euricio.crm.widget',
+      ],
+    },
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSMicrophoneUsageDescription:
@@ -63,6 +72,29 @@ module.exports = ({ config }) => ({
     'expo-router',
     'expo-secure-store',
     'expo-updates',
+    // iOS Widget Target (WidgetKit / SwiftUI) via @bacons/apple-targets.
+    // Expects targets/widget/expo-target.config.js + Swift sources.
+    '@bacons/apple-targets',
+    // Android Widget (Glance-like, JSX-based) via react-native-android-widget.
+    [
+      'react-native-android-widget',
+      {
+        widgets: [
+          {
+            name: 'EuricioNextCall',
+            label: 'Euricio · Next Call',
+            minWidth: '180dp',
+            minHeight: '110dp',
+            targetCellWidth: 3,
+            targetCellHeight: 2,
+            description:
+              'Nächster Call, offene Aufgaben, Fokus-Status auf einen Blick.',
+            previewImage: './assets/adaptive-icon.png',
+            updatePeriodMillis: 1800000, // 30 min (OS clamps to ≥ 30 min)
+          },
+        ],
+      },
+    ],
   ],
 
   experiments: {
