@@ -14,6 +14,7 @@ import type { Appointment } from '../../../lib/api/calendar';
 import { Card } from '../../../components/ui/Card';
 import { LoadingScreen } from '../../../components/ui/LoadingScreen';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { FocusBanner } from '../../../components/calendar/FocusBanner';
 import {
   colors,
   spacing,
@@ -180,6 +181,9 @@ export default function CalendarScreen() {
           ),
         }}
       />
+
+      {/* Active focus / deep-work banner */}
+      <FocusBanner appointments={appointments} />
 
       {/* Month navigation */}
       <View style={styles.monthNav}>
