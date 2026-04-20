@@ -2253,6 +2253,22 @@ const en: Record<string, string> = {
   push_channel_default: 'General',
   push_channel_calls: 'Calls',
   push_permission_denied: 'Push notifications disabled',
+
+  // ─── Phase 2 · Call Workspace + Busy + Focus ───
+  busy_duration_label: 'Duration',
+  call_ws_summary_required: 'Please enter a note',
+  call_ws_due_required: 'Please pick a date',
+  call_ws_title_required: 'Please enter a title',
+  call_ws_appointment_required: 'Title and start time are required',
+  call_ws_title_label: 'Title',
+  call_ws_title_placeholder: 'Short and clear',
+  call_ws_callback_date_label: 'Callback on',
+  call_ws_due_label: 'Due (optional)',
+  call_ws_start_label: 'Start',
+  call_ws_note_label: 'Note',
+  call_ws_note_placeholder: 'What was the call about?',
+  calendar_focus_active: 'Focus mode active',
+  calendar_focus_until: 'until',
 };
 
 export default en;

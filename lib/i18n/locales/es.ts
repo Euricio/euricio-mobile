@@ -2253,6 +2253,22 @@ const es: Record<string, string> = {
   push_channel_default: 'General',
   push_channel_calls: 'Llamadas',
   push_permission_denied: 'Notificaciones push desactivadas',
+
+  // ─── Phase 2 · Call Workspace + Busy + Focus ───
+  busy_duration_label: 'Duración',
+  call_ws_summary_required: 'Introduce una nota',
+  call_ws_due_required: 'Elige una fecha',
+  call_ws_title_required: 'Introduce un título',
+  call_ws_appointment_required: 'Título y hora de inicio son obligatorios',
+  call_ws_title_label: 'Título',
+  call_ws_title_placeholder: 'Corto y claro',
+  call_ws_callback_date_label: 'Devolver llamada el',
+  call_ws_due_label: 'Vence (opcional)',
+  call_ws_start_label: 'Inicio',
+  call_ws_note_label: 'Nota',
+  call_ws_note_placeholder: '¿De qué trató la llamada?',
+  calendar_focus_active: 'Modo enfoque activo',
+  calendar_focus_until: 'hasta',
 };
 
 export default es;

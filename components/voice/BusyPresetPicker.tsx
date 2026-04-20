@@ -4,6 +4,29 @@ import { useI18n } from '../../lib/i18n';
 import { BUSY_PRESETS, BusyPresetKey, buildBusyAnnouncement } from '../../lib/busyPresets';
 import { colors, spacing, fontSize, fontWeight, borderRadius } from '../../constants/theme';
 
+const DURATION_MINUTES = [15, 30, 45, 60, 90, 120] as const;
+
+function formatCallbackFromMinutes(minutes: number): string {
+  const d = new Date(Date.now() + minutes * 60_000);
+  const hh = d.getHours().toString().padStart(2, '0');
+  const mm = d.getMinutes().toString().padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
+function isDurationActive(currentValue: string, minutes: number): boolean {
+  if (!currentValue || !/^\d{1,2}:\d{2}$/.test(currentValue)) return false;
+  const [hh, mm] = currentValue.split(':').map(Number);
+  const now = new Date();
+  const target = new Date();
+  target.setHours(hh, mm, 0, 0);
+  if (target.getTime() < now.getTime() - 60_000) {
+    // User picked a past time today → probably means tomorrow; no match
+    return false;
+  }
+  const diffMin = Math.round((target.getTime() - now.getTime()) / 60_000);
+  return Math.abs(diffMin - minutes) <= 2;
+}
+
 export interface BusyPresetValues {
   busy_preset: BusyPresetKey;
   busy_callback_time: string;
@@ -54,6 +77,25 @@ export function BusyPresetPicker({ values, displayName, onChange }: Props) {
               <Text style={styles.chipIcon}>{p.icon}</Text>
               <Text style={[styles.chipLabel, active && styles.chipLabelActive]} numberOfLines={1}>
                 {t(`busy.presets.${p.key}.label`)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <Text style={[styles.label, { marginTop: spacing.md }]}>{t('busy_duration_label')}</Text>
+      <View style={styles.durationRow}>
+        {DURATION_MINUTES.map(min => {
+          const active = isDurationActive(values.busy_callback_time, min);
+          return (
+            <TouchableOpacity
+              key={min}
+              style={[styles.durationChip, active && styles.durationChipActive]}
+              onPress={() => set({ busy_callback_time: formatCallbackFromMinutes(min) })}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.durationChipLabel, active && styles.durationChipLabelActive]}>
+                {min < 60 ? `${min}m` : `${min / 60}h`}
               </Text>
             </TouchableOpacity>
           );
@@ -138,4 +180,33 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
   },
   previewText: { fontSize: fontSize.sm, color: colors.textSecondary, fontStyle: 'italic' },
+  durationRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  durationChip: {
+    flexBasis: '15%',
+    flexGrow: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  durationChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.successLight,
+  },
+  durationChipLabel: {
+    fontSize: fontSize.sm,
+    color: colors.text,
+    fontWeight: fontWeight.medium,
+  },
+  durationChipLabelActive: {
+    color: colors.primary,
+    fontWeight: fontWeight.semibold,
+  },
 });
