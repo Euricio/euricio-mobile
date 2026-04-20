@@ -2224,6 +2224,41 @@ const de: Record<string, string> = {
   missed_call_source_event: 'Kalenderereignis',
   mark_read: 'Als gelesen markieren',
   confirm_delete: 'Wirklich löschen?',
+
+  // ─── Caller Context · Phase 1 ───
+  caller_entity_lead: 'Lead',
+  caller_entity_owner: 'Eigentümer',
+  caller_entity_partner: 'Partner',
+  caller_cold_callback: 'Cold-Call-Rückruf',
+  caller_unknown: 'Unbekannte Nummer',
+  caller_new_lead: 'Neuen Lead anlegen',
+  caller_save_partner: 'Als Partner speichern',
+  caller_ignore: 'Später entscheiden',
+  caller_multi_match_title: 'Mehrere Treffer',
+  caller_multi_match_hint: 'Wähle aus, wer anruft',
+  caller_warmth_1: 'Neu',
+  caller_warmth_3: 'Bekannt',
+  caller_warmth_5: 'Stammkunde',
+
+  // ─── Call Workspace · Phase 1 ───
+  call_ws_title: 'Gespräch',
+  call_ws_next_action: 'Nächster Schritt',
+  call_ws_last_contact: 'Letzter Kontakt',
+  call_ws_last_agent: 'Zuletzt am Telefon',
+  call_ws_knows_customer: 'Kennt den Kunden',
+  call_ws_related_property: 'Zugeordnetes Objekt',
+  call_ws_open_tasks: 'Offene Aufgaben',
+  call_ws_action_note: 'Notiz',
+  call_ws_action_appointment: 'Termin',
+  call_ws_action_callback: 'Rückruf',
+  call_ws_action_task: 'Aufgabe',
+  call_ws_action_stage: 'Status',
+  call_ws_action_property: 'Objekt zuweisen',
+
+  // ─── Push · Phase 1 ───
+  push_channel_default: 'Allgemein',
+  push_channel_calls: 'Anrufe',
+  push_permission_denied: 'Push-Benachrichtigungen deaktiviert',
 };
 
 export default de;

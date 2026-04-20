@@ -2218,6 +2218,41 @@ const es: Record<string, string> = {
   missed_call_source_event: 'Evento de calendario',
   mark_read: 'Marcar como leído',
   confirm_delete: '¿Eliminar realmente?',
+
+  // ─── Caller Context · Phase 1 ───
+  caller_entity_lead: 'Lead',
+  caller_entity_owner: 'Propietario',
+  caller_entity_partner: 'Socio',
+  caller_cold_callback: 'Devolución en frío',
+  caller_unknown: 'Número desconocido',
+  caller_new_lead: 'Crear nuevo lead',
+  caller_save_partner: 'Guardar como socio',
+  caller_ignore: 'Decidir después',
+  caller_multi_match_title: 'Varias coincidencias',
+  caller_multi_match_hint: 'Elige quién llama',
+  caller_warmth_1: 'Nuevo',
+  caller_warmth_3: 'Conocido',
+  caller_warmth_5: 'Habitual',
+
+  // ─── Call Workspace · Phase 1 ───
+  call_ws_title: 'Llamada',
+  call_ws_next_action: 'Próximo paso',
+  call_ws_last_contact: 'Último contacto',
+  call_ws_last_agent: 'Última persona al teléfono',
+  call_ws_knows_customer: 'Conoce al cliente',
+  call_ws_related_property: 'Inmueble relacionado',
+  call_ws_open_tasks: 'Tareas abiertas',
+  call_ws_action_note: 'Nota',
+  call_ws_action_appointment: 'Cita',
+  call_ws_action_callback: 'Devolver llamada',
+  call_ws_action_task: 'Tarea',
+  call_ws_action_stage: 'Etapa',
+  call_ws_action_property: 'Asignar inmueble',
+
+  // ─── Push · Phase 1 ───
+  push_channel_default: 'General',
+  push_channel_calls: 'Llamadas',
+  push_permission_denied: 'Notificaciones push desactivadas',
 };
 
 export default es;

@@ -10,8 +10,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useVoice } from '../../lib/voice/VoiceContext';
 import { lookupCaller, CallerMatch } from '../../lib/voice/voiceApi';
+import { fetchCallerContext, type CallerContextMatch } from '../../lib/api/callerContext';
 import { useI18n } from '../../lib/i18n';
 import { Avatar } from '../ui/Avatar';
+import { CallerContextCard } from './CallerContextCard';
 import { colors, spacing, fontSize, fontWeight } from '../../constants/theme';
 
 function formatDuration(seconds: number): string {
@@ -20,11 +22,34 @@ function formatDuration(seconds: number): string {
   return `${m}:${s}`;
 }
 
-const ENTITY_LABELS: Record<string, string> = {
-  lead: 'Lead',
-  property_owner: 'Eigentümer',
-  partner: 'Partner',
+const ENTITY_LABEL_KEYS: Record<string, string> = {
+  lead: 'caller_entity_lead',
+  property_owner: 'caller_entity_owner',
+  partner: 'caller_entity_partner',
 };
+
+/** Upgrade a legacy CallerMatch into a CallerContextMatch-compatible shape
+ *  so the CallerContextCard can still render when only the legacy endpoint
+ *  responds (e.g. network hiccup or backend rollout in progress). */
+function legacyToContext(m: CallerMatch): CallerContextMatch {
+  return {
+    entity_type: m.entity_type as CallerContextMatch['entity_type'],
+    entity_id: Number(m.entity_id),
+    name: m.name,
+    phone: '',
+    email: m.email ?? null,
+    status: m.status ?? null,
+    language_code: null,
+    warmth: null,
+    is_cold_callback: false,
+    next_action: null,
+    property: m.property_id ? { id: Number(m.property_id), title: m.property_info || '' } : null,
+    relationship_owner: null,
+    last_agent: null,
+    last_interaction: null,
+    open_tasks_count: 0,
+  };
+}
 
 export default function IncomingCallOverlay() {
   const { t } = useI18n();
@@ -39,18 +64,42 @@ export default function IncomingCallOverlay() {
     toggleMute,
   } = useVoice();
 
-  const [matches, setMatches] = useState<CallerMatch[]>([]);
+  const [matches, setMatches] = useState<CallerContextMatch[]>([]);
   const [lookupDone, setLookupDone] = useState(false);
 
   useEffect(() => {
-    if (incomingCall?.from) {
-      setLookupDone(false);
-      setMatches([]);
-      lookupCaller(incomingCall.from)
-        .then((res) => setMatches(res.matches || []))
-        .catch(() => {})
-        .finally(() => setLookupDone(true));
-    }
+    if (!incomingCall?.from) return;
+    let cancelled = false;
+    setLookupDone(false);
+    setMatches([]);
+
+    (async () => {
+      // Primary: rich caller-context endpoint (returns CRM context in one trip)
+      try {
+        const res = await fetchCallerContext(incomingCall.from!);
+        if (cancelled) return;
+        setMatches(res.matches);
+        setLookupDone(true);
+        return;
+      } catch {
+        // Fall through to legacy endpoint on any error
+      }
+
+      // Fallback: legacy caller-lookup (already in production)
+      try {
+        const res = await lookupCaller(incomingCall.from!);
+        if (cancelled) return;
+        setMatches((res.matches || []).map(legacyToContext));
+      } catch {
+        if (!cancelled) setMatches([]);
+      } finally {
+        if (!cancelled) setLookupDone(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [incomingCall?.from]);
 
   if (!incomingCall) return null;
@@ -84,28 +133,24 @@ export default function IncomingCallOverlay() {
             )}
 
             {lookupDone && matches.length === 1 && (
-              <View style={styles.matchCard}>
-                <Avatar name={matches[0].name} size={40} />
-                <View style={styles.matchInfo}>
-                  <Text style={styles.matchName}>{matches[0].name}</Text>
-                  <Text style={styles.matchType}>
-                    {ENTITY_LABELS[matches[0].entity_type] || matches[0].entity_type}
-                  </Text>
-                </View>
-              </View>
+              <CallerContextCard match={matches[0]} compact />
             )}
 
             {lookupDone && matches.length > 1 && (
-              <View>
+              <View style={styles.multiMatchWrap}>
                 <Text style={styles.multiMatch}>
                   {matches.length} {t('voice_matchesFound')}
                 </Text>
                 {matches.slice(0, 3).map((m) => (
                   <View key={`${m.entity_type}-${m.entity_id}`} style={styles.matchRow}>
-                    <Text style={styles.matchRowName}>{m.name}</Text>
-                    <Text style={styles.matchRowType}>
-                      {ENTITY_LABELS[m.entity_type] || m.entity_type}
-                    </Text>
+                    <Avatar name={m.name} size={32} />
+                    <View style={{ flex: 1, marginLeft: spacing.sm }}>
+                      <Text style={styles.matchRowName} numberOfLines={1}>{m.name}</Text>
+                      <Text style={styles.matchRowType} numberOfLines={1}>
+                        {t(ENTITY_LABEL_KEYS[m.entity_type] || 'caller_entity_lead')}
+                        {m.next_action ? ` · ${m.next_action}` : ''}
+                      </Text>
+                    </View>
                   </View>
                 ))}
               </View>
@@ -198,7 +243,9 @@ const styles = StyleSheet.create({
   },
   callerSection: {
     padding: 20,
-    alignItems: 'center',
+  },
+  multiMatchWrap: {
+    gap: spacing.sm,
   },
   callerNumber: {
     fontSize: 22,
@@ -244,7 +291,7 @@ const styles = StyleSheet.create({
   },
   matchRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: 6,
   },
   matchRowName: {
