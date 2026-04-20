@@ -2161,6 +2161,8 @@ const es: Record<string, string> = {
   // ─── Busy-Mode & Calendario ────────────────────────────────────────
   busy_toggle_available: 'Disponible',
   busy_toggle_busy: 'Ocupado',
+  busy_dashboard_tap_to_enable: 'Toca para pausar llamadas',
+  busy_dashboard_tap_to_edit: 'Toca para editar',
   busy_set_title: 'Marcar como ocupado',
   busy_reason_placeholder: 'Motivo (opcional)',
   busy_set_button: 'Marcar ocupado ahora',
