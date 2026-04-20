@@ -65,10 +65,9 @@ module.exports = ({ config }) => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.euricio.crm',
-    // appleTeamId muss vor dem ersten prebuild/eas build gesetzt werden,
-    // damit @bacons/apple-targets das Widget-Target signieren kann.
-    // Setze entweder hier oder via EAS credentials in der Build-Profile.
-    // appleTeamId: 'XXXXXXXXXX',
+    // appleTeamId required by @bacons/apple-targets to sign the widget
+    // extension target. Must match the team owning the bundle identifier.
+    appleTeamId: 'ZCAN59P52X',
     entitlements: {
       'com.apple.security.application-groups': [
         'group.com.euricio.crm.widget',
