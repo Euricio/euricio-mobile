@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDashboardStats, useRecentActivity } from '../../../lib/api/dashboard';
 import { useProfile } from '../../../lib/api/profile';
 import { useTeamSummary, useTeamAvailability } from '../../../lib/api/hr';
+import { useBusyStatus } from '../../../lib/api/busyStatus';
 import { useAuthStore } from '../../../store/authStore';
 import { Card } from '../../../components/ui/Card';
 import { Avatar } from '../../../components/ui/Avatar';
@@ -62,6 +63,8 @@ export default function DashboardScreen() {
   const activity = useRecentActivity();
   const { data: teamSummary } = useTeamSummary();
   const { data: teamAvailability } = useTeamAvailability();
+  const { data: busyStatus } = useBusyStatus();
+  const isBusy = busyStatus?.is_busy ?? false;
   const isManager = profile?.role === 'admin' || profile?.role === 'manager_agent';
   const onShiftMembers = (teamAvailability ?? []).filter((m) => m.status === 'on_shift');
 
@@ -93,6 +96,46 @@ export default function DashboardScreen() {
         </Text>
         <Text style={styles.date}>{fmtDate(new Date(), { weekday: 'long', day: 'numeric', month: 'long' })}</Text>
       </View>
+
+      {/* Busy / Focus Mode Card */}
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => router.push('/(app)/busy-mode/' as any)}
+        style={[
+          styles.busyCard,
+          isBusy ? styles.busyCardActive : styles.busyCardIdle,
+        ]}
+      >
+        <View
+          style={[
+            styles.busyIcon,
+            { backgroundColor: isBusy ? 'rgba(255,255,255,0.2)' : colors.primary + '15' },
+          ]}
+        >
+          <Ionicons
+            name={isBusy ? 'moon' : 'moon-outline'}
+            size={22}
+            color={isBusy ? colors.white : colors.primary}
+          />
+        </View>
+        <View style={styles.busyTextBox}>
+          <Text style={[styles.busyTitle, isBusy && { color: colors.white }]}>
+            {isBusy
+              ? t('busy_toggle_busy') || 'Besetzt'
+              : t('busy_toggle_available') || 'Verfügbar'}
+          </Text>
+          <Text style={[styles.busySubtitle, isBusy && { color: 'rgba(255,255,255,0.85)' }]} numberOfLines={1}>
+            {isBusy
+              ? busyStatus?.busy_reason || t('busy_dashboard_tap_to_edit') || 'Tippen zum Bearbeiten'
+              : t('busy_dashboard_tap_to_enable') || 'Tippen, um Anrufe zu pausieren'}
+          </Text>
+        </View>
+        <Ionicons
+          name="chevron-forward"
+          size={20}
+          color={isBusy ? 'rgba(255,255,255,0.85)' : colors.textTertiary}
+        />
+      </TouchableOpacity>
 
       {/* Stats Cards */}
       <View style={styles.statsRow}>
@@ -519,5 +562,41 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
+  },
+  busyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.lg,
+  },
+  busyCardIdle: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  busyCardActive: {
+    backgroundColor: colors.primary,
+  },
+  busyIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  busyTextBox: {
+    flex: 1,
+  },
+  busyTitle: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.text,
+  },
+  busySubtitle: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
 });
