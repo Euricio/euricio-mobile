@@ -8,6 +8,26 @@ import { useVoicePermissions } from '../../lib/voice/useVoicePermissions';
 import FloatingDialer from '../../components/voice/FloatingDialer';
 import FloatingScannerFab from '../../components/scanner/FloatingScannerFab';
 import IncomingCallOverlay from '../../components/voice/IncomingCallOverlay';
+import { registerForPush, wirePushTapHandler } from '../../lib/push/registerPush';
+
+function PushBootstrap() {
+  React.useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    (async () => {
+      try {
+        await registerForPush();
+        cleanup = await wirePushTapHandler();
+      } catch (err) {
+        // Non-fatal: push is best-effort.
+        console.warn('[push] bootstrap failed', err);
+      }
+    })();
+    return () => {
+      cleanup?.();
+    };
+  }, []);
+  return null;
+}
 
 function VoiceOverlay() {
   const { data: perms } = useVoicePermissions();
@@ -109,6 +129,7 @@ export default function AppLayout() {
         </Stack>
         <FloatingScannerFab />
         <VoiceOverlay />
+        <PushBootstrap />
       </View>
     </VoiceProvider>
   );

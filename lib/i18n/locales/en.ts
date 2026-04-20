@@ -2218,6 +2218,41 @@ const en: Record<string, string> = {
   missed_call_source_event: 'Calendar event',
   mark_read: 'Mark as read',
   confirm_delete: 'Really delete?',
+
+  // ─── Caller Context · Phase 1 ───
+  caller_entity_lead: 'Lead',
+  caller_entity_owner: 'Owner',
+  caller_entity_partner: 'Partner',
+  caller_cold_callback: 'Cold callback',
+  caller_unknown: 'Unknown number',
+  caller_new_lead: 'Create new lead',
+  caller_save_partner: 'Save as partner',
+  caller_ignore: 'Decide later',
+  caller_multi_match_title: 'Multiple matches',
+  caller_multi_match_hint: 'Pick who is calling',
+  caller_warmth_1: 'New',
+  caller_warmth_3: 'Known',
+  caller_warmth_5: 'Returning',
+
+  // ─── Call Workspace · Phase 1 ───
+  call_ws_title: 'Call',
+  call_ws_next_action: 'Next step',
+  call_ws_last_contact: 'Last contact',
+  call_ws_last_agent: 'Last on phone',
+  call_ws_knows_customer: 'Knows the customer',
+  call_ws_related_property: 'Related property',
+  call_ws_open_tasks: 'Open tasks',
+  call_ws_action_note: 'Note',
+  call_ws_action_appointment: 'Appointment',
+  call_ws_action_callback: 'Callback',
+  call_ws_action_task: 'Task',
+  call_ws_action_stage: 'Stage',
+  call_ws_action_property: 'Assign property',
+
+  // ─── Push · Phase 1 ───
+  push_channel_default: 'General',
+  push_channel_calls: 'Calls',
+  push_permission_denied: 'Push notifications disabled',
 };
 
 export default en;
