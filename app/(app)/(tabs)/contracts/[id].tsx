@@ -95,11 +95,17 @@ export default function ContractDetailScreen() {
 
   const handleGeneratePdf = () => {
     generatePdf.mutate(contract.id, {
+      // Success path: the hook itself opens the native share sheet (Save to Files,
+      // AirDrop, open in another app). No extra Alert needed — the sheet IS the
+      // feedback. Just refetch so the UI flips to "PDF anzeigen" afterwards.
       onSuccess: () => {
-        Alert.alert(t('contract_pdfSuccess'));
+        refetch();
       },
-      onError: () => {
-        Alert.alert(t('error'), t('contract_pdfError'));
+      onError: (err) => {
+        Alert.alert(
+          t('error'),
+          err instanceof Error ? err.message : t('contract_pdfError'),
+        );
       },
     });
   };

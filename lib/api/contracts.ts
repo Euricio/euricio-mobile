@@ -1,6 +1,8 @@
 import { supabase, uploadToStorage } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
+import { File, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 export interface SavedClause {
   key: string;
@@ -149,7 +151,7 @@ export function useGeneratePdf() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (contractId: string) => {
+    mutationFn: async (contractId: string): Promise<{ uri: string; filename: string }> => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
@@ -168,7 +170,31 @@ export function useGeneratePdf() {
         throw new Error(text || 'PDF generation failed');
       }
 
-      return res;
+      // Extract filename from Content-Disposition (fallback: generic name)
+      const disposition = res.headers.get('content-disposition') || '';
+      const match = disposition.match(/filename="?([^";]+)"?/i);
+      const filename = match?.[1] || `contract-${contractId}.pdf`;
+
+      // Write PDF bytes to cache directory
+      const buffer = await res.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      const file = new File(Paths.cache, filename);
+      if (file.exists) {
+        file.delete();
+      }
+      file.create();
+      file.write(bytes);
+
+      // Open native share sheet: user can Save to Files, AirDrop, open in Preview, etc.
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: filename,
+          UTI: 'com.adobe.pdf',
+        });
+      }
+
+      return { uri: file.uri, filename };
     },
     onSuccess: (_data, contractId) => {
       queryClient.invalidateQueries({ queryKey: ['contract', contractId] });
