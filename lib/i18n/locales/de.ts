@@ -1546,6 +1546,7 @@ const de: Record<string, string> = {
   recruit_openCv: 'Lebenslauf öffnen',
   recruit_openCoverLetter: 'Anschreiben öffnen',
   recruit_noCandidates: 'Keine Bewerber in dieser Phase',
+  recruit_experienceYearsShort: 'J.',
   recruit_lang_de: 'Deutsch',
   recruit_lang_en: 'Englisch',
   recruit_lang_es: 'Spanisch',

@@ -1540,6 +1540,7 @@ const en: Record<string, string> = {
   recruit_openCv: 'Open CV',
   recruit_openCoverLetter: 'Open cover letter',
   recruit_noCandidates: 'No candidates in this stage',
+  recruit_experienceYearsShort: 'yrs',
   recruit_lang_de: 'German',
   recruit_lang_en: 'English',
   recruit_lang_es: 'Spanish',
