@@ -3,7 +3,8 @@ import {
   View, Text, ScrollView, StyleSheet, Switch,
   TouchableOpacity, Alert, ActivityIndicator,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../../lib/i18n';
 import { useBusyStatus, useSetBusy, RedirectMode } from '../../../lib/api/busyStatus';
@@ -86,9 +87,31 @@ export default function BusyModeScreen() {
 
   const isBusy = busyStatus?.is_busy ?? false;
 
+  function handleBack() {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(app)/(tabs)/dashboard' as any);
+    }
+  }
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: t('busy_set_title'), headerBackTitle: t('back') }} />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={handleBack}
+          style={styles.backButton}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Ionicons name="chevron-back" size={28} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1}>{t('busy_set_title')}</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+      <ScrollView contentContainerStyle={styles.content}>
 
       <Card style={RNStyleSheet.flatten([styles.statusCard, isBusy && styles.statusCardBusy]) as ViewStyle}>
         <View style={styles.statusRow}>
@@ -164,12 +187,36 @@ export default function BusyModeScreen() {
           </Text>
         </Card>
       )}
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.text,
+  },
+  headerSpacer: { width: 40 },
   content: { padding: spacing.lg, gap: spacing.md },
   statusCard: { padding: spacing.lg },
   statusCardBusy: { borderColor: colors.error, borderWidth: 1 },
