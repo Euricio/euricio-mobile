@@ -1,9 +1,42 @@
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, PDFImage } from 'pdf-lib';
 import * as FileSystem from 'expo-file-system/legacy';
 
 // A4 in points
 const A4_W = 595;
 const A4_H = 842;
+
+type ImageFormat = 'jpeg' | 'png' | 'heic' | 'unknown';
+
+/**
+ * Detect image format from magic bytes.
+ * - JPEG: 0xFF 0xD8 0xFF (SOI marker)
+ * - PNG:  0x89 0x50 0x4E 0x47 0x0D 0x0A 0x1A 0x0A
+ * - HEIC: bytes 4..11 contain 'ftyp' + 'heic'/'heix'/'mif1'/'msf1'
+ */
+function detectFormat(bytes: Uint8Array): ImageFormat {
+  if (bytes.length < 12) return 'unknown';
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'jpeg';
+  if (
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  ) {
+    return 'png';
+  }
+  if (
+    bytes[4] === 0x66 && // f
+    bytes[5] === 0x74 && // t
+    bytes[6] === 0x79 && // y
+    bytes[7] === 0x70 // p
+  ) {
+    const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]);
+    if (['heic', 'heix', 'mif1', 'msf1', 'heis', 'hevc'].includes(brand)) {
+      return 'heic';
+    }
+  }
+  return 'unknown';
+}
 
 /**
  * Convert an array of image URIs to a single PDF file.
@@ -11,6 +44,11 @@ const A4_H = 842;
  *
  * Uses pdf-lib which is a pure-JS PDF library that works in React Native
  * without any DOM/browser dependencies (unlike jsPDF or expo-print).
+ *
+ * Supports both JPEG and PNG input (auto-detected via magic bytes).
+ * HEIC is rejected with a clear error message — expo-image-picker converts
+ * HEIC to JPEG automatically on iOS, but file-picker or other sources may
+ * still hand us HEIC.
  */
 export async function imagesToPdf(imageUris: string[]): Promise<string> {
   const doc = await PDFDocument.create();
@@ -27,8 +65,22 @@ export async function imagesToPdf(imageUris: string[]): Promise<string> {
       bytes[j] = binaryStr.charCodeAt(j);
     }
 
-    // Embed JPEG image
-    const image = await doc.embedJpg(bytes);
+    // Detect format and embed with the correct method
+    const format = detectFormat(bytes);
+    let image: PDFImage;
+    if (format === 'jpeg') {
+      image = await doc.embedJpg(bytes);
+    } else if (format === 'png') {
+      image = await doc.embedPng(bytes);
+    } else if (format === 'heic') {
+      throw new Error(
+        'HEIC-Bilder werden nicht unterstützt. Bitte in der Kamera-Einstellung "Kompatibel" wählen oder das Bild als JPEG exportieren.',
+      );
+    } else {
+      throw new Error(
+        'Unbekanntes Bildformat. Nur JPEG und PNG werden unterstützt.',
+      );
+    }
 
     // Add a page with exact A4 dimensions and draw the image
     // stretched to fill the entire page
