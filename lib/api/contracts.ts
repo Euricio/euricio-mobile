@@ -12,7 +12,7 @@ export interface SavedClause {
 
 export interface Contract {
   id: string;
-  user_id: string;
+  created_by: string;
   contract_type: string;
   client_name: string;
   client_email: string | null;
@@ -54,7 +54,7 @@ export function useContracts(status?: ContractStatus, search?: string) {
       let query = supabase
         .from('contracts')
         .select('*, property:properties(id, title, address, city, province, price)')
-        .eq('user_id', user!.id)
+        .eq('created_by', user!.id)
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -100,7 +100,7 @@ export function useCreateContract() {
     mutationFn: async (contract: Partial<Contract>) => {
       const { data, error } = await supabase
         .from('contracts')
-        .insert({ ...contract, user_id: user?.id, status: 'draft' })
+        .insert({ ...contract, created_by: user?.id, status: 'draft' })
         .select()
         .single();
       if (error) throw error;

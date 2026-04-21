@@ -76,7 +76,7 @@ export default function CreateContractScreen() {
   const [propertyAddress, setPropertyAddress] = useState('');
   const [mandateType, setMandateType] = useState('exclusive');
   const [commission, setCommission] = useState('');
-  const [contractDate, setContractDate] = useState('');
+  const [contractDate, setContractDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [signingLocation, setSigningLocation] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -218,7 +218,7 @@ export default function CreateContractScreen() {
       property_address: propAddr,
       mandate_type: showMandate ? mandateType : null,
       commission_percentage: showCommission && commission ? parseFloat(commission) : null,
-      contract_date: contractDate.trim() || null,
+      contract_date: contractDate.trim() || new Date().toISOString().slice(0, 10),
       signing_location: signingLocation.trim() || null,
       selected_clauses: buildSavedClauses(),
     };
@@ -227,8 +227,9 @@ export default function CreateContractScreen() {
       onSuccess: () => {
         router.dismiss(2); // dismiss create + type-picker
       },
-      onError: () => {
-        Alert.alert(t('error'), t('contracts_createError'));
+      onError: (err) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        Alert.alert(t('error'), `${t('contracts_createError')}\n\n${msg}`);
       },
     });
   };
