@@ -207,23 +207,14 @@ export default function ValuationToolScreen() {
   const generatePdf = useGenerateValuationPdf();
   const sendReport = useSendValuationReport();
 
-  // Show a friendlier Alert when the backend could not reach Perplexity so the
-  // user knows *why* prices are missing (esp. so an admin can tell an invalid
-  // API key from a transient outage).  Mirrors the web /bewertungen UI.
+  // No customer-facing warning on fallback prices. The backend now always
+  // returns a meaningful value via province/national fallback, so end users
+  // never see a "please enter manually" prompt. Source tracking happens
+  // server-side via price_source field for internal quality monitoring.
   function maybeWarnPriceFetch(
-    data: { price_source?: string; price_fetch_error_code?: string | null } | null | undefined,
+    _data: { price_source?: string; price_fetch_error_code?: string | null } | null | undefined,
   ) {
-    if (!data || data.price_source !== 'unavailable') return;
-    const code = data.price_fetch_error_code;
-    let msg = t('valuation_priceUnavailableWarning');
-    if (code === 'invalid_key' || code === 'missing_key') {
-      msg = t('valuation_priceErrorInvalidKey');
-    } else if (code === 'rate_limited') {
-      msg = t('valuation_priceErrorRateLimited');
-    } else if (code === 'api_error' || code === 'timeout' || code === 'bad_response') {
-      msg = t('valuation_priceErrorApiError');
-    }
-    Alert.alert(t('valuation_priceWarningTitle'), msg);
+    // Intentionally a no-op — kept as a stub so existing call sites still compile.
   }
 
   // Load properties from Supabase
@@ -1271,15 +1262,7 @@ function VergleichswertResultDisplay({ result: r, t, formatPrice }: { result: Ve
           <BreakdownRow key={i} {...row} />
         ))}
 
-        {/* Price source */}
-        {r.price_source && (
-          <Text style={styles.priceSource}>
-            {r.price_source === 'manual' && t('valuation_priceSourceManual')}
-            {r.price_source === 'perplexity' && t('valuation_priceSourcePerplexity')}
-            {r.price_source === 'stale_cache' && t('valuation_priceSourceStale')}
-            {r.price_source === 'unavailable' && t('valuation_priceSourceUnavailable')}
-          </Text>
-        )}
+        {/* Price source is tracked internally only — never shown to end users. */}
       </Card>
     </>
   );
@@ -1310,13 +1293,7 @@ function SubstanzwertResultDisplay({ result: r, t, formatPrice }: { result: Subs
         {rows.map((row, i) => (
           <BreakdownRow key={i} label={row.label} value={row.value} />
         ))}
-        {r.price_source && (
-          <Text style={styles.priceSource}>
-            {r.price_source === 'manual' && t('valuation_priceSourceManual')}
-            {r.price_source === 'perplexity' && t('valuation_priceSourcePerplexity')}
-            {r.price_source === 'stale_cache' && t('valuation_priceSourceStale')}
-          </Text>
-        )}
+        {/* Price source is tracked internally only — never shown to end users. */}
       </Card>
     </>
   );
@@ -1347,13 +1324,7 @@ function ErtragswertResultDisplay({ result: r, t, formatPrice }: { result: Ertra
         {rows.map((row, i) => (
           <BreakdownRow key={i} label={row.label} value={row.value} />
         ))}
-        {r.price_source && (
-          <Text style={styles.priceSource}>
-            {r.price_source === 'manual' && t('valuation_priceSourceManual')}
-            {r.price_source === 'perplexity' && t('valuation_priceSourcePerplexity')}
-            {r.price_source === 'stale_cache' && t('valuation_priceSourceStale')}
-          </Text>
-        )}
+        {/* Price source is tracked internally only — never shown to end users. */}
       </Card>
     </>
   );
