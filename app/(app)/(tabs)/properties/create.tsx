@@ -15,6 +15,7 @@ import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCreateProperty } from '../../../../lib/api/properties';
 import { useLeads } from '../../../../lib/api/leads';
+import { usePartners } from '../../../../lib/api/partners';
 import { FormInput } from '../../../../components/ui/FormInput';
 import { FormSelect } from '../../../../components/ui/FormSelect';
 import { FormToggle } from '../../../../components/ui/FormToggle';
@@ -121,6 +122,13 @@ export default function CreatePropertyScreen() {
   const [leadSearch, setLeadSearch] = useState('');
   const [showLeadPicker, setShowLeadPicker] = useState(false);
   const { data: leads } = useLeads(leadSearch);
+
+  // Partner picker
+  const [partnerSearch, setPartnerSearch] = useState('');
+  const [showPartnerPicker, setShowPartnerPicker] = useState(false);
+  const [partnerId, setPartnerId] = useState('');
+  const [partnerName, setPartnerName] = useState('');
+  const { data: partners } = usePartners(partnerSearch);
 
   // Grunddaten
   const [title, setTitle] = useState('');
@@ -312,6 +320,9 @@ export default function CreatePropertyScreen() {
     if (availableFrom.trim()) payload.available_from = availableFrom.trim();
     if (isRented) payload.is_rented = true;
     if (rentalYield) payload.rental_yield = parseFloat(rentalYield);
+
+    // Partner
+    if (partnerId) payload.partner_id = partnerId;
 
     // Description
     if (description.trim()) payload.description = description.trim();
@@ -800,6 +811,65 @@ export default function CreatePropertyScreen() {
                   ))
                 ) : (
                   <Text style={styles.leadEmptyText}>{t('prop_noLeadsFound')}</Text>
+                )}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Partner picker */}
+        <SectionLabel text={t('prop_partner')} />
+        {partnerId ? (
+          <View style={styles.leadSelectedRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.leadSelectedName}>{partnerName || partnerId}</Text>
+            </View>
+            <TouchableOpacity onPress={() => { setPartnerId(''); setPartnerName(''); }}>
+              <Ionicons name="close-circle" size={22} color={colors.error} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View>
+            <TouchableOpacity
+              style={styles.leadPickerButton}
+              onPress={() => setShowPartnerPicker(!showPartnerPicker)}
+            >
+              <Ionicons name="people-outline" size={18} color={colors.primary} />
+              <Text style={styles.leadPickerButtonText}>{t('prop_selectPartner')}</Text>
+            </TouchableOpacity>
+            {showPartnerPicker && (
+              <View style={styles.leadPickerDropdown}>
+                <TextInput
+                  style={styles.leadSearchInput}
+                  placeholder={t('prop_searchPartner')}
+                  value={partnerSearch}
+                  onChangeText={setPartnerSearch}
+                  placeholderTextColor={colors.textTertiary}
+                />
+                {partners && partners.length > 0 ? (
+                  partners.filter(p => p.status === 'active').slice(0, 20).map((partner) => (
+                    <TouchableOpacity
+                      key={partner.id}
+                      style={styles.leadOption}
+                      onPress={() => {
+                        setPartnerId(String(partner.id));
+                        setPartnerName(`${partner.first_name} ${partner.last_name}`);
+                        setShowPartnerPicker(false);
+                        setPartnerSearch('');
+                      }}
+                    >
+                      <Text style={styles.leadOptionText}>{partner.first_name} {partner.last_name}</Text>
+                      {partner.commission_type && (
+                        <Text style={styles.leadOptionSub}>
+                          {partner.commission_type === 'percent'
+                            ? `${partner.commission_value ?? '?'} %`
+                            : `${partner.commission_value ?? '?'} €`}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <Text style={styles.leadEmptyText}>{t('prop_noPartnersFound')}</Text>
                 )}
               </View>
             )}

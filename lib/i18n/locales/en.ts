@@ -1921,6 +1921,14 @@ const en: Record<string, string> = {
   prop_commissionAgreed: 'Agreed',
   prop_commissionCalculated: 'Calculated',
   prop_commissionPercent: 'Commission %',
+  prop_commissionGross: 'Gross Commission',
+  prop_commissionPartner: 'Partner Share',
+  prop_commissionNet: 'Net for us',
+  prop_partner: 'Partner',
+  prop_selectPartner: 'Select Partner',
+  prop_noPartner: '— No Partner —',
+  prop_searchPartner: 'Search partner...',
+  prop_noPartnersFound: 'No partners found',
 
   // Land breakdown
   propSection_land: 'Land breakdown',

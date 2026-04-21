@@ -47,6 +47,7 @@ import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
 import { DocumentManager } from '../../../../components/properties/DocumentManager';
 import { OwnershipSection } from '../../../../components/properties/OwnershipSection';
 import { useI18n } from '../../../../lib/i18n';
+import { calcCommission } from '../../../../lib/commission';
 import { useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -612,33 +613,69 @@ export default function PropertyDetailScreen() {
         </Card>
       )}
 
-      {/* ─── 6b. Commission (intern) ─────────────────────────── */}
-      {property.commission_percentage != null && (
-        <Card style={styles.section}>
-          <View style={styles.commissionHeader}>
-            <Ionicons name="lock-closed-outline" size={14} color={colors.textTertiary} />
-            <Text style={styles.commissionHeaderText}>
-              {t('prop_commission')} ({t('prop_commissionPrivate')})
-            </Text>
-          </View>
-          <View style={styles.commissionRow}>
-            <View style={styles.commissionCol}>
-              <Text style={styles.commissionValue}>
-                {property.commission_percentage.toFixed(2).replace('.', ',')} %
+      {/* ─── 6b. Commission (intern) ───────────────────────── */}
+      {property.commission_percentage != null && (() => {
+        const partner = property.partner ?? null;
+        const { gross, partnerAmount, net } = calcCommission(
+          property.price,
+          property.commission_percentage,
+          partner,
+        );
+        return (
+          <Card style={styles.section}>
+            <View style={styles.commissionHeader}>
+              <Ionicons name="lock-closed-outline" size={14} color={colors.textTertiary} />
+              <Text style={styles.commissionHeaderText}>
+                {t('prop_commission')} ({t('prop_commissionPrivate')})
               </Text>
-              <Text style={styles.commissionLabel}>{t('prop_commissionAgreed')}</Text>
             </View>
-            <View style={styles.commissionCol}>
-              <Text style={styles.commissionValue}>
-                {property.price != null
-                  ? formatPrice(Math.round(property.price * property.commission_percentage / 100))
-                  : '–'}
-              </Text>
-              <Text style={styles.commissionLabel}>{t('prop_commissionCalculated')}</Text>
+            <View style={styles.commissionRow}>
+              <View style={styles.commissionCol}>
+                <Text style={styles.commissionValue}>
+                  {property.commission_percentage.toFixed(2).replace('.', ',')} %
+                </Text>
+                <Text style={styles.commissionLabel}>{t('prop_commissionAgreed')}</Text>
+              </View>
+              <View style={styles.commissionCol}>
+                <Text style={styles.commissionValue}>
+                  {property.price != null
+                    ? formatPrice(Math.round(gross))
+                    : '–'}
+                </Text>
+                <Text style={styles.commissionLabel}>{t('prop_commissionGross')}</Text>
+              </View>
             </View>
-          </View>
-        </Card>
-      )}
+            {partner != null && property.price != null && (
+              <>
+                <View style={[styles.commissionRow, { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.borderLight }]}>
+                  <View style={{ flex: 2 }}>
+                    <Text style={styles.commissionLabel}>
+                      {t('prop_commissionPartner')}: {partner.first_name} {partner.last_name}
+                    </Text>
+                  </View>
+                  <View style={styles.commissionCol}>
+                    <Text style={[styles.commissionValue, { color: colors.error }]}>
+                      −{formatPrice(Math.round(partnerAmount))}
+                    </Text>
+                  </View>
+                </View>
+                <View style={[styles.commissionRow, { marginTop: 4, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.borderLight }]}>
+                  <View style={{ flex: 2 }}>
+                    <Text style={[styles.commissionLabel, { fontWeight: '600' }]}>
+                      {t('prop_commissionNet')}
+                    </Text>
+                  </View>
+                  <View style={styles.commissionCol}>
+                    <Text style={[styles.commissionValue, { color: colors.primary }]}>
+                      {formatPrice(Math.round(net))}
+                    </Text>
+                  </View>
+                </View>
+              </>
+            )}
+          </Card>
+        );
+      })()}
 
       {/* ─── 7. Address Details ────────────────────────────────── */}
       {hasAddress && (

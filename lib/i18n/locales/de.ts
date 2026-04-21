@@ -1927,6 +1927,14 @@ const de: Record<string, string> = {
   prop_commissionAgreed: 'Vereinbart',
   prop_commissionCalculated: 'Berechnet',
   prop_commissionPercent: 'Provision %',
+  prop_commissionGross: 'Brutto-Provision',
+  prop_commissionPartner: 'Partneranteil',
+  prop_commissionNet: 'Netto für uns',
+  prop_partner: 'Partner',
+  prop_selectPartner: 'Partner auswählen',
+  prop_noPartner: '— Kein Partner —',
+  prop_searchPartner: 'Partner suchen...',
+  prop_noPartnersFound: 'Keine Partner gefunden',
 
   // Land breakdown
   propSection_land: 'Grundstücksaufteilung',

@@ -93,6 +93,16 @@ export interface Property {
   // Commission
   commission_percentage: number | null;
 
+  // Partner
+  partner_id: string | null;
+  partner?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    commission_type: string | null;
+    commission_value: number | null;
+  } | null;
+
   // Estimated value
   estimated_value: number | null;
   estimated_value_date: string | null;
@@ -138,7 +148,7 @@ export function useProperty(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('properties')
-        .select('*')
+        .select('*, partner:partners(id, first_name, last_name, commission_type, commission_value)')
         .eq('id', id)
         .single();
       if (error) throw error;
