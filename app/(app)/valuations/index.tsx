@@ -207,6 +207,25 @@ export default function ValuationToolScreen() {
   const generatePdf = useGenerateValuationPdf();
   const sendReport = useSendValuationReport();
 
+  // Show a friendlier Alert when the backend could not reach Perplexity so the
+  // user knows *why* prices are missing (esp. so an admin can tell an invalid
+  // API key from a transient outage).  Mirrors the web /bewertungen UI.
+  function maybeWarnPriceFetch(
+    data: { price_source?: string; price_fetch_error_code?: string | null } | null | undefined,
+  ) {
+    if (!data || data.price_source !== 'unavailable') return;
+    const code = data.price_fetch_error_code;
+    let msg = t('valuation_priceUnavailableWarning');
+    if (code === 'invalid_key' || code === 'missing_key') {
+      msg = t('valuation_priceErrorInvalidKey');
+    } else if (code === 'rate_limited') {
+      msg = t('valuation_priceErrorRateLimited');
+    } else if (code === 'api_error' || code === 'timeout' || code === 'bad_response') {
+      msg = t('valuation_priceErrorApiError');
+    }
+    Alert.alert(t('valuation_priceWarningTitle'), msg);
+  }
+
   // Load properties from Supabase
   useEffect(() => {
     loadProperties();
@@ -303,7 +322,10 @@ export default function ValuationToolScreen() {
     };
 
     calcVergleich.mutate(input, {
-      onSuccess: (data) => setVergleichswertResult(data),
+      onSuccess: (data) => {
+        setVergleichswertResult(data);
+        maybeWarnPriceFetch(data);
+      },
       onError: (err) => Alert.alert(t('error'), err.message),
     });
   };
@@ -322,7 +344,10 @@ export default function ValuationToolScreen() {
     };
 
     calcSubstanz.mutate(input, {
-      onSuccess: (data) => setSubstanzwertResult(data),
+      onSuccess: (data) => {
+        setSubstanzwertResult(data);
+        maybeWarnPriceFetch(data);
+      },
       onError: (err) => Alert.alert(t('error'), err.message),
     });
   };
@@ -340,7 +365,10 @@ export default function ValuationToolScreen() {
     };
 
     calcErtrag.mutate(input, {
-      onSuccess: (data) => setErtragswertResult(data),
+      onSuccess: (data) => {
+        setErtragswertResult(data);
+        maybeWarnPriceFetch(data);
+      },
       onError: (err) => Alert.alert(t('error'), err.message),
     });
   };

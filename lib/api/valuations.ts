@@ -131,6 +131,8 @@ export interface VergleichswertResult {
   max_value: number;
   last_updated_at: string;
   price_source?: string;
+  price_fetch_error_code?: string | null;
+  price_fetch_error_message?: string | null;
   // Extended fields
   building_value?: number;
   adjusted_building_value?: number;
@@ -200,6 +202,8 @@ export interface SubstanzwertResult {
   substanzwert: number;
   last_updated_at: string;
   price_source?: string;
+  price_fetch_error_code?: string | null;
+  price_fetch_error_message?: string | null;
 }
 
 export interface ErtragswertResult {
@@ -222,6 +226,8 @@ export interface ErtragswertResult {
   ertragswert: number;
   last_updated_at: string;
   price_source?: string;
+  price_fetch_error_code?: string | null;
+  price_fetch_error_message?: string | null;
 }
 
 // Property type from Supabase

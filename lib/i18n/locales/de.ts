@@ -1269,6 +1269,11 @@ const de: Record<string, string> = {
   valuation_priceSourcePerplexity: 'Preisquelle: KI (Perplexity)',
   valuation_priceSourceStale: 'Preisquelle: Zwischengespeichert (evtl. veraltet)',
   valuation_priceSourceUnavailable: 'Preisquelle: Nicht verfügbar',
+  valuation_priceWarningTitle: 'Preisdaten',
+  valuation_priceUnavailableWarning: 'Kein Marktpreis für diese PLZ verfügbar. Bitte Preis/m² für Bauland manuell eingeben.',
+  valuation_priceErrorInvalidKey: 'Perplexity-API-Key ungültig oder abgelaufen. Admin: neuen Key auf perplexity.ai/settings/api erzeugen und in Vercel als PERPLEXITY_API_KEY hinterlegen. Bis dahin bitte Preis/m² für Bauland manuell eingeben.',
+  valuation_priceErrorRateLimited: 'Perplexity-Rate-Limit erreicht. Bitte einen Moment warten oder Preis/m² manuell eingeben.',
+  valuation_priceErrorApiError: 'Perplexity-API antwortet momentan nicht. Bitte Preis/m² manuell eingeben oder in ein paar Minuten erneut versuchen.',
 
   // Substanzwert-Ergebnisse
   valuation_substanzwertResult: 'Substanzwert-Ergebnis',

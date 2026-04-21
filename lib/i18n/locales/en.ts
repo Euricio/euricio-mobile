@@ -1263,6 +1263,11 @@ const en: Record<string, string> = {
   valuation_priceSourcePerplexity: 'Price source: AI (Perplexity)',
   valuation_priceSourceStale: 'Price source: Cached (may be outdated)',
   valuation_priceSourceUnavailable: 'Price source: Unavailable',
+  valuation_priceWarningTitle: 'Price data',
+  valuation_priceUnavailableWarning: 'No market price available for this postal code. Please enter the land price per m² manually.',
+  valuation_priceErrorInvalidKey: 'Perplexity API key is invalid or expired. Admin: generate a new key at perplexity.ai/settings/api and set it as PERPLEXITY_API_KEY in Vercel. Meanwhile, enter the land price per m² manually.',
+  valuation_priceErrorRateLimited: 'Perplexity rate limit reached. Please wait a moment or enter the price/m² manually.',
+  valuation_priceErrorApiError: 'Perplexity API is currently not responding. Please enter the price/m² manually or try again in a few minutes.',
 
   // Substanzwert results
   valuation_substanzwertResult: 'Asset value result',

@@ -1263,6 +1263,11 @@ const es: Record<string, string> = {
   valuation_priceSourcePerplexity: 'Fuente: IA (Perplexity)',
   valuation_priceSourceStale: 'Fuente: Caché (puede estar desactualizado)',
   valuation_priceSourceUnavailable: 'Fuente: No disponible',
+  valuation_priceWarningTitle: 'Datos de precio',
+  valuation_priceUnavailableWarning: 'No hay precio de mercado disponible para este código postal. Introduzca el precio/m² manualmente.',
+  valuation_priceErrorInvalidKey: 'La clave API de Perplexity es inválida o ha expirado. Admin: genere una nueva clave en perplexity.ai/settings/api y configúrela como PERPLEXITY_API_KEY en Vercel. Mientras tanto, introduzca el precio/m² manualmente.',
+  valuation_priceErrorRateLimited: 'Se alcanzó el límite de Perplexity. Espere un momento o introduzca el precio/m² manualmente.',
+  valuation_priceErrorApiError: 'La API de Perplexity no responde en este momento. Introduzca el precio/m² manualmente o inténtelo de nuevo en unos minutos.',
 
   // Resultados Substanzwert
   valuation_substanzwertResult: 'Resultado del valor sustancial',
