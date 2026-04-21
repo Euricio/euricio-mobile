@@ -45,6 +45,22 @@ interface PageItem {
 
 type SaveLocation = 'device' | 'cloud' | 'contract' | 'property' | 'lead' | 'employee';
 
+// Mirror of DOC_TYPES in web CRM (properties/[id]/media/page.tsx).
+// Same keys so Scanner uploads appear correctly labelled in the web media
+// list. `id_document` (Ausweis/DNI) is added in both places.
+const PROPERTY_DOCUMENT_TYPES = [
+  'expose',
+  'floor_plan',
+  'energy_cert',
+  'purchase_contract',
+  'land_registry',
+  'partition',
+  'appraisal',
+  'id_document',
+  'other',
+] as const;
+type PropertyDocumentType = typeof PROPERTY_DOCUMENT_TYPES[number];
+
 export default function ScannerScreen() {
   const { t } = useI18n();
   const uploadScan = useUploadScan();
@@ -62,6 +78,7 @@ export default function ScannerScreen() {
   const [saveLocation, setSaveLocation] = useState<SaveLocation | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [documentType, setDocumentType] = useState<PropertyDocumentType>('other');
 
   const sanitizeFileName = (name: string): string =>
     name.replace(/[^a-zA-Z0-9äöüÄÖÜß _-]/g, '').trim() || 'Scan';
@@ -204,6 +221,7 @@ export default function ScannerScreen() {
     setSaveLocation(null);
     setSelectedItemId(null);
     setSearchQuery('');
+    setDocumentType('other');
     setSaveModalVisible(true);
   };
 
@@ -310,7 +328,7 @@ export default function ScannerScreen() {
         handleSave(pages.map((p) => p.uri), 'images', selectedItemId!, name);
         break;
       case 'property':
-        handlePropertyUpload(selectedItemId!, name);
+        handlePropertyUpload(selectedItemId!, name, documentType);
         break;
       case 'lead':
         handleLeadUpload(selectedItemId!, name);
@@ -378,7 +396,11 @@ export default function ScannerScreen() {
 
   // ─── Property Upload ───────────────────────────────────────────────
 
-  const handlePropertyUpload = async (propertyId: string, docName?: string) => {
+  const handlePropertyUpload = async (
+    propertyId: string,
+    docName?: string,
+    docType: PropertyDocumentType = 'other',
+  ) => {
     setUploading(true);
     try {
       const userId = useAuthStore.getState().user?.id;
@@ -402,7 +424,7 @@ export default function ScannerScreen() {
         storage_path: sanitizedPath,
         file_name: fileName,
         file_size: size,
-        document_type: 'scan',
+        document_type: docType,
         uploaded_by: userId,
       });
       if (error) throw error;
@@ -738,6 +760,38 @@ export default function ScannerScreen() {
                 </View>
               </>
             )}
+
+            {/* Document Type Picker — only for property uploads */}
+            {saveLocation === 'property' && (
+              <>
+                <Text style={[styles.sectionLabel, { marginTop: spacing.lg }]}>
+                  {t('scanner_documentType').toUpperCase()}
+                </Text>
+                <View style={styles.docTypeGrid}>
+                  {PROPERTY_DOCUMENT_TYPES.map((type) => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[
+                        styles.docTypeChip,
+                        documentType === type && styles.docTypeChipSelected,
+                      ]}
+                      onPress={() => setDocumentType(type)}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.docTypeChipLabel,
+                          documentType === type && styles.docTypeChipLabelSelected,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {t(`scanner_docType_${type}` as any)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
           </ScrollView>
 
           {/* Speichern Button */}
@@ -1012,6 +1066,33 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.text,
     backgroundColor: colors.surface,
+  },
+
+  // Document-type chips (Ausweis, Grundbuch, …)
+  docTypeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  docTypeChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  docTypeChipSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  docTypeChipLabel: {
+    fontSize: fontSize.sm,
+    color: colors.text,
+    fontWeight: fontWeight.medium,
+  },
+  docTypeChipLabelSelected: {
+    color: colors.white,
   },
 
   // Radio group
