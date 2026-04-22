@@ -131,6 +131,12 @@ export interface VergleichswertResult {
   max_value: number;
   last_updated_at: string;
   price_source?: string;
+  price_source_label?: string | null;
+  price_source_url?: string | null;
+  price_reference_period?: string | null;
+  price_confidence?: 'high' | 'medium' | 'low';
+  resolved_municipality?: string | null;
+  resolved_province?: string | null;
   price_fetch_error_code?: string | null;
   price_fetch_error_message?: string | null;
   // Extended fields

@@ -13,6 +13,7 @@ import {
   Platform,
   Keyboard,
   TouchableWithoutFeedback,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
@@ -1255,14 +1256,32 @@ function VergleichswertResultDisplay({ result: r, t, formatPrice }: { result: Ve
           <Text style={styles.headlineRange}>
             {t('valuation_valueRange')}: {formatPrice(r.min_value)} – {formatPrice(r.max_value)}
           </Text>
+          {/* Source attribution badge — Idealista / Fotocasa / etc. so users can verify the m² price */}
+          {(r.price_source_label || r.price_source) && (
+            <Text style={styles.sourceBadge}>
+              {r.resolved_municipality ? (
+                <Text style={styles.sourceBadgeMuni}>{r.resolved_municipality}{r.resolved_province ? `, ${r.resolved_province}` : ''}</Text>
+              ) : null}
+              {r.resolved_municipality ? ' · ' : ''}
+              Quelle:{' '}
+              {r.price_source_url ? (
+                <Text
+                  style={styles.sourceBadgeLink}
+                  onPress={() => r.price_source_url && Linking.openURL(r.price_source_url)}
+                >
+                  {r.price_source_label || r.price_source}
+                </Text>
+              ) : (
+                <Text>{r.price_source_label || r.price_source}</Text>
+              )}
+            </Text>
+          )}
         </View>
 
         {/* Breakdown table */}
         {rows.map((row, i) => (
           <BreakdownRow key={i} {...row} />
         ))}
-
-        {/* Price source is tracked internally only — never shown to end users. */}
       </Card>
     </>
   );
@@ -1664,6 +1683,20 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textSecondary,
     marginTop: spacing.xs,
+  },
+  sourceBadge: {
+    fontSize: 11,
+    color: colors.textTertiary,
+    marginTop: spacing.sm,
+    letterSpacing: 0.2,
+  },
+  sourceBadgeMuni: {
+    fontWeight: fontWeight.semibold,
+    color: colors.textSecondary,
+  },
+  sourceBadgeLink: {
+    color: colors.accent,
+    textDecorationLine: 'underline',
   },
 
   // Breakdown table
