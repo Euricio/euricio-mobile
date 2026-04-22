@@ -2,6 +2,11 @@ import { supabase } from '../supabase';
 import { useMutation } from '@tanstack/react-query';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import type {
+  ValuationResultV2,
+  PropertyValuationFields,
+  PropertyType,
+} from '../valuation/types';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://crm.euricio.es';
 
@@ -392,6 +397,32 @@ export function useGenerateValuationPdf() {
 
       return { uri: file.uri, filename };
     },
+  });
+}
+
+/* ── Valuation v2 ──────────────────────────────────────────── */
+
+export interface CalculateV2Input {
+  property_type: PropertyType;
+  country: string;
+  postal_code: string;
+  property_id?: number;
+  fields: PropertyValuationFields;
+  vpo?: PropertyValuationFields;
+  method_weights_override?: Record<string, number>;
+  explain?: boolean;
+}
+
+export interface CalculateV2Error {
+  error: 'notary_input_required';
+  portalUrl: string;
+  postal_code: string;
+}
+
+export async function calculateV2(input: CalculateV2Input): Promise<ValuationResultV2> {
+  return api<ValuationResultV2>('/api/valuations/calculate-v2', {
+    method: 'POST',
+    body: JSON.stringify(input),
   });
 }
 
