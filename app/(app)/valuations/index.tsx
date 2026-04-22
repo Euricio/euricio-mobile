@@ -25,6 +25,10 @@ import {
   useGenerateValuationPdf,
   useSendValuationReport,
 } from '../../../lib/api/valuations';
+import {
+  getNotaryPrice,
+  postNotaryPrice,
+} from '../../../lib/api/valuations';
 import type {
   VergleichswertInput,
   VergleichswertResult,
@@ -33,6 +37,7 @@ import type {
   ErtragswertInput,
   ErtragswertResult,
   Property,
+  NotaryPriceCache,
 } from '../../../lib/api/valuations';
 import { supabase } from '../../../lib/supabase';
 import { Card } from '../../../components/ui/Card';
@@ -194,6 +199,17 @@ export default function ValuationToolScreen() {
   const [substanzwertResult, setSubstanzwertResult] = useState<SubstanzwertResult | null>(null);
   const [ertragswertResult, setErtragswertResult] = useState<ErtragswertResult | null>(null);
 
+  // ES Portal Notariado — manual €/m² entry with 90-day cache
+  const [notaryCache, setNotaryCache] = useState<NotaryPriceCache | null>(null);
+  const [notaryPrice, setNotaryPrice] = useState('');
+  const [notarySaving, setNotarySaving] = useState(false);
+  const [notaryDeviation, setNotaryDeviation] = useState<{
+    existing_value: number;
+    existing_age_days: number;
+    new_value: number;
+    message: string;
+  } | null>(null);
+
   // Send dialog
   const [sendOpen, setSendOpen] = useState(false);
   const [sendMethods, setSendMethods] = useState<Method[]>([]);
@@ -266,6 +282,67 @@ export default function ValuationToolScreen() {
     if (prop.size_m2) setLandArea(String(prop.size_m2));
   }, [properties]);
 
+  /* ── ES Portal Notariado ──────────────────────────────────── */
+
+  const buildNotaryPortalUrl = (pc: string) =>
+    `https://www.penotariado.com/inmobiliario/en/housing-price-finder?locationType=CP&locationCode=${encodeURIComponent(pc)}&kpi=pricePerSqm&constructionType=99&propertyType=99`;
+
+  const lookupNotaryCache = useCallback(async (pc: string) => {
+    if (country !== 'ES' || !/^\d{5}$/.test(pc)) {
+      setNotaryCache(null);
+      return;
+    }
+    try {
+      const data = await getNotaryPrice(pc);
+      setNotaryCache(data);
+    } catch {
+      setNotaryCache(null);
+    }
+  }, [country]);
+
+  useEffect(() => {
+    if (country === 'ES' && /^\d{5}$/.test(postalCode)) {
+      void lookupNotaryCache(postalCode);
+    } else {
+      setNotaryCache(null);
+    }
+  }, [country, postalCode, lookupNotaryCache]);
+
+  const submitNotaryPrice = async (confirmedDivergence = false): Promise<boolean> => {
+    const pc = postalCode.trim();
+    const priceNum = Number(notaryPrice);
+    if (!/^\d{5}$/.test(pc)) {
+      Alert.alert(t('error'), 'PLZ debe tener 5 dígitos');
+      return false;
+    }
+    if (!Number.isFinite(priceNum) || priceNum < 300 || priceNum > 15000) {
+      Alert.alert(t('error'), 'Precio €/m² debe estar entre 300 y 15000');
+      return false;
+    }
+    setNotarySaving(true);
+    try {
+      await postNotaryPrice(pc, priceNum, confirmedDivergence);
+      setNotaryDeviation(null);
+      await lookupNotaryCache(pc);
+      return true;
+    } catch (err) {
+      const e = err as Error & { status?: number; body?: { warning?: string; existing_value?: number; existing_age_days?: number; new_value?: number; message?: string } };
+      if (e.status === 409 && e.body?.warning === 'deviation') {
+        setNotaryDeviation({
+          existing_value: e.body.existing_value ?? 0,
+          existing_age_days: e.body.existing_age_days ?? 0,
+          new_value: e.body.new_value ?? priceNum,
+          message: e.body.message ?? '',
+        });
+      } else {
+        Alert.alert(t('error'), e.message || 'Error');
+      }
+      return false;
+    } finally {
+      setNotarySaving(false);
+    }
+  };
+
   /* ── Calculations ─────────────────────────────────────────── */
 
   const handleCalculateVergleichswert = () => {
@@ -318,7 +395,18 @@ export default function ValuationToolScreen() {
         setVergleichswertResult(data);
         maybeWarnPriceFetch(data);
       },
-      onError: (err) => Alert.alert(t('error'), err.message),
+      onError: (err) => {
+        const e = err as Error & { status?: number; body?: { error?: string; notary_portal_url?: string; postal_code?: string; message?: string } };
+        if (e.status === 409 && e.body?.error === 'notary_input_required') {
+          setNotaryCache({
+            cached: false,
+            postal_code: e.body.postal_code,
+            notary_portal_url: e.body.notary_portal_url,
+          });
+          return;
+        }
+        Alert.alert(t('error'), err.message);
+      },
     });
   };
 
@@ -967,13 +1055,88 @@ export default function ValuationToolScreen() {
         </>
       )}
 
+      {/* ═══════ ES PORTAL NOTARIADO (manual price) ═══════ */}
+      {country === 'ES' && /^\d{5}$/.test(postalCode) && notaryCache && (
+        notaryCache.cached ? (
+          <Card style={{ marginHorizontal: spacing.md, marginBottom: spacing.md, backgroundColor: '#dcfce7', borderColor: '#16a34a', borderWidth: 1 }}>
+            <Text style={{ color: '#166534', fontSize: fontSize.sm, fontWeight: fontWeight.medium }}>
+              ✅ Precio del Portal Notariado: {notaryCache.price_per_sqm?.toLocaleString('es-ES')} €/m² (verificado hace {notaryCache.age_days ?? 0} días)
+            </Text>
+          </Card>
+        ) : (
+          <Card style={{ marginHorizontal: spacing.md, marginBottom: spacing.md, borderColor: colors.warning, borderWidth: 1 }}>
+            <Text style={{ fontSize: fontSize.sm, fontWeight: fontWeight.semibold, marginBottom: spacing.sm, color: colors.text }}>
+              ⚠️ Para esta PLZ necesitamos el precio medio oficial del Portal Notariado.
+            </Text>
+            <FormInput
+              label="Precio €/m² según Portal Notariado:"
+              value={notaryPrice}
+              onChangeText={setNotaryPrice}
+              placeholder="5400"
+              keyboardType="numeric"
+            />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm }}>
+              <TouchableOpacity
+                onPress={() => Linking.openURL(notaryCache.notary_portal_url || buildNotaryPortalUrl(postalCode))}
+                style={{ paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: borderRadius.md, backgroundColor: colors.borderLight }}
+              >
+                <Text style={{ color: colors.accent, fontSize: fontSize.sm, fontWeight: fontWeight.medium }}>
+                  🔗 Abrir Portal Notariado para PLZ {postalCode}
+                </Text>
+              </TouchableOpacity>
+              <Button
+                title={notarySaving ? '…' : 'Guardar y calcular'}
+                onPress={async () => {
+                  const ok = await submitNotaryPrice(false);
+                  if (ok) {
+                    setNotaryPrice('');
+                    handleCalculateVergleichswert();
+                  }
+                }}
+                disabled={notarySaving || !notaryPrice}
+                loading={notarySaving}
+              />
+            </View>
+          </Card>
+        )
+      )}
+
+      {/* Deviation confirmation modal */}
+      <Modal visible={notaryDeviation !== null} transparent animationType="fade" onRequestClose={() => setNotaryDeviation(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: spacing.lg }}>
+          <Card style={{ maxWidth: 480, width: '100%' }}>
+            <Text style={{ fontSize: fontSize.md, fontWeight: fontWeight.bold, marginBottom: spacing.md, color: colors.text }}>
+              Desviación detectada
+            </Text>
+            <Text style={{ fontSize: fontSize.sm, color: colors.textSecondary, marginBottom: spacing.md }}>
+              {notaryDeviation?.message}
+            </Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm }}>
+              <Button title="Cancelar" variant="secondary" onPress={() => setNotaryDeviation(null)} />
+              <Button
+                title="Confirmar"
+                onPress={async () => {
+                  const ok = await submitNotaryPrice(true);
+                  if (ok) {
+                    setNotaryPrice('');
+                    setNotaryDeviation(null);
+                    handleCalculateVergleichswert();
+                  }
+                }}
+                loading={notarySaving}
+              />
+            </View>
+          </Card>
+        </View>
+      </Modal>
+
       {/* ═══════ CALCULATE BUTTON ═══════ */}
       <View style={styles.calculateSection}>
         <Button
           title={isCalculating ? t('valuation_calculating') : t('valuation_calculate')}
           onPress={handleCalculate}
           loading={isCalculating}
-          disabled={!canCalculate()}
+          disabled={!canCalculate() || (country === 'ES' && notaryCache !== null && !notaryCache.cached)}
         />
       </View>
 
@@ -1256,8 +1419,25 @@ function VergleichswertResultDisplay({ result: r, t, formatPrice }: { result: Ve
           <Text style={styles.headlineRange}>
             {t('valuation_valueRange')}: {formatPrice(r.min_value)} – {formatPrice(r.max_value)}
           </Text>
-          {/* Source attribution badge — Idealista / Fotocasa / etc. so users can verify the m² price */}
-          {(r.price_source_label || r.price_source) && (
+          {/* Source attribution badge */}
+          {r.price_source === 'notary_es' ? (
+            <Text style={styles.sourceBadge}>
+              {r.price_source_url ? (
+                <Text
+                  style={styles.sourceBadgeLink}
+                  onPress={() => r.price_source_url && Linking.openURL(r.price_source_url)}
+                >
+                  Portal Estadístico del Notariado
+                </Text>
+              ) : (
+                <Text>Portal Estadístico del Notariado</Text>
+              )}
+              {' · CP '}{r.postal_code}
+              {(r.price_reference_period || r.last_updated_at)
+                ? ` · verificado ${r.price_reference_period || new Date(r.last_updated_at).toLocaleDateString('es-ES', { year: 'numeric', month: 'long' })}`
+                : ''}
+            </Text>
+          ) : (r.price_source_label || r.price_source) ? (
             <Text style={styles.sourceBadge}>
               {r.resolved_municipality ? (
                 <Text style={styles.sourceBadgeMuni}>{r.resolved_municipality}{r.resolved_province ? `, ${r.resolved_province}` : ''}</Text>
@@ -1275,7 +1455,7 @@ function VergleichswertResultDisplay({ result: r, t, formatPrice }: { result: Ve
                 <Text>{r.price_source_label || r.price_source}</Text>
               )}
             </Text>
-          )}
+          ) : null}
         </View>
 
         {/* Breakdown table */}

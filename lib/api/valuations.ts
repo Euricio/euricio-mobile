@@ -24,9 +24,61 @@ async function api<T>(path: string, opts: RequestInit = {}): Promise<T> {
   });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(body || `API ${res.status}: ${res.statusText}`);
+    // Try to parse structured API errors (e.g. ES notary_input_required) so
+    // callers can branch on `.status` and `.body` instead of regex-matching.
+    let parsedBody: unknown = undefined;
+    try { parsedBody = JSON.parse(body); } catch { /* plain text */ }
+    const err = new Error(body || `API ${res.status}: ${res.statusText}`) as Error & {
+      status?: number;
+      body?: unknown;
+    };
+    err.status = res.status;
+    err.body = parsedBody;
+    throw err;
   }
   return res.json();
+}
+
+/* ── ES Portal Estadístico del Notariado ───────────────────── */
+
+export interface NotaryPriceCache {
+  cached: boolean;
+  postal_code?: string;
+  price_per_sqm?: number;
+  fetched_at?: string;
+  expires_at?: string;
+  age_days?: number;
+  source_url?: string;
+  reference_period?: string | null;
+  notary_portal_url?: string;
+}
+
+export async function getNotaryPrice(postalCode: string): Promise<NotaryPriceCache> {
+  return api<NotaryPriceCache>(`/api/es/notary-price?postal_code=${encodeURIComponent(postalCode)}`);
+}
+
+export interface NotaryPricePostResult {
+  ok: boolean;
+  postal_code: string;
+  price_per_sqm: number;
+  cached_until: string;
+  reference_period?: string;
+  sanity_warning?: { provincial_avg: number; message: string };
+}
+
+export async function postNotaryPrice(
+  postalCode: string,
+  pricePerSqm: number,
+  confirmedDivergence = false,
+): Promise<NotaryPricePostResult> {
+  return api<NotaryPricePostResult>('/api/es/notary-price', {
+    method: 'POST',
+    body: JSON.stringify({
+      postal_code: postalCode,
+      price_per_sqm: pricePerSqm,
+      confirmed_divergence: confirmedDivergence,
+    }),
+  });
 }
 
 /* ── Types ──────────────────────────────────────────────────── */
