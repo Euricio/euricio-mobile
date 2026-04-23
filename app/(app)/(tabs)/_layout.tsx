@@ -122,6 +122,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="contribute"
+        options={{
+          title: t('tab_contribute'),
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="bulb-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="contracts"
         options={{
           title: t('contracts_title'),

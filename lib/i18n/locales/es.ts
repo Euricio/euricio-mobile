@@ -21,6 +21,7 @@ const es: Record<string, string> = {
   tab_leads: 'Leads',
   tab_properties: 'Inmuebles',
   tab_tasks: 'Tareas',
+  tab_contribute: 'Participar',
   tab_more: 'Más',
 
   // ─── Dashboard ─────────────────────────────────────────────────────

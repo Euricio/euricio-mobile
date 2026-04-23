@@ -21,6 +21,7 @@ const en: Record<string, string> = {
   tab_leads: 'Leads',
   tab_properties: 'Properties',
   tab_tasks: 'Tasks',
+  tab_contribute: 'Contribute',
   tab_more: 'More',
 
   // ─── Dashboard ─────────────────────────────────────────────────────
