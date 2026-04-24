@@ -2107,8 +2107,9 @@ const de: Record<string, string> = {
   'docportal.accessModal.emailPlaceholder': 'email@beispiel.de',
   'docportal.accessModal.customerName': 'Kundenname',
   'docportal.accessModal.customerLanguage': 'Sprache',
-  'docportal.accessModal.passwordLabel': 'Passwort',
-  'docportal.accessModal.password': 'Passwort',
+  'docportal.accessModal.passwordLabel': 'Einmaliges Einlade-Passwort',
+  'docportal.accessModal.password': 'Einmaliges Einlade-Passwort',
+  'docportal.accessModal.passwordHint': 'Wird per E-Mail an den Kunden gesendet. 7 Tage gültig, einmalig einlösbar. Der Kunde legt danach sein eigenes Konto-Passwort fest.',
   'docportal.accessModal.generateNew': 'Neu generieren',
   'docportal.accessModal.requestedDocs': 'Angefragte Dokumente',
   'docportal.accessModal.docsSelected': 'ausgewählt',
@@ -2116,7 +2117,7 @@ const de: Record<string, string> = {
   'docportal.accessModal.createAndSend': 'Erstellen & Senden',
   'docportal.accessModal.creating': 'Wird erstellt...',
   'docportal.accessModal.success': 'Portal-Zugang erfolgreich erstellt!',
-  'docportal.accessModal.credentials': 'Zugangsdaten',
+  'docportal.accessModal.credentials': 'Einladung an den Kunden',
   'docportal.accessModal.portalLink': 'Portal-Link',
   'docportal.accessModal.copied': 'Kopiert!',
   'docportal.accessModal.copyAll': 'Alle kopieren',
@@ -2132,7 +2133,7 @@ const de: Record<string, string> = {
 
   // Zugangsverwaltung
   'docportal.access.delete': 'Zugang löschen',
-  'docportal.access.delete_confirm': 'Portal-Zugang für {email} löschen?',
+  'docportal.access.delete_confirm': 'Portal-Zugang für {email} löschen? Das Kundenkonto bleibt bestehen, nur die Verbindung zu dieser Immobilie wird entfernt.',
   'docportal.access.deleted': 'Zugang gelöscht.',
 
   // ─── Portal Publishing ────────────────────────────────────────────

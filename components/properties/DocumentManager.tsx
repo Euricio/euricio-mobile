@@ -629,6 +629,7 @@ export function DocumentManager({
 
                   {/* Credentials */}
                   <Text style={styles.credentialsLabel}>{t('docportal.accessModal.credentials')}</Text>
+                  <Text style={styles.credentialsHint}>{t('docportal.accessModal.passwordHint')}</Text>
                   {[
                     { label: t('docportal.accessModal.email.label'), value: createdCreds.email, field: 'cred-email' },
                     { label: t('docportal.accessModal.password'), value: createdCreds.password, field: 'cred-pass' },
@@ -1064,6 +1065,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  credentialsHint: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    lineHeight: 16,
     marginBottom: spacing.sm,
   },
   credRow: {
