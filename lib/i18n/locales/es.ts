@@ -2101,8 +2101,9 @@ const es: Record<string, string> = {
   'docportal.accessModal.emailPlaceholder': 'email@ejemplo.es',
   'docportal.accessModal.customerName': 'Nombre del cliente',
   'docportal.accessModal.customerLanguage': 'Idioma',
-  'docportal.accessModal.passwordLabel': 'Contraseña',
-  'docportal.accessModal.password': 'Contraseña',
+  'docportal.accessModal.passwordLabel': 'Contraseña de invitación única',
+  'docportal.accessModal.password': 'Contraseña de invitación única',
+  'docportal.accessModal.passwordHint': 'Se envía por email al cliente. Válida 7 días, de un solo uso. Después el cliente define su propia contraseña de cuenta.',
   'docportal.accessModal.generateNew': 'Generar nueva',
   'docportal.accessModal.requestedDocs': 'Documentos solicitados',
   'docportal.accessModal.docsSelected': 'seleccionados',
@@ -2110,7 +2111,7 @@ const es: Record<string, string> = {
   'docportal.accessModal.createAndSend': 'Crear y enviar',
   'docportal.accessModal.creating': 'Creando...',
   'docportal.accessModal.success': '¡Acceso al portal creado correctamente!',
-  'docportal.accessModal.credentials': 'Credenciales de acceso',
+  'docportal.accessModal.credentials': 'Invitación para el cliente',
   'docportal.accessModal.portalLink': 'Enlace del portal',
   'docportal.accessModal.copied': '¡Copiado!',
   'docportal.accessModal.copyAll': 'Copiar todo',
@@ -2126,7 +2127,7 @@ const es: Record<string, string> = {
 
   // Gestión de accesos
   'docportal.access.delete': 'Eliminar acceso',
-  'docportal.access.delete_confirm': '¿Eliminar acceso al portal para {email}?',
+  'docportal.access.delete_confirm': '¿Eliminar acceso al portal para {email}? La cuenta del cliente se mantiene; solo se quita el vínculo con esta propiedad.',
   'docportal.access.deleted': 'Acceso eliminado.',
 
   // ─── Portal Publishing ────────────────────────────────────────────
