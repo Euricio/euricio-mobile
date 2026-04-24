@@ -57,15 +57,18 @@ export function useDocumentRequests(propertyId: string) {
   return useQuery({
     queryKey: ['document-requests', propertyId],
     queryFn: async () => {
+      // Property-scoped only — uploads are visible regardless of which agent
+      // created the portal access. RLS is already property-aware.
       const { data, error } = await supabase
         .from('document_requests')
         .select('*')
-        .eq('property_id', propertyId)
-        .eq('agent_user_id', user!.id);
+        .eq('property_id', propertyId);
       if (error) throw error;
       return (data ?? []) as DocumentRequest[];
     },
     enabled: !!propertyId && !!user,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15_000,
   });
 }
 
@@ -74,11 +77,12 @@ export function usePortalAccesses(propertyId: string) {
   return useQuery({
     queryKey: ['portal-accesses', propertyId],
     queryFn: async () => {
+      // Property-scoped only — mirror of useDocumentRequests so all team
+      // members see accesses created by any agent on this property.
       const { data, error } = await supabase
         .from('document_portal_access')
         .select('id, property_id, agent_user_id, client_email, is_active, access_token, created_at, last_login_at')
-        .eq('property_id', propertyId)
-        .eq('agent_user_id', user!.id);
+        .eq('property_id', propertyId);
       if (error) throw error;
       return (data ?? []) as PortalAccess[];
     },
