@@ -2094,6 +2094,10 @@ const en: Record<string, string> = {
   'docportal.status.uploaded': 'Uploaded',
   'docportal.status.verified': 'Verified',
 
+  // Open
+  'docportal.open.noPath': 'This document has no valid storage path.',
+  'docportal.open.failed': 'Document could not be opened.',
+
   // Access modal
   'docportal.accessModal.title': 'Create Portal Access',
   'docportal.accessModal.email': 'Client email',

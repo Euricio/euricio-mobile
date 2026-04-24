@@ -2100,6 +2100,10 @@ const de: Record<string, string> = {
   'docportal.status.uploaded': 'Hochgeladen',
   'docportal.status.verified': 'Verifiziert',
 
+  // Öffnen
+  'docportal.open.noPath': 'Dieses Dokument hat keinen gültigen Speicherpfad.',
+  'docportal.open.failed': 'Dokument konnte nicht geöffnet werden.',
+
   // Zugangsmodal
   'docportal.accessModal.title': 'Portal-Zugang erstellen',
   'docportal.accessModal.email': 'Kunden-E-Mail',

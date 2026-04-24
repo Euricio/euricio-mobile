@@ -13,9 +13,11 @@ import {
   Alert,
   ActivityIndicator,
   Switch,
+  Linking,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../../lib/supabase';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { useI18n, LOCALE_LABELS } from '../../lib/i18n';
@@ -103,6 +105,7 @@ export function DocumentManager({
     emailResult: { sent: boolean; error: string; smtpWarning: boolean };
   } | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [openingReqId, setOpeningReqId] = useState<string | null>(null);
 
   // ── Initialize selection from existing requests ───────────────────
   useMemo(() => {
@@ -308,6 +311,47 @@ export function DocumentManager({
     );
   }
 
+  // ── Open uploaded document ────────────────────────────────────────
+  // Erzeugt eine frische Signed URL (portal-uploads war der alte Bucket;
+  // neue Uploads liegen in property-documents). Wir probieren beide Buckets,
+  // damit Legacy-Rows (Backfill) weiterhin öffenbar sind.
+  const handleOpenRequest = useCallback(async (req: DocumentRequest) => {
+    if (!req.storage_path) {
+      Alert.alert(t('error'), t('docportal.open.noPath'));
+      return;
+    }
+    setOpeningReqId(req.id);
+    try {
+      const buckets = ['property-documents', 'portal-uploads'];
+      let signedUrl: string | null = null;
+      let lastErr: string | null = null;
+      for (const bucket of buckets) {
+        const { data, error } = await supabase.storage
+          .from(bucket)
+          .createSignedUrl(req.storage_path, 3600);
+        if (!error && data?.signedUrl) {
+          signedUrl = data.signedUrl;
+          break;
+        }
+        lastErr = error?.message ?? 'unknown';
+      }
+      if (!signedUrl) {
+        Alert.alert(t('error'), lastErr ?? t('docportal.open.failed'));
+        return;
+      }
+      const canOpenUrl = await Linking.canOpenURL(signedUrl);
+      if (!canOpenUrl) {
+        Alert.alert(t('error'), t('docportal.open.failed'));
+        return;
+      }
+      await Linking.openURL(signedUrl);
+    } catch (e: any) {
+      Alert.alert(t('error'), e?.message ?? t('docportal.open.failed'));
+    } finally {
+      setOpeningReqId(null);
+    }
+  }, [t]);
+
   // ── Render doc row ────────────────────────────────────────────────
   const renderDocRow = (docKey: string, label: string, category: string, isCustom: boolean, customType?: CustomDocType) => {
     const status = getStatus(docKey);
@@ -315,6 +359,8 @@ export function DocumentManager({
     const sty = STATUS_COLORS[status] || STATUS_COLORS.not_requested;
     const isLocked = status === 'uploaded' || status === 'verified';
     const isChecked = selected.has(docKey);
+    const canOpen = (status === 'uploaded' || status === 'verified') && !!req?.storage_path;
+    const isOpening = openingReqId === req?.id;
 
     return (
       <TouchableOpacity
@@ -338,6 +384,25 @@ export function DocumentManager({
         {/* Upload date */}
         {req?.uploaded_at && (
           <Text style={styles.docDate}>{fmtDate(req.uploaded_at)}</Text>
+        )}
+
+        {/* Open uploaded document */}
+        {canOpen && req && (
+          <TouchableOpacity
+            style={styles.openBtn}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              handleOpenRequest(req);
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            disabled={isOpening}
+          >
+            {isOpening ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Ionicons name="open-outline" size={18} color={colors.primary} />
+            )}
+          </TouchableOpacity>
         )}
 
         {/* Status badge */}
@@ -770,6 +835,10 @@ const styles = StyleSheet.create({
   },
   deleteCustomBtn: {
     padding: spacing.xs,
+  },
+  openBtn: {
+    padding: spacing.xs,
+    marginRight: spacing.xs,
   },
 
   // Add custom

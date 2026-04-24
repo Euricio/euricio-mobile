@@ -12,6 +12,8 @@ export interface DocumentRequest {
   status: 'requested' | 'uploaded' | 'verified';
   file_url: string | null;
   file_name: string | null;
+  storage_path: string | null;
+  mime_type: string | null;
   uploaded_at: string | null;
   created_at: string;
 }
