@@ -201,8 +201,6 @@ export function useCreatePortalAccess() {
       propertyId,
       clientEmail,
       customerName,
-      passwordHash,
-      password,
       selectedDocs,
       propertyName,
       propertyAddress,
@@ -212,32 +210,38 @@ export function useCreatePortalAccess() {
       propertyId: string;
       clientEmail: string;
       customerName: string;
-      passwordHash: string;
-      password: string;
       selectedDocs: string[];
       propertyName: string;
       propertyAddress: string;
       language: 'de' | 'en' | 'es';
       customTypes: CustomDocType[];
     }) => {
-      const { data: insertedAccess, error } = await supabase
-        .from('document_portal_access')
-        .insert({
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://crm.euricio.es';
+
+      const createRes = await fetch(`${apiUrl}/api/portal/create-access`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session!.access_token}`,
+        },
+        body: JSON.stringify({
           property_id: propertyId,
-          agent_user_id: session!.user.id,
           client_email: clientEmail,
-          client_password_hash: passwordHash,
           requested_documents: selectedDocs,
-          status: 'active',
-        })
-        .select('access_token')
-        .single();
+        }),
+      });
 
-      if (error) throw error;
+      const createBody = await createRes.json().catch(() => ({}));
+      if (!createRes.ok) {
+        throw new Error((createBody as { error?: string })?.error || 'create_access_failed');
+      }
+      const { access_token, password } = createBody as { access_token?: string; password?: string };
+      if (!access_token || !password) {
+        throw new Error('missing_password_in_response');
+      }
 
-      const portalLink = `https://crm.euricio.es/portal/${insertedAccess.access_token}`;
+      const portalLink = `https://crm.euricio.es/portal/${access_token}`;
 
-      // Send invitation email
       const documentLabels = selectedDocs.map((docKey) => {
         if (docKey.startsWith('custom:')) {
           const ct = customTypes.find((c) => `custom:${c.id}` === docKey);
@@ -246,7 +250,6 @@ export function useCreatePortalAccess() {
         return docKey;
       });
 
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://crm.euricio.es';
       const emailRes = await fetch(`${apiUrl}/api/send-portal-invite`, {
         method: 'POST',
         headers: {
@@ -339,29 +342,3 @@ export function useDeletePortalAccess() {
   });
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-export function generatePassword(length = 12): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
-
-export async function hashPassword(password: string): Promise<string> {
-  // Simple hash using character codes — production would use edge function with bcrypt
-  let hash = 0;
-  for (let i = 0; i < password.length; i++) {
-    const char = password.charCodeAt(i);
-    hash = ((hash << 5) - hash + char) | 0;
-  }
-  // Convert to hex-like string
-  const hexParts: string[] = [];
-  const bytes = new TextEncoder().encode(password);
-  for (const byte of bytes) {
-    hexParts.push(byte.toString(16).padStart(2, '0'));
-  }
-  return hexParts.join('');
-}

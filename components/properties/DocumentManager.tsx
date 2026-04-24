@@ -30,8 +30,6 @@ import {
   useCreatePortalAccess,
   useTogglePortalAccess,
   useDeletePortalAccess,
-  generatePassword,
-  hashPassword,
   DOCUMENT_TYPES,
   DocumentRequest,
   CustomDocType,
@@ -93,7 +91,6 @@ export function DocumentManager({
   const [showModal, setShowModal] = useState(false);
   const [modalEmail, setModalEmail] = useState('');
   const [modalCustomerName, setModalCustomerName] = useState('');
-  const [modalPassword, setModalPassword] = useState('');
   const [modalLanguage, setModalLanguage] = useState<Locale>(locale);
   const [createdCreds, setCreatedCreds] = useState<{
     email: string;
@@ -206,7 +203,6 @@ export function DocumentManager({
     setCreatedCreds(null);
     setModalEmail('');
     setModalCustomerName('');
-    setModalPassword(generatePassword());
     setModalLanguage(locale);
     setCopiedField(null);
     setShowModal(true);
@@ -214,16 +210,12 @@ export function DocumentManager({
 
   const handleCreateAccess = useCallback(async () => {
     if (!modalEmail.trim()) return;
-    const password = modalPassword || generatePassword();
-    const passwordHash = await hashPassword(password);
 
     createPortalAccess.mutate(
       {
         propertyId,
         clientEmail: modalEmail.trim(),
         customerName: modalCustomerName.trim(),
-        passwordHash,
-        password,
         selectedDocs: Array.from(selected),
         propertyName: propertyName || 'Property',
         propertyAddress: propertyAddress || '',
@@ -243,7 +235,6 @@ export function DocumentManager({
     );
   }, [
     modalEmail,
-    modalPassword,
     modalCustomerName,
     modalLanguage,
     propertyId,
@@ -558,23 +549,6 @@ export function DocumentManager({
                         </Text>
                       </TouchableOpacity>
                     ))}
-                  </View>
-
-                  {/* Password */}
-                  <Text style={styles.inputLabel}>{t('docportal.accessModal.passwordLabel')}</Text>
-                  <View style={styles.passwordRow}>
-                    <TextInput
-                      style={[styles.input, styles.passwordInput]}
-                      value={modalPassword}
-                      onChangeText={setModalPassword}
-                    />
-                    <TouchableOpacity
-                      style={styles.generateBtn}
-                      onPress={() => setModalPassword(generatePassword())}
-                    >
-                      <Ionicons name="refresh" size={16} color={colors.primary} />
-                      <Text style={styles.generateBtnText}>{t('docportal.accessModal.generateNew')}</Text>
-                    </TouchableOpacity>
                   </View>
 
                   {/* Selected docs summary */}
