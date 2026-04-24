@@ -16,6 +16,8 @@ import {
   Linking,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../ui/Button';
@@ -312,9 +314,13 @@ export function DocumentManager({
   }
 
   // ── Open uploaded document ────────────────────────────────────────
-  // Erzeugt eine frische Signed URL (portal-uploads war der alte Bucket;
-  // neue Uploads liegen in property-documents). Wir probieren beide Buckets,
-  // damit Legacy-Rows (Backfill) weiterhin öffenbar sind.
+  // Strategie: Datei von Supabase-Storage (via signed URL) in den App-Cache
+  // herunterladen und danach über das iOS-Share-Sheet (Sharing.shareAsync)
+  // öffnen. Dadurch funktioniert JEDER Dateityp (PDF/JPEG/PNG/HEIC/DOCX/…):
+  // iOS nutzt Quick-Look zum Anzeigen oder leitet an die passende App weiter.
+  //
+  // Wichtig: Der Ziel-Pfad muss die originale Dateiendung behalten, sonst
+  // erkennt iOS den Typ nicht und zeigt generisches "Datei"-Icon ohne Viewer.
   const handleOpenRequest = useCallback(async (req: DocumentRequest) => {
     if (!req.storage_path) {
       Alert.alert(t('error'), t('docportal.open.noPath'));
@@ -322,29 +328,53 @@ export function DocumentManager({
     }
     setOpeningReqId(req.id);
     try {
-      const buckets = ['property-documents', 'portal-uploads'];
-      let signedUrl: string | null = null;
-      let lastErr: string | null = null;
-      for (const bucket of buckets) {
-        const { data, error } = await supabase.storage
-          .from(bucket)
-          .createSignedUrl(req.storage_path, 3600);
-        if (!error && data?.signedUrl) {
-          signedUrl = data.signedUrl;
-          break;
-        }
-        lastErr = error?.message ?? 'unknown';
-      }
-      if (!signedUrl) {
-        Alert.alert(t('error'), lastErr ?? t('docportal.open.failed'));
-        return;
-      }
-      const canOpenUrl = await Linking.canOpenURL(signedUrl);
-      if (!canOpenUrl) {
+      // Auth-Token der Makler-Session holen — der Proxy-Endpoint erwartet
+      // einen gültigen Supabase-Bearer.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
         Alert.alert(t('error'), t('docportal.open.failed'));
         return;
       }
-      await Linking.openURL(signedUrl);
+
+      // Datei-URL über eigene Domain (crm.euricio.es/api/files/…). Damit
+      // sieht der Nutzer niemals eine Supabase-URL.
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://crm.euricio.es';
+      const proxyUrl = `${apiUrl}/api/files/${req.storage_path.split('/').map(encodeURIComponent).join('/')}`;
+
+      // Dateinamen + Extension ableiten für lokalen Cache-Pfad
+      const rawName = req.file_name || req.storage_path.split('/').pop() || 'dokument';
+      let decodedName = rawName;
+      try { decodedName = decodeURIComponent(rawName); } catch { /* ignore */ }
+      const safeName = decodedName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-120) || 'dokument';
+
+      // Download in Cache-Verzeichnis (mit Auth-Header)
+      const cacheDir = FileSystem.cacheDirectory ?? FileSystem.documentDirectory;
+      if (!cacheDir) {
+        Alert.alert(t('error'), t('docportal.open.failed'));
+        return;
+      }
+      const localPath = `${cacheDir}${Date.now()}_${safeName}`;
+      const download = await FileSystem.downloadAsync(proxyUrl, localPath, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (download.status !== 200) {
+        Alert.alert(t('error'), `HTTP ${download.status}`);
+        return;
+      }
+
+      // Öffnen via Share-Sheet — iOS Quick-Look öffnet inline (PDF, Bilder,
+      // DOCX etc.), Android nutzt den MIME-Typ für passende App-Auswahl.
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(download.uri, {
+          mimeType: req.mime_type ?? undefined,
+          UTI: req.mime_type === 'application/pdf' ? 'com.adobe.pdf' : undefined,
+          dialogTitle: decodedName,
+        });
+      } else {
+        await Linking.openURL(download.uri);
+      }
     } catch (e: any) {
       Alert.alert(t('error'), e?.message ?? t('docportal.open.failed'));
     } finally {
