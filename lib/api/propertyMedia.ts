@@ -1,6 +1,10 @@
 import { supabase, uploadToStorage } from '../supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
+import { imagesToPdf, needsPdfConversion } from '../imagesToPdf';
+// Re-export damit Aufrufer den Error-Typ nicht aus zwei Modulen importieren
+// müssen — hilfreich für die Upload-Screens, die `try/catch` machen.
+export { UnsupportedImageError } from '../imagesToPdf';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 if (!SUPABASE_URL) {
@@ -241,13 +245,36 @@ export function useUploadPropertyDocument() {
     }) => {
       const userId = useAuthStore.getState().user?.id;
       const timestamp = Date.now();
-      const storagePath = `${propertyId}/${timestamp}-${fileName}`;
+
+      // Das Backend (Bucket `property-documents`) akzeptiert ausschließlich
+      // PDF/Word. Damit Makler trotzdem ein Foto vom iPhone hochladen
+      // können, konvertieren wir Bilder (JPEG/PNG/HEIC/WEBP) stumm in ein
+      // einseitiges PDF, bevor es in den Storage wandert.
+      let finalUri = uri;
+      let finalFileName = fileName;
+      let finalMimeType = mimeType;
+      let finalFileSize: number | null = fileSize;
+
+      if (needsPdfConversion(mimeType, fileName)) {
+        const pdfUri = await imagesToPdf([uri]);
+        finalUri = pdfUri;
+        // Dateinamen mit .pdf-Endung neu bauen — Extension ersetzen, falls
+        // vorhanden, sonst einfach anhängen.
+        const base = fileName.replace(/\.[^./\\]+$/, '');
+        finalFileName = `${base || `upload-${timestamp}`}.pdf`;
+        finalMimeType = 'application/pdf';
+        // Größe wird beim Upload (uploadToStorage) neu berechnet → null,
+        // damit `fileSize ?? size` auf die echte PDF-Größe fällt.
+        finalFileSize = null;
+      }
+
+      const storagePath = `${propertyId}/${timestamp}-${finalFileName}`;
 
       const { size, sanitizedPath } = await uploadToStorage(
         'property-documents',
         storagePath,
-        uri,
-        mimeType,
+        finalUri,
+        finalMimeType,
       );
 
       const { data, error: insertError } = await supabase
@@ -255,8 +282,8 @@ export function useUploadPropertyDocument() {
         .insert({
           property_id: propertyId,
           storage_path: sanitizedPath,
-          file_name: fileName,
-          file_size: fileSize ?? size,
+          file_name: finalFileName,
+          file_size: finalFileSize ?? size,
           document_type: documentType,
           uploaded_by: userId,
         })

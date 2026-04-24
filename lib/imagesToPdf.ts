@@ -1,17 +1,33 @@
-import { PDFDocument, PDFImage } from 'pdf-lib';
+/**
+ * Bild → PDF Konvertierung für die Makler-App.
+ *
+ * Das Backend akzeptiert nur PDF-Uploads (Bucket-Policy `property-documents`
+ * ist auf `application/pdf` beschränkt). Damit ein Makler trotzdem ein Foto
+ * vom iPhone hochladen kann, wird das Bild vor dem Upload stumm in ein
+ * einseitiges PDF konvertiert.
+ *
+ * Wir nutzen pdf-lib — reines JavaScript, funktioniert ohne Native Build
+ * (im Gegensatz zu jsPDF/canvas oder expo-print) und liefert deterministische
+ * Ergebnisse. Das Bild wird bei Erhalt des Seitenverhältnisses auf A4
+ * zentriert (mit weißen Rändern, falls nötig) — kein Stretching, damit
+ * das Originaldokument visuell korrekt bleibt.
+ *
+ * Die gleiche Implementierung existiert in der Kunden-App
+ * (`euricio-client/lib/imagesToPdf.ts`) — Änderungen bitte synchron halten.
+ */
+import { PDFDocument, type PDFImage } from 'pdf-lib';
 import * as FileSystem from 'expo-file-system/legacy';
 
-// A4 in points
+// A4 in Points (1 pt = 1/72 inch)
 const A4_W = 595;
 const A4_H = 842;
 
 type ImageFormat = 'jpeg' | 'png' | 'heic' | 'unknown';
 
 /**
- * Detect image format from magic bytes.
- * - JPEG: 0xFF 0xD8 0xFF (SOI marker)
- * - PNG:  0x89 0x50 0x4E 0x47 0x0D 0x0A 0x1A 0x0A
- * - HEIC: bytes 4..11 contain 'ftyp' + 'heic'/'heix'/'mif1'/'msf1'
+ * Format aus Magic Bytes erkennen — zuverlässiger als sich auf die vom
+ * Client gemeldete MIME-Type zu verlassen (manche iOS-Quellen melden
+ * `application/octet-stream` für JPEG).
  */
 function detectFormat(bytes: Uint8Array): ImageFormat {
   if (bytes.length < 12) return 'unknown';
@@ -38,19 +54,28 @@ function detectFormat(bytes: Uint8Array): ImageFormat {
   return 'unknown';
 }
 
+export class UnsupportedImageError extends Error {
+  code: 'heic' | 'unknown';
+  constructor(code: 'heic' | 'unknown', message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
 /**
- * Convert an array of image URIs to a single PDF file.
- * Each image is stretched to fill a full A4 page with no white space.
+ * Wandelt ein oder mehrere Bilder in ein A4-PDF um.
+ * Gibt den Dateipfad des erzeugten PDFs im Cache-Directory zurück.
  *
- * Uses pdf-lib which is a pure-JS PDF library that works in React Native
- * without any DOM/browser dependencies (unlike jsPDF or expo-print).
+ * Die Aspect-Ratio des Originalbilds bleibt erhalten — das Bild wird
+ * proportional in die A4-Seite eingepasst und zentriert.
  *
- * Supports both JPEG and PNG input (auto-detected via magic bytes).
- * HEIC is rejected with a clear error message — expo-image-picker converts
- * HEIC to JPEG automatically on iOS, but file-picker or other sources may
- * still hand us HEIC.
+ * Wirft `UnsupportedImageError` bei HEIC oder unbekanntem Format.
  */
 export async function imagesToPdf(imageUris: string[]): Promise<string> {
+  if (imageUris.length === 0) {
+    throw new Error('Mindestens ein Bild wird benötigt.');
+  }
+
   const doc = await PDFDocument.create();
 
   for (const imgUri of imageUris) {
@@ -58,14 +83,13 @@ export async function imagesToPdf(imageUris: string[]): Promise<string> {
       encoding: FileSystem.EncodingType.Base64,
     });
 
-    // Decode base64 to Uint8Array
+    // Base64 → Uint8Array
     const binaryStr = atob(base64);
     const bytes = new Uint8Array(binaryStr.length);
     for (let j = 0; j < binaryStr.length; j++) {
       bytes[j] = binaryStr.charCodeAt(j);
     }
 
-    // Detect format and embed with the correct method
     const format = detectFormat(bytes);
     let image: PDFImage;
     if (format === 'jpeg') {
@@ -73,40 +97,57 @@ export async function imagesToPdf(imageUris: string[]): Promise<string> {
     } else if (format === 'png') {
       image = await doc.embedPng(bytes);
     } else if (format === 'heic') {
-      throw new Error(
-        'HEIC-Bilder werden nicht unterstützt. Bitte in der Kamera-Einstellung "Kompatibel" wählen oder das Bild als JPEG exportieren.',
+      throw new UnsupportedImageError(
+        'heic',
+        'HEIC-Bilder werden nicht unterstützt. Bitte in den iPhone-Einstellungen unter "Kamera → Formate" den Modus "Maximale Kompatibilität" wählen, dann das Foto neu aufnehmen.',
       );
     } else {
-      throw new Error(
+      throw new UnsupportedImageError(
+        'unknown',
         'Unbekanntes Bildformat. Nur JPEG und PNG werden unterstützt.',
       );
     }
 
-    // Add a page with exact A4 dimensions and draw the image
-    // stretched to fill the entire page
+    // Proportional in A4 einpassen, zentrieren (weiße Ränder wenn nötig)
+    const ratio = Math.min(A4_W / image.width, A4_H / image.height);
+    const drawW = image.width * ratio;
+    const drawH = image.height * ratio;
+    const x = (A4_W - drawW) / 2;
+    const y = (A4_H - drawH) / 2;
+
     const page = doc.addPage([A4_W, A4_H]);
-    page.drawImage(image, {
-      x: 0,
-      y: 0,
-      width: A4_W,
-      height: A4_H,
-    });
+    page.drawImage(image, { x, y, width: drawW, height: drawH });
   }
 
-  // Save PDF to bytes, then write to cache as base64
   const pdfBytes = await doc.save();
 
-  // Convert Uint8Array to base64
+  // Uint8Array → Base64 (chunked, um Stack-Overflow bei großen PDFs zu vermeiden)
   let binaryStr = '';
-  for (let i = 0; i < pdfBytes.length; i++) {
-    binaryStr += String.fromCharCode(pdfBytes[i]);
+  const CHUNK = 0x8000;
+  for (let i = 0; i < pdfBytes.length; i += CHUNK) {
+    const chunk = pdfBytes.subarray(i, i + CHUNK);
+    binaryStr += String.fromCharCode.apply(null, Array.from(chunk));
   }
   const pdfBase64 = btoa(binaryStr);
 
-  const pdfPath = `${FileSystem.cacheDirectory}scanned-${Date.now()}.pdf`;
+  const pdfPath = `${FileSystem.cacheDirectory}upload-${Date.now()}.pdf`;
   await FileSystem.writeAsStringAsync(pdfPath, pdfBase64, {
     encoding: FileSystem.EncodingType.Base64,
   });
 
   return pdfPath;
+}
+
+/**
+ * Prüft anhand von MIME-Type und Dateiname, ob ein Asset vor dem Upload
+ * in PDF umgewandelt werden muss.
+ */
+export function needsPdfConversion(
+  mimeType: string | null | undefined,
+  fileName: string | null | undefined,
+): boolean {
+  const t = (mimeType || '').toLowerCase();
+  if (t.startsWith('image/')) return true;
+  const ext = (fileName || '').toLowerCase().split('.').pop() || '';
+  return ['jpg', 'jpeg', 'png', 'heic', 'heif', 'webp'].includes(ext);
 }
