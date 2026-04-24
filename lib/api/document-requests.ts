@@ -300,6 +300,149 @@ export function useCreatePortalAccess() {
   });
 }
 
+/**
+ * Kombinierter Flow: legt Portal-Zugang UND Dokumenten-Anforderungen
+ * in einem einzigen Backend-Call an. Sendet anschließend die Invite-Mail.
+ *
+ * Nutzt den neuen Endpoint /api/portal/create-access-with-requests.
+ *
+ * Wichtig: Wenn für (property_id, client_email) bereits ein Zugang
+ * existiert, gibt der Server password='' zurück. In dem Fall:
+ *   - schicken wir KEINE Mail (wir haben kein Passwort zum Versenden)
+ *   - emailResult.smtpWarning=false, sent=false, error='reused_existing_access'
+ * Das UI soll das erkennen und den Makler darauf hinweisen, dass dem
+ * Kunden die alten Zugangsdaten erneut zugestellt werden müssen (oder
+ * der bestehende Zugang zuerst gelöscht werden muss).
+ */
+export function useCreateAccessWithRequests() {
+  const queryClient = useQueryClient();
+  const session = useAuthStore((s) => s.session);
+  return useMutation({
+    mutationFn: async ({
+      propertyId,
+      clientEmail,
+      customerName,
+      selectedDocs,
+      propertyName,
+      propertyAddress,
+      language,
+      customTypes,
+    }: {
+      propertyId: string;
+      clientEmail: string;
+      customerName: string;
+      selectedDocs: string[];
+      propertyName: string;
+      propertyAddress: string;
+      language: 'de' | 'en' | 'es';
+      customTypes: CustomDocType[];
+    }) => {
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://crm.euricio.es';
+
+      const createRes = await fetch(
+        `${apiUrl}/api/portal/create-access-with-requests`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session!.access_token}`,
+          },
+          body: JSON.stringify({
+            property_id: propertyId,
+            client_email: clientEmail,
+            requested_documents: selectedDocs,
+          }),
+        },
+      );
+
+      const createBody = await createRes.json().catch(() => ({}));
+      if (!createRes.ok) {
+        throw new Error(
+          (createBody as { error?: string })?.error || 'create_access_failed',
+        );
+      }
+      const {
+        access_token,
+        password,
+        reused_existing_access,
+        requests_upserted,
+      } = createBody as {
+        access_token?: string;
+        password?: string;
+        reused_existing_access?: boolean;
+        requests_upserted?: number;
+      };
+      if (!access_token) {
+        throw new Error('missing_access_token_in_response');
+      }
+
+      const portalLink = `https://crm.euricio.es/portal/${access_token}`;
+
+      const documentLabels = selectedDocs.map((docKey) => {
+        if (docKey.startsWith('custom:')) {
+          const ct = customTypes.find((c) => `custom:${c.id}` === docKey);
+          return ct?.name || docKey;
+        }
+        return docKey;
+      });
+
+      const emailResult = { sent: false, error: '', smtpWarning: false };
+
+      // Reused access → wir haben kein Klartext-Passwort und schicken daher
+      // KEINE Mail. Das UI zeigt stattdessen einen Hinweis an.
+      if (reused_existing_access || !password) {
+        emailResult.error = 'reused_existing_access';
+      } else {
+        const emailRes = await fetch(`${apiUrl}/api/send-portal-invite`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session!.access_token}`,
+          },
+          body: JSON.stringify({
+            customerEmail: clientEmail,
+            customerName: customerName || undefined,
+            password,
+            propertyName,
+            propertyAddress,
+            documents: documentLabels,
+            agentName:
+              session!.user.user_metadata?.full_name || session!.user.email || '',
+            agentEmail: session!.user.email || '',
+            portalLink,
+            lang: language,
+            userId: session!.user.id,
+          }),
+        });
+
+        if (emailRes.ok) {
+          emailResult.sent = true;
+        } else {
+          const body = await emailRes.json().catch(() => ({}));
+          if (body.error === 'smtp_not_configured') {
+            emailResult.smtpWarning = true;
+          } else {
+            emailResult.error = body.error || 'email_error';
+          }
+        }
+      }
+
+      return {
+        email: clientEmail,
+        password: password ?? '',
+        link: portalLink,
+        emailResult,
+        reusedExistingAccess: !!reused_existing_access,
+        requestsUpserted: requests_upserted ?? 0,
+      };
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['portal-accesses', variables.propertyId] });
+      queryClient.invalidateQueries({ queryKey: ['document-requests', variables.propertyId] });
+    },
+  });
+}
+
 export function useTogglePortalAccess() {
   const queryClient = useQueryClient();
   return useMutation({
