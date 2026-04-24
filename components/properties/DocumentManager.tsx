@@ -27,7 +27,7 @@ import {
   useSaveDocumentRequests,
   useAddCustomDocType,
   useRemoveCustomDocType,
-  useCreatePortalAccess,
+  useCreateAccessWithRequests,
   useTogglePortalAccess,
   useDeletePortalAccess,
   DOCUMENT_TYPES,
@@ -76,7 +76,11 @@ export function DocumentManager({
   const saveRequests = useSaveDocumentRequests();
   const addCustomType = useAddCustomDocType();
   const removeCustomType = useRemoveCustomDocType();
-  const createPortalAccess = useCreatePortalAccess();
+  // Verheirateter Flow: Access + Dokumenten-Anforderungen in einem Call.
+  // Ersetzt useCreatePortalAccess hier, damit ein einziger Button beides
+  // erledigt. Die Legacy-Hook bleibt im API-Modul erhalten für zukünftige
+  // separate Use-Cases.
+  const createPortalAccess = useCreateAccessWithRequests();
   const togglePortalAccess = useTogglePortalAccess();
   const deletePortalAccess = useDeletePortalAccess();
 
