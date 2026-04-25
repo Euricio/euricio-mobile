@@ -14,7 +14,6 @@ import {
   Switch,
   ActivityIndicator,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -45,9 +44,18 @@ import { Button } from '../../../../components/ui/Button';
 import { CollapsibleSection } from '../../../../components/ui/CollapsibleSection';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
 import { ErrorBoundary } from '../../../../components/ui/ErrorBoundary';
-import { DocumentManager } from '../../../../components/properties/DocumentManager';
-import { OwnershipSection } from '../../../../components/properties/OwnershipSection';
 import { useI18n } from '../../../../lib/i18n';
+
+// Hotfix #3: temporarily disable native-heavy subsections (WebView map,
+// react-native-svg ownership donut, document manager) on the property
+// detail screen. Force-quit + immediate crash on open with no inline
+// ErrorBoundary fallback indicates module evaluation is failing before
+// React renders — most likely a JS/native ABI mismatch on a recently
+// added native module (react-native-svg) shipped via OTA against the
+// older TestFlight binary. Keep the screen functional with basic info
+// while we cut a fresh native build. TODO(hotfix-3): re-enable after
+// native rebuild verified.
+const SAFE_PROPERTY_DETAIL_MODE = true;
 import { calcCommission } from '../../../../lib/commission';
 import { useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
@@ -707,42 +715,12 @@ function PropertyDetailScreenInner() {
       )}
 
       {/* ─── 8. Map Preview ────────────────────────────────────── */}
-      <ErrorBoundary label="Map">
-      {(() => {
-        const lat = property.latitude != null ? Number(property.latitude) : NaN;
-        const lng = property.longitude != null ? Number(property.longitude) : NaN;
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-        const safeTitle = String(property.title ?? '').replace(/'/g, "\\'");
-        return (
-          <Card style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('prop_geocodingPreview')}</Text>
-            <View style={styles.miniMapContainer}>
-              <WebView
-                originWhitelist={['*']}
-                source={{
-                  html: `<!DOCTYPE html>
-<html><head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>body{margin:0}#map{width:100%;height:100vh}</style>
-</head><body>
-<div id="map"></div>
-<script>
-var map = L.map('map').setView([${lat}, ${lng}], 15);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM'}).addTo(map);
-L.marker([${lat}, ${lng}]).addTo(map).bindPopup('${safeTitle}');
-</script></body></html>`,
-                }}
-                style={styles.miniMapWebView}
-                javaScriptEnabled
-                scrollEnabled={false}
-              />
-            </View>
-          </Card>
-        );
-      })()}
-      </ErrorBoundary>
+      {/* Hotfix #3: temporarily disabled — see SAFE_PROPERTY_DETAIL_MODE */}
+      {!SAFE_PROPERTY_DETAIL_MODE && (
+        <ErrorBoundary label="Map">
+          <MapPreviewSection property={property} t={t} />
+        </ErrorBoundary>
+      )}
 
       {/* ─── 9. Features & Dimensions (chips) ─────────────────── */}
       {featureChips.length > 0 && (
@@ -902,13 +880,16 @@ L.marker([${lat}, ${lng}]).addTo(map).bindPopup('${safeTitle}');
       </ErrorBoundary>
 
       {/* ─── 17b. Document Manager (Checklist + Portal) ─────── */}
-      <ErrorBoundary label="Dokumente">
-        <DocumentManager
-          propertyId={String(property.id)}
-          propertyName={property.title ?? ''}
-          propertyAddress={property.address ? `${property.address}${property.city ? `, ${property.city}` : ''}` : undefined}
-        />
-      </ErrorBoundary>
+      {/* Hotfix #3: temporarily disabled — see SAFE_PROPERTY_DETAIL_MODE */}
+      {!SAFE_PROPERTY_DETAIL_MODE && (
+        <ErrorBoundary label="Dokumente">
+          <DocumentManagerSection
+            propertyId={String(property.id)}
+            propertyName={property.title ?? ''}
+            propertyAddress={property.address ? `${property.address}${property.city ? `, ${property.city}` : ''}` : undefined}
+          />
+        </ErrorBoundary>
+      )}
 
       {/* ─── 18. Media Management Card ────────────────────────── */}
       <Card
@@ -932,9 +913,26 @@ L.marker([${lat}, ${lng}]).addTo(map).bindPopup('${safeTitle}');
       </Card>
 
       {/* ─── 19. Ownership Section ────────────────────────────── */}
-      <ErrorBoundary label="Eigentümer">
-        <OwnershipSection propertyId={String(property.id)} />
-      </ErrorBoundary>
+      {/* Hotfix #3: temporarily disabled — see SAFE_PROPERTY_DETAIL_MODE */}
+      {!SAFE_PROPERTY_DETAIL_MODE && (
+        <ErrorBoundary label="Eigentümer">
+          <OwnershipSectionLazy propertyId={String(property.id)} />
+        </ErrorBoundary>
+      )}
+
+      {/* ─── Hotfix #3 stabilization notice ───────────────────── */}
+      {SAFE_PROPERTY_DETAIL_MODE && (
+        <Card style={styles.section}>
+          <View style={styles.safeModeNoticeRow}>
+            <Ionicons name="information-circle-outline" size={18} color={colors.textSecondary} />
+            <Text style={styles.safeModeNoticeText}>
+              Karte, Eigentümer-Übersicht und Dokumenten-Manager sind in dieser
+              Version vorübergehend deaktiviert, während wir die Mobile-App
+              stabilisieren. Grunddaten bleiben verfügbar.
+            </Text>
+          </View>
+        </Card>
+      )}
 
       {/* ─── 20. Portal Publishing ────────────────────────────── */}
       <ErrorBoundary label="Portale">
@@ -1030,6 +1028,63 @@ L.marker([${lat}, ${lng}]).addTo(map).bindPopup('${safeTitle}');
       </View>
     </ScrollView>
   );
+}
+
+// ─── Lazy wrappers for native-heavy subsections ─────────────────────
+// Hotfix #3: these subsections are only rendered when
+// SAFE_PROPERTY_DETAIL_MODE is false. They use require() at render time
+// so the underlying native modules (react-native-webview,
+// react-native-svg) are NOT evaluated on bundle load. This prevents a
+// missing/mismatched native module from crashing the route during
+// module evaluation (before any ErrorBoundary can catch it).
+
+function MapPreviewSection({ property, t }: { property: any; t: (k: string) => string }) {
+  const lat = property.latitude != null ? Number(property.latitude) : NaN;
+  const lng = property.longitude != null ? Number(property.longitude) : NaN;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { WebView } = require('react-native-webview');
+  const safeTitle = String(property.title ?? '').replace(/'/g, "\\'");
+  return (
+    <Card style={styles.section}>
+      <Text style={styles.sectionTitle}>{t('prop_geocodingPreview')}</Text>
+      <View style={styles.miniMapContainer}>
+        <WebView
+          originWhitelist={['*']}
+          source={{
+            html: `<!DOCTYPE html>
+<html><head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>body{margin:0}#map{width:100%;height:100vh}</style>
+</head><body>
+<div id="map"></div>
+<script>
+var map = L.map('map').setView([${lat}, ${lng}], 15);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM'}).addTo(map);
+L.marker([${lat}, ${lng}]).addTo(map).bindPopup('${safeTitle}');
+</script></body></html>`,
+          }}
+          style={styles.miniMapWebView}
+          javaScriptEnabled
+          scrollEnabled={false}
+        />
+      </View>
+    </Card>
+  );
+}
+
+function DocumentManagerSection(props: { propertyId: string; propertyName: string; propertyAddress?: string }) {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { DocumentManager } = require('../../../../components/properties/DocumentManager');
+  return <DocumentManager {...props} />;
+}
+
+function OwnershipSectionLazy(props: { propertyId: string }) {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { OwnershipSection } = require('../../../../components/properties/OwnershipSection');
+  return <OwnershipSection {...props} />;
 }
 
 // ─── Helper Components ──────────────────────────────────────────────
@@ -1544,6 +1599,18 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.text,
     backgroundColor: colors.background,
+  },
+  // Safe-mode notice (Hotfix #3)
+  safeModeNoticeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  safeModeNoticeText: {
+    flex: 1,
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
   // Actions
   actions: {
