@@ -1,0 +1,56 @@
+# EAS Submit — Submit an existing EAS build to App Store Connect / Play Store.
+#
+# Requires repo secret EXPO_TOKEN (same token used by eas-build.yml).
+# App Store Connect credentials (ASC API key) must be configured in the
+# Expo project (eas credentials) so this workflow can submit non-interactively.
+
+name: EAS Submit
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Target platform"
+        required: true
+        default: "ios"
+        type: choice
+        options:
+          - ios
+          - android
+          - all
+      build_id:
+        description: "Specific EAS build ID to submit (leave empty to use --latest)"
+        required: false
+        type: string
+
+jobs:
+  submit:
+    name: EAS Submit (${{ inputs.platform }})
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Set up EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Submit to store
+        run: |
+          if [ -n "${{ inputs.build_id }}" ]; then
+            eas submit --platform ${{ inputs.platform }} --id "${{ inputs.build_id }}" --non-interactive
+          else
+            eas submit --platform ${{ inputs.platform }} --latest --non-interactive
+          fi
