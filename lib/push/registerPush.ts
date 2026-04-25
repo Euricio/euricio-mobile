@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, Linking } from 'react-native';
 import * as Device from 'expo-device';
 import { router } from 'expo-router';
 import { supabase } from '../supabase';
@@ -147,7 +147,30 @@ export async function wirePushTapHandler(): Promise<() => void> {
   if (!Notifications) return () => {};
 
   const sub = Notifications.addNotificationResponseReceivedListener(response => {
-    const data = response.notification.request.content.data as { deep_link?: string } | undefined;
+    const data = response.notification.request.content.data as
+      | {
+          deep_link?: string;
+          kind?: string;
+          contract_id?: string | number;
+          signature_token?: string;
+          signer_id?: string;
+        }
+      | undefined;
+
+    // Contract signature push from web send-signature flow:
+    // payload contains { kind:'contract_signature', contract_id, signature_token, signer_id }.
+    // The signing UI lives on the web CRM; open it in the system browser.
+    if (data?.kind === 'contract_signature' && typeof data.signature_token === 'string') {
+      const signer = typeof data.signer_id === 'string' ? data.signer_id : '';
+      const url = `${API_URL}/sign/${encodeURIComponent(data.signature_token)}${
+        signer ? `?signer=${encodeURIComponent(signer)}` : ''
+      }`;
+      Linking.openURL(url).catch(err => {
+        console.warn('[push] contract_signature openURL failed:', url, err);
+      });
+      return;
+    }
+
     const deepLink = data?.deep_link;
     if (!deepLink || typeof deepLink !== 'string') return;
     try {
