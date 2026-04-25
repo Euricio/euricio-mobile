@@ -880,14 +880,38 @@ function PropertyDetailScreenInner() {
       </Card>
       </ErrorBoundary>
 
-      {/* ─── 17b. Document Manager (Checklist + Portal) ─────── */}
-      <ErrorBoundary label="Dokumente">
-        <DocumentManagerSection
-          propertyId={String(property.id)}
-          propertyName={property.title ?? ''}
-          propertyAddress={property.address ? `${property.address}${property.city ? `, ${property.city}` : ''}` : undefined}
-        />
-      </ErrorBoundary>
+      {/* ─── 17b. Document Manager (subpage link) ──────────────
+        Hotfix #6: DocumentManager is no longer mounted inline. The
+        previous inline mount triggered a hook-count mismatch crash
+        ("Rendered more hooks than during the previous render") because
+        a useCallback was declared after an early loading return. The
+        underlying hook bug is fixed in DocumentManager.tsx, but we
+        still isolate the section onto its own route so any future
+        render error stays contained and the rest of the property menu
+        (incl. ownership, portals, metadata) remains usable. */}
+      <Card
+        style={styles.section}
+        onPress={() =>
+          router.push(
+            `/(app)/property-doc-portal?propertyId=${property.id}` +
+              `&propertyTitle=${encodeURIComponent(property.title ?? '')}` +
+              `&propertyAddress=${encodeURIComponent(property.address ? `${property.address}${property.city ? `, ${property.city}` : ''}` : '')}`,
+          )
+        }
+      >
+        <View style={styles.mediaCardRow}>
+          <View style={styles.mediaCardLeft}>
+            <Ionicons name="folder-open-outline" size={24} color={colors.primary} />
+            <View>
+              <Text style={styles.sectionTitle}>{t('docportal.section.title')}</Text>
+              <Text style={styles.mediaCardCount}>
+                {t('docportal.requestDocs')} · {t('docportal.manageAccess')}
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+        </View>
+      </Card>
 
       {/* ─── 18. Media Management Card ────────────────────────── */}
       <Card
@@ -1019,6 +1043,24 @@ function PropertyDetailScreenInner() {
 // initial mount. The "advanced" view still ships on the web build; tap
 // targets here open the system Maps app via Linking.
 
+// Web-Mercator tile math for static OpenStreetMap thumbnails. We render
+// a 2×2 grid of 256-px tiles around the property pin. No WebView, no API
+// key, no native module — only the standard RN <Image>, which is the
+// most stable rendering path. Falls back to a clean coordinate card if
+// no coords are available.
+function lng2tileX(lng: number, z: number) {
+  return ((lng + 180) / 360) * Math.pow(2, z);
+}
+function lat2tileY(lat: number, z: number) {
+  const rad = (lat * Math.PI) / 180;
+  return ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * Math.pow(2, z);
+}
+
+const MAP_ZOOM = 15;
+const MAP_TILE = 256;
+const MAP_GRID = 2; // 2×2 = 512×512 px logical
+const MAP_HEIGHT = 180;
+
 function MapPreviewSection({ property, t }: { property: any; t: (k: string) => string }) {
   const lat = property.latitude != null ? Number(property.latitude) : NaN;
   const lng = property.longitude != null ? Number(property.longitude) : NaN;
@@ -1026,14 +1068,14 @@ function MapPreviewSection({ property, t }: { property: any; t: (k: string) => s
     Number.isFinite(lat) &&
     Number.isFinite(lng) &&
     lat >= -90 && lat <= 90 &&
-    lng >= -180 && lng <= 180;
+    lng >= -180 && lng <= 180 &&
+    !(lat === 0 && lng === 0);
   const hasAddress = !!(property.address || property.city);
   if (!hasCoords && !hasAddress) return null;
 
   const openMaps = () => {
     if (hasCoords) {
       const label = encodeURIComponent(String(property.title ?? 'Location'));
-      // iOS understands maps.apple.com; Android falls through to Google Maps.
       const url = `https://maps.apple.com/?ll=${lat},${lng}&q=${label}`;
       Linking.openURL(url).catch(() => {
         Linking.openURL(`https://maps.google.com/?q=${lat},${lng}`).catch(() => {});
@@ -1048,12 +1090,72 @@ function MapPreviewSection({ property, t }: { property: any; t: (k: string) => s
     }
   };
 
+  // Pre-compute the 2×2 tile grid centred on the pin. Pin offset is in
+  // pixels relative to the top-left of the rendered grid, so the marker
+  // lands exactly on the property location.
+  let tileGrid: { url: string; key: string }[] = [];
+  let pinLeftPct = 50;
+  let pinTopPct = 50;
+  if (hasCoords) {
+    const tx = lng2tileX(lng, MAP_ZOOM);
+    const ty = lat2tileY(lat, MAP_ZOOM);
+    // Anchor grid so pin sits in the middle of the 2×2 block.
+    const x0 = Math.floor(tx) - (MAP_GRID / 2 - 1);
+    const y0 = Math.floor(ty) - (MAP_GRID / 2 - 1);
+    for (let dy = 0; dy < MAP_GRID; dy++) {
+      for (let dx = 0; dx < MAP_GRID; dx++) {
+        const x = x0 + dx;
+        const y = y0 + dy;
+        tileGrid.push({
+          key: `${x}-${y}`,
+          // Standard OSM tile URL, no API key required.
+          url: `https://tile.openstreetmap.org/${MAP_ZOOM}/${x}/${y}.png`,
+        });
+      }
+    }
+    const pxX = (tx - x0) * MAP_TILE;
+    const pxY = (ty - y0) * MAP_TILE;
+    const totalPx = MAP_GRID * MAP_TILE;
+    pinLeftPct = Math.max(0, Math.min(100, (pxX / totalPx) * 100));
+    pinTopPct = Math.max(0, Math.min(100, (pxY / totalPx) * 100));
+  }
+
   return (
     <Card style={styles.section}>
       <Text style={styles.sectionTitle}>{t('prop_geocodingPreview')}</Text>
+
+      {hasCoords ? (
+        <TouchableOpacity activeOpacity={0.85} onPress={openMaps} style={styles.mapThumbWrap}>
+          <View style={styles.mapTileGrid}>
+            {tileGrid.map((tile) => (
+              <Image
+                key={tile.key}
+                source={{ uri: tile.url }}
+                style={styles.mapTile}
+                resizeMode="cover"
+              />
+            ))}
+          </View>
+          {/* Pin overlay — pure RN, anchored on the geocoded lat/lng. */}
+          <View
+            pointerEvents="none"
+            style={[
+              styles.mapPin,
+              { left: `${pinLeftPct}%`, top: `${pinTopPct}%` },
+            ]}
+          >
+            <View style={styles.mapPinShadow} />
+            <Ionicons name="location" size={28} color={colors.primary} />
+          </View>
+          <View style={styles.mapAttribution}>
+            <Text style={styles.mapAttributionText}>© OpenStreetMap</Text>
+          </View>
+        </TouchableOpacity>
+      ) : null}
+
       <View style={styles.locationCard}>
         <View style={styles.locationIconBox}>
-          <Ionicons name="location" size={28} color={colors.primary} />
+          <Ionicons name="location" size={24} color={colors.primary} />
         </View>
         <View style={styles.locationTextBox}>
           {hasAddress && (
@@ -1067,23 +1169,15 @@ function MapPreviewSection({ property, t }: { property: any; t: (k: string) => s
               {lat.toFixed(5)}, {lng.toFixed(5)}
             </Text>
           )}
-          <Text style={styles.locationHint}>Mobile-stabile Ansicht</Text>
         </View>
       </View>
+
       <TouchableOpacity onPress={openMaps} style={styles.locationButton}>
         <Ionicons name="map-outline" size={18} color={colors.white} />
         <Text style={styles.locationButtonText}>{t('properties_showOnMap')}</Text>
       </TouchableOpacity>
     </Card>
   );
-}
-
-function DocumentManagerSection(props: { propertyId: string; propertyName: string; propertyAddress?: string }) {
-  // Native modules in DocumentManager (Sharing/FileSystem) are only used
-  // inside user-initiated handlers, so it is safe to import statically.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { DocumentManager } = require('../../../../components/properties/DocumentManager');
-  return <DocumentManager {...props} />;
 }
 
 function OwnershipSectionLazy(props: { propertyId: string }) {
@@ -1412,7 +1506,59 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
-  // Mobile-stable location card (replaces native WebView mini-map)
+  // OpenStreetMap thumbnail (pure RN <Image> grid, no WebView)
+  mapThumbWrap: {
+    height: MAP_HEIGHT,
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    backgroundColor: colors.borderLight,
+    marginBottom: spacing.sm,
+    position: 'relative',
+  },
+  mapTileGrid: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  mapTile: {
+    width: '50%',
+    height: '50%',
+  },
+  mapPin: {
+    position: 'absolute',
+    width: 28,
+    height: 28,
+    marginLeft: -14,
+    marginTop: -28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapPinShadow: {
+    position: 'absolute',
+    bottom: -2,
+    width: 14,
+    height: 6,
+    borderRadius: 7,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+  },
+  mapAttribution: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  mapAttributionText: {
+    fontSize: 9,
+    color: colors.textSecondary,
+  },
+  // Mobile-stable location card (used alongside the OSM thumbnail)
   locationCard: {
     flexDirection: 'row',
     alignItems: 'center',

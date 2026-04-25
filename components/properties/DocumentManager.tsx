@@ -303,24 +303,11 @@ export function DocumentManager({
     return formatDate(s);
   };
 
-  // ── Loading state ─────────────────────────────────────────────────
-  if (loadingReqs) {
-    return (
-      <Card style={styles.section}>
-        <Text style={styles.sectionLabel}>{t('docportal.section.title')}</Text>
-        <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.md }} />
-      </Card>
-    );
-  }
-
-  // ── Open uploaded document ────────────────────────────────────────
-  // Strategie: Datei von Supabase-Storage (via signed URL) in den App-Cache
-  // herunterladen und danach über das iOS-Share-Sheet (Sharing.shareAsync)
-  // öffnen. Dadurch funktioniert JEDER Dateityp (PDF/JPEG/PNG/HEIC/DOCX/…):
-  // iOS nutzt Quick-Look zum Anzeigen oder leitet an die passende App weiter.
-  //
-  // Wichtig: Der Ziel-Pfad muss die originale Dateiendung behalten, sonst
-  // erkennt iOS den Typ nicht und zeigt generisches "Datei"-Icon ohne Viewer.
+  // Hooks MUST be declared before any conditional return — otherwise the
+  // hook count between renders changes (loading → loaded) and React throws
+  // "Rendered more hooks than during the previous render". Hotfix #5 left
+  // `handleOpenRequest` after the `if (loadingReqs) return …` block, which
+  // produced exactly that crash on the property detail screen.
   const handleOpenRequest = useCallback(async (req: DocumentRequest) => {
     if (!req.storage_path) {
       Alert.alert(t('error'), t('docportal.open.noPath'));
@@ -381,6 +368,17 @@ export function DocumentManager({
       setOpeningReqId(null);
     }
   }, [t]);
+
+  // ── Loading state ─────────────────────────────────────────────────
+  // (Now safe — declared after every hook so the hook count is stable.)
+  if (loadingReqs) {
+    return (
+      <Card style={styles.section}>
+        <Text style={styles.sectionLabel}>{t('docportal.section.title')}</Text>
+        <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.md }} />
+      </Card>
+    );
+  }
 
   // ── Render doc row ────────────────────────────────────────────────
   const renderDocRow = (docKey: string, label: string, category: string, isCustom: boolean, customType?: CustomDocType) => {

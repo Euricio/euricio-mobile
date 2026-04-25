@@ -108,6 +108,13 @@ export default function AppLayout() {
             }}
           />
           <Stack.Screen
+            name="property-doc-portal"
+            options={{
+              headerShown: true,
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
             name="scanner"
             options={{
               animation: 'slide_from_bottom',
