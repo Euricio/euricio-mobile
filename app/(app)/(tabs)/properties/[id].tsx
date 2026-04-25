@@ -44,6 +44,7 @@ import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
 import { CollapsibleSection } from '../../../../components/ui/CollapsibleSection';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
+import { ErrorBoundary } from '../../../../components/ui/ErrorBoundary';
 import { DocumentManager } from '../../../../components/properties/DocumentManager';
 import { OwnershipSection } from '../../../../components/properties/OwnershipSection';
 import { useI18n } from '../../../../lib/i18n';
@@ -216,6 +217,14 @@ function computeCompleteness(p: any): { score: number; missing: string[] } {
 // ─── Main Component ─────────────────────────────────────────────────
 
 export default function PropertyDetailScreen() {
+  return (
+    <ErrorBoundary label="Property">
+      <PropertyDetailScreenInner />
+    </ErrorBoundary>
+  );
+}
+
+function PropertyDetailScreenInner() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: property, isLoading, refetch, isRefetching } = useProperty(id!);
   const { data: images } = usePropertyImages(id!);
@@ -429,7 +438,12 @@ export default function PropertyDetailScreen() {
   const hasLandInfo = property.land_classification || property.land_buildable_m2 || property.terreno_urbano_m2 || property.terreno_agricola_m2 || property.terreno_forestal_m2 || property.terreno_pastizal_m2;
   const hasEstimatedValue = property.estimated_value || property.estimated_value_date || property.estimated_value_method;
 
-  const pricePerM2 = property.price && property.size_m2 ? Math.round(property.price / property.size_m2) : null;
+  const priceNum = property.price != null ? Number(property.price) : null;
+  const sizeNum = property.size_m2 != null ? Number(property.size_m2) : null;
+  const pricePerM2 =
+    priceNum != null && sizeNum != null && Number.isFinite(priceNum) && Number.isFinite(sizeNum) && sizeNum > 0
+      ? Math.round(priceNum / sizeNum)
+      : null;
   const { score: completenessScore, missing: completenessMissing } = computeCompleteness(property);
 
 
@@ -447,7 +461,7 @@ export default function PropertyDetailScreen() {
     >
       <Stack.Screen
         options={{
-          headerTitle: property.title,
+          headerTitle: property.title ?? t('tab_properties'),
           headerShown: true,
           headerStyle: { backgroundColor: colors.surface },
           headerShadowVisible: false,
@@ -614,6 +628,7 @@ export default function PropertyDetailScreen() {
       )}
 
       {/* ─── 6b. Commission (intern) ───────────────────────── */}
+      <ErrorBoundary label="Commission">
       {property.commission_percentage != null && (() => {
         const partner = property.partner ?? null;
         const commissionPct = Number(property.commission_percentage);
@@ -677,6 +692,7 @@ export default function PropertyDetailScreen() {
           </Card>
         );
       })()}
+      </ErrorBoundary>
 
       {/* ─── 7. Address Details ────────────────────────────────── */}
       {hasAddress && (
@@ -691,14 +707,20 @@ export default function PropertyDetailScreen() {
       )}
 
       {/* ─── 8. Map Preview ────────────────────────────────────── */}
-      {property.latitude != null && property.longitude != null && (
-        <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('prop_geocodingPreview')}</Text>
-          <View style={styles.miniMapContainer}>
-            <WebView
-              originWhitelist={['*']}
-              source={{
-                html: `<!DOCTYPE html>
+      <ErrorBoundary label="Map">
+      {(() => {
+        const lat = property.latitude != null ? Number(property.latitude) : NaN;
+        const lng = property.longitude != null ? Number(property.longitude) : NaN;
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+        const safeTitle = String(property.title ?? '').replace(/'/g, "\\'");
+        return (
+          <Card style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('prop_geocodingPreview')}</Text>
+            <View style={styles.miniMapContainer}>
+              <WebView
+                originWhitelist={['*']}
+                source={{
+                  html: `<!DOCTYPE html>
 <html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -707,18 +729,20 @@ export default function PropertyDetailScreen() {
 </head><body>
 <div id="map"></div>
 <script>
-var map = L.map('map').setView([${property.latitude}, ${property.longitude}], 15);
+var map = L.map('map').setView([${lat}, ${lng}], 15);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM'}).addTo(map);
-L.marker([${property.latitude}, ${property.longitude}]).addTo(map).bindPopup('${(property.title ?? '').replace(/'/g, "\\'")}');
+L.marker([${lat}, ${lng}]).addTo(map).bindPopup('${safeTitle}');
 </script></body></html>`,
-              }}
-              style={styles.miniMapWebView}
-              javaScriptEnabled
-              scrollEnabled={false}
-            />
-          </View>
-        </Card>
-      )}
+                }}
+                style={styles.miniMapWebView}
+                javaScriptEnabled
+                scrollEnabled={false}
+              />
+            </View>
+          </Card>
+        );
+      })()}
+      </ErrorBoundary>
 
       {/* ─── 9. Features & Dimensions (chips) ─────────────────── */}
       {featureChips.length > 0 && (
@@ -826,6 +850,7 @@ L.marker([${property.latitude}, ${property.longitude}]).addTo(map).bindPopup('${
       )}
 
       {/* ─── 17. Documents (inline) ───────────────────────────── */}
+      <ErrorBoundary label="Dokumente">
       <Card style={styles.section}>
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>{t('propDocs_title')}</Text>
@@ -849,8 +874,7 @@ L.marker([${property.latitude}, ${property.longitude}]).addTo(map).bindPopup('${
                   <Text style={styles.docCardName} numberOfLines={1}>{doc.file_name}</Text>
                   <Text style={styles.docCardMeta}>
                     {DOCUMENT_TYPE_LABELS[doc.document_type] ?? doc.document_type}
-                    {' · '}
-                    {new Date(doc.created_at).toLocaleDateString()}
+                    {doc.created_at ? ` · ${formatDate(doc.created_at)}` : ''}
                     {doc.file_size ? ` · ${formatFileSize(doc.file_size)}` : ''}
                   </Text>
                 </View>
@@ -875,13 +899,16 @@ L.marker([${property.latitude}, ${property.longitude}]).addTo(map).bindPopup('${
           <Text style={styles.emptyText}>{t('propDocs_empty')}</Text>
         )}
       </Card>
+      </ErrorBoundary>
 
       {/* ─── 17b. Document Manager (Checklist + Portal) ─────── */}
-      <DocumentManager
-        propertyId={String(property.id)}
-        propertyName={property.title}
-        propertyAddress={property.address ? `${property.address}${property.city ? `, ${property.city}` : ''}` : undefined}
-      />
+      <ErrorBoundary label="Dokumente">
+        <DocumentManager
+          propertyId={String(property.id)}
+          propertyName={property.title ?? ''}
+          propertyAddress={property.address ? `${property.address}${property.city ? `, ${property.city}` : ''}` : undefined}
+        />
+      </ErrorBoundary>
 
       {/* ─── 18. Media Management Card ────────────────────────── */}
       <Card
@@ -905,9 +932,12 @@ L.marker([${property.latitude}, ${property.longitude}]).addTo(map).bindPopup('${
       </Card>
 
       {/* ─── 19. Ownership Section ────────────────────────────── */}
-      <OwnershipSection propertyId={property.id} />
+      <ErrorBoundary label="Eigentümer">
+        <OwnershipSection propertyId={String(property.id)} />
+      </ErrorBoundary>
 
       {/* ─── 20. Portal Publishing ────────────────────────────── */}
+      <ErrorBoundary label="Portale">
       <Card style={styles.section}>
         <Text style={styles.sectionTitle}>{t('portals_title')}</Text>
         {!portalConfigs || portalConfigs.length === 0 ? (
@@ -921,11 +951,12 @@ L.marker([${property.latitude}, ${property.longitude}]).addTo(map).bindPopup('${
               portalConfigs.some((c) => c.portal === p)
             );
             if (configuredInGroup.length === 0) return null;
+            const groupLabel = group.label[locale] ?? group.label.en ?? '';
             return (
               <View key={group.label.en} style={styles.portalGroup}>
-                <Text style={styles.portalGroupLabel}>{group.label[locale]}</Text>
+                <Text style={styles.portalGroupLabel}>{groupLabel}</Text>
                 {configuredInGroup.map((portal) => {
-                  const meta = PORTAL_META[portal];
+                  const meta = PORTAL_META[portal] ?? { name: String(portal), color: colors.textTertiary };
                   const status = portalStatuses?.find((s) => s.portal === portal);
                   const isPublished = status?.is_published ?? false;
                   return (
@@ -954,6 +985,7 @@ L.marker([${property.latitude}, ${property.longitude}]).addTo(map).bindPopup('${
           })
         )}
       </Card>
+      </ErrorBoundary>
 
       {/* ─── 21. Metadata ─────────────────────────────────────── */}
       <Card style={styles.section}>
