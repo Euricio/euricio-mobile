@@ -13,6 +13,7 @@ import {
   Alert,
   Switch,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,17 +47,19 @@ import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
 import { ErrorBoundary } from '../../../../components/ui/ErrorBoundary';
 import { useI18n } from '../../../../lib/i18n';
 
-// Hotfix #4: full property menu restored. Hotfix #3's safe-mode flag is
-// removed — the previous "open briefly, then crash" report is consistent
-// with a native-side crash in the SVG donut renderer that fires once the
-// usePropertyOwners query resolves and feeds NaN/Infinity coordinates
-// into a `<Path d="…">`. The fix lives in OwnershipSection / mapOwner:
-// percentages are now hard-coerced to finite numbers, the slice math is
-// re-validated, and any non-finite computed coordinate causes the slice
-// to be dropped instead of emitting a malformed `d` string. Map preview
-// and DocumentManager continue to be rendered through lazy `require()`
-// wrappers so a missing native module degrades into a JS-catchable
-// throw rather than a module-evaluation hard-crash.
+// Hotfix #5: previous attempts (error boundaries, lazy native requires,
+// donut math hardening) did not stop the production crash. Symptom is a
+// native-side crash that fires ~1s after the screen mounts, i.e. after
+// async queries (owners, geocoded coords) resolve and trigger render of
+// the embedded native components. We now drop both native-heavy widgets
+// from the initial render path entirely:
+//   • Map preview: replaced with a pure RN coordinate / address card
+//     plus a "Open in Maps" button. WebView/Leaflet are only invoked on
+//     user tap via Linking.openURL — no native bridge usage on mount.
+//   • Ownership donut: replaced with a pure RN horizontal-bar legend +
+//     summary. react-native-svg is no longer imported by the property
+//     detail tree at all.
+// The full menu and all sections remain visible.
 import { calcCommission } from '../../../../lib/commission';
 import { useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
@@ -1008,61 +1011,76 @@ function PropertyDetailScreenInner() {
   );
 }
 
-// ─── Lazy wrappers for native-heavy subsections ─────────────────────
-// Native modules (react-native-webview, react-native-svg, native
-// document picker bits in DocumentManager) are pulled in via require()
-// inside the component body so a hypothetical missing/incompatible
-// native module surfaces as a JS throw caught by the surrounding
-// ErrorBoundary, rather than a module-evaluation hard-crash that would
-// take down the whole route before React mounts.
+// ─── Mobile-stable subsection wrappers ──────────────────────────────
+// Embedded native widgets (WebView leaflet map, react-native-svg donut)
+// have repeatedly caused the property detail screen to open briefly and
+// then crash on production iOS. These pure-RN replacements keep the
+// section visible and useful while removing native bridge work from the
+// initial mount. The "advanced" view still ships on the web build; tap
+// targets here open the system Maps app via Linking.
 
 function MapPreviewSection({ property, t }: { property: any; t: (k: string) => string }) {
   const lat = property.latitude != null ? Number(property.latitude) : NaN;
   const lng = property.longitude != null ? Number(property.longitude) : NaN;
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  // Reject coordinates outside the valid lat/lng range — leaflet would
-  // still render but the call into the WebView's native bridge with
-  // bogus values has been a source of soft-locks on iOS in the past.
-  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { WebView } = require('react-native-webview');
-  // Decorative popup label — keep only a safe ASCII subset so
-  // the inline <script> string literal in the leaflet HTML below
-  // cannot be broken out of.
-  const safeTitle = String(property.title ?? '')
-    .replace(/[^A-Za-z0-9 .,_\-/()]/g, ' ')
-    .slice(0, 120);
+  const hasCoords =
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    lat >= -90 && lat <= 90 &&
+    lng >= -180 && lng <= 180;
+  const hasAddress = !!(property.address || property.city);
+  if (!hasCoords && !hasAddress) return null;
+
+  const openMaps = () => {
+    if (hasCoords) {
+      const label = encodeURIComponent(String(property.title ?? 'Location'));
+      // iOS understands maps.apple.com; Android falls through to Google Maps.
+      const url = `https://maps.apple.com/?ll=${lat},${lng}&q=${label}`;
+      Linking.openURL(url).catch(() => {
+        Linking.openURL(`https://maps.google.com/?q=${lat},${lng}`).catch(() => {});
+      });
+      return;
+    }
+    if (hasAddress) {
+      const encoded = encodeURIComponent(
+        `${property.address ?? ''}${property.city ? ', ' + property.city : ''}`,
+      );
+      Linking.openURL(`https://maps.google.com/?q=${encoded}`).catch(() => {});
+    }
+  };
+
   return (
     <Card style={styles.section}>
       <Text style={styles.sectionTitle}>{t('prop_geocodingPreview')}</Text>
-      <View style={styles.miniMapContainer}>
-        <WebView
-          originWhitelist={['*']}
-          source={{
-            html: `<!DOCTYPE html>
-<html><head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>body{margin:0}#map{width:100%;height:100vh}</style>
-</head><body>
-<div id="map"></div>
-<script>
-var map = L.map('map').setView([${lat}, ${lng}], 15);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM'}).addTo(map);
-L.marker([${lat}, ${lng}]).addTo(map).bindPopup('${safeTitle}');
-</script></body></html>`,
-          }}
-          style={styles.miniMapWebView}
-          javaScriptEnabled
-          scrollEnabled={false}
-        />
+      <View style={styles.locationCard}>
+        <View style={styles.locationIconBox}>
+          <Ionicons name="location" size={28} color={colors.primary} />
+        </View>
+        <View style={styles.locationTextBox}>
+          {hasAddress && (
+            <Text style={styles.locationAddress} numberOfLines={2}>
+              {property.address}
+              {property.city ? `, ${property.city}` : ''}
+            </Text>
+          )}
+          {hasCoords && (
+            <Text style={styles.locationCoords}>
+              {lat.toFixed(5)}, {lng.toFixed(5)}
+            </Text>
+          )}
+          <Text style={styles.locationHint}>Mobile-stabile Ansicht</Text>
+        </View>
       </View>
+      <TouchableOpacity onPress={openMaps} style={styles.locationButton}>
+        <Ionicons name="map-outline" size={18} color={colors.white} />
+        <Text style={styles.locationButtonText}>{t('properties_showOnMap')}</Text>
+      </TouchableOpacity>
     </Card>
   );
 }
 
 function DocumentManagerSection(props: { propertyId: string; propertyName: string; propertyAddress?: string }) {
+  // Native modules in DocumentManager (Sharing/FileSystem) are only used
+  // inside user-initiated handlers, so it is safe to import statically.
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { DocumentManager } = require('../../../../components/properties/DocumentManager');
   return <DocumentManager {...props} />;
@@ -1394,14 +1412,56 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
-  // Mini-map
-  miniMapContainer: {
-    height: 200,
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
+  // Mobile-stable location card (replaces native WebView mini-map)
+  locationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
   },
-  miniMapWebView: {
+  locationIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  locationTextBox: {
     flex: 1,
+    gap: 2,
+  },
+  locationAddress: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.text,
+  },
+  locationCoords: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  locationHint: {
+    fontSize: 10,
+    color: colors.textTertiary,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  locationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.sm,
+    marginTop: spacing.sm,
+  },
+  locationButtonText: {
+    color: colors.white,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
   },
   // Image reorder
   imageReorderRow: {

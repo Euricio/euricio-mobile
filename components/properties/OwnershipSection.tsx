@@ -10,7 +10,11 @@ import {
   Alert,
   Linking,
 } from 'react-native';
-import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
+// react-native-svg intentionally NOT imported here. Earlier hotfixes
+// (#1–#4) tried to harden the SVG donut math, but the property detail
+// screen still crashed ~1s after mount on production iOS. The donut is
+// replaced with a pure RN stacked bar + legend; the section remains
+// visible and informative without invoking the native SVG renderer.
 import { Ionicons } from '@expo/vector-icons';
 import {
   PropertyOwnerUI as PropertyOwner,
@@ -51,14 +55,14 @@ const emptyForm: OwnerForm = {
   notes: '',
 };
 
-// ─── SVG Donut Chart ──────────────────────────────
+// ─── Pure RN Share Bar (replaces native SVG donut) ──────────────────
 interface PieSlice {
   value: number;
   color: string;
   label: string;
 }
 
-function DonutChart({
+function ShareBar({
   slices,
   centerLabel,
   centerSub,
@@ -67,119 +71,43 @@ function DonutChart({
   centerLabel: string;
   centerSub?: string;
 }) {
-  const size = 160;
-  const cx = size / 2;
-  const cy = size / 2;
-  const outerR = 64;
-  const innerR = 40;
-
-  // Hard-coerce slice values to finite numbers up front. Postgres NUMERIC
-  // values flow through Supabase as strings, and a single string sneaking
-  // into reduce() would turn `total` into a string concatenation —
-  // subsequent division produces NaN/Infinity, and NaN coordinates fed
-  // into react-native-svg `<Path d="…">` cause a native crash on iOS.
-  const safeSlices: PieSlice[] = slices.map((sl) => {
+  // Coerce values to finite, positive numbers — Postgres NUMERIC arrives
+  // as strings from Supabase and would otherwise concat-poison the total.
+  const safe = slices.map((sl) => {
     const v = Number(sl.value);
     return { ...sl, value: Number.isFinite(v) && v > 0 ? v : 0 };
   });
-
-  const total = safeSlices.reduce((s, sl) => s + sl.value, 0);
-  if (!Number.isFinite(total) || total <= 0) {
-    return (
-      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <Circle cx={cx} cy={cy} r={outerR} fill="none" stroke={colors.borderLight} strokeWidth={outerR - innerR} />
-        <SvgText x={cx} y={cy} textAnchor="middle" alignmentBaseline="central" fontSize={12} fill={colors.textTertiary}>
-          —
-        </SvgText>
-      </Svg>
-    );
-  }
-
-  let currentAngle = -Math.PI / 2;
-  const paths = safeSlices
-    .filter((sl) => sl.value > 0)
-    .map((sl) => {
-      const fraction = sl.value / total;
-      const angle = fraction * 2 * Math.PI;
-      const startAngle = currentAngle;
-      const endAngle = currentAngle + angle;
-      currentAngle = endAngle;
-
-      const x1 = cx + outerR * Math.cos(startAngle);
-      const y1 = cy + outerR * Math.sin(startAngle);
-      const x2 = cx + outerR * Math.cos(endAngle);
-      const y2 = cy + outerR * Math.sin(endAngle);
-      const ix1 = cx + innerR * Math.cos(endAngle);
-      const iy1 = cy + innerR * Math.sin(endAngle);
-      const ix2 = cx + innerR * Math.cos(startAngle);
-      const iy2 = cy + innerR * Math.sin(startAngle);
-
-      // Final guard: if any computed coordinate is non-finite, skip this
-      // slice rather than emit a malformed `d` attribute that would crash
-      // the native SVG path parser.
-      if (![x1, y1, x2, y2, ix1, iy1, ix2, iy2, angle].every(Number.isFinite)) {
-        return null;
-      }
-
-      const largeArc = angle > Math.PI ? 1 : 0;
-
-      if (fraction >= 0.9999) {
-        const midAngle = startAngle + Math.PI;
-        const mx = cx + outerR * Math.cos(midAngle);
-        const my = cy + outerR * Math.sin(midAngle);
-        const imx = cx + innerR * Math.cos(midAngle);
-        const imy = cy + innerR * Math.sin(midAngle);
-        const d = [
-          `M ${x1} ${y1}`,
-          `A ${outerR} ${outerR} 0 1 1 ${mx} ${my}`,
-          `A ${outerR} ${outerR} 0 1 1 ${x1} ${y1}`,
-          `Z`,
-          `M ${ix2} ${iy2}`,
-          `A ${innerR} ${innerR} 0 1 0 ${imx} ${imy}`,
-          `A ${innerR} ${innerR} 0 1 0 ${ix2} ${iy2}`,
-          `Z`,
-        ].join(' ');
-        return <Path key={sl.label} d={d} fill={sl.color} fillRule="evenodd" />;
-      }
-
-      const d = [
-        `M ${x1} ${y1}`,
-        `A ${outerR} ${outerR} 0 ${largeArc} 1 ${x2} ${y2}`,
-        `L ${ix1} ${iy1}`,
-        `A ${innerR} ${innerR} 0 ${largeArc} 0 ${ix2} ${iy2}`,
-        `Z`,
-      ].join(' ');
-
-      return <Path key={sl.label} d={d} fill={sl.color} />;
-    });
+  const total = safe.reduce((s, sl) => s + sl.value, 0);
 
   return (
-    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      {paths}
-      <SvgText
-        x={cx}
-        y={centerSub ? cy - 6 : cy}
-        textAnchor="middle"
-        alignmentBaseline="central"
-        fontSize={13}
-        fontWeight="700"
-        fill={colors.text}
-      >
-        {centerLabel}
-      </SvgText>
-      {centerSub && (
-        <SvgText
-          x={cx}
-          y={cy + 10}
-          textAnchor="middle"
-          alignmentBaseline="central"
-          fontSize={10}
-          fill={colors.textTertiary}
-        >
-          {centerSub}
-        </SvgText>
-      )}
-    </Svg>
+    <View style={s.shareBarWrap}>
+      <View style={s.shareBarSummary}>
+        <Text style={s.shareBarCenter}>{centerLabel}</Text>
+        {centerSub ? <Text style={s.shareBarCenterSub}>{centerSub}</Text> : null}
+      </View>
+      <View style={s.shareBarTrack}>
+        {total > 0 ? (
+          safe
+            .filter((sl) => sl.value > 0)
+            .map((sl, i) => {
+              const pct = (sl.value / total) * 100;
+              const w = Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : 0;
+              return (
+                <View
+                  key={`${sl.label}-${i}`}
+                  style={{
+                    width: `${w}%`,
+                    backgroundColor: sl.color,
+                    height: '100%',
+                  }}
+                />
+              );
+            })
+        ) : (
+          <View style={s.shareBarEmpty} />
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -326,7 +254,7 @@ export function OwnershipSection({ propertyId }: { propertyId: string }) {
               {/* Ownership Shares Chart */}
               <View style={s.chartColumn}>
                 <Text style={s.chartLabel}>{t('prop_ownershipShares')}</Text>
-                <DonutChart
+                <ShareBar
                   slices={ownershipSlices}
                   centerLabel={String(owners.length)}
                   centerSub={t('prop_owners')}
@@ -345,7 +273,7 @@ export function OwnershipSection({ propertyId }: { propertyId: string }) {
               {/* Consent Status Chart */}
               <View style={s.chartColumn}>
                 <Text style={s.chartLabel}>{t('prop_consentStatus')}</Text>
-                <DonutChart
+                <ShareBar
                   slices={consentSlices}
                   centerLabel={t('prop_wonSummary').replace('{pct}', String(Math.round(wonPct)))}
                 />
@@ -605,6 +533,37 @@ const s = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
+  },
+  shareBarWrap: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 6,
+  },
+  shareBarSummary: {
+    alignItems: 'center',
+    gap: 2,
+    marginBottom: 2,
+  },
+  shareBarCenter: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold as any,
+    color: colors.text,
+  },
+  shareBarCenterSub: {
+    fontSize: 10,
+    color: colors.textTertiary,
+  },
+  shareBarTrack: {
+    flexDirection: 'row',
+    width: '100%',
+    height: 14,
+    borderRadius: 7,
+    overflow: 'hidden',
+    backgroundColor: colors.borderLight,
+  },
+  shareBarEmpty: {
+    flex: 1,
+    backgroundColor: colors.borderLight,
   },
   legendContainer: {
     marginTop: 8,
