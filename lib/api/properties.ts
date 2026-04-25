@@ -328,7 +328,13 @@ export type PropertyOwnerUI = PropertyOwner & {
 };
 
 function mapOwner(o: PropertyOwner): PropertyOwnerUI {
-  return { ...o, name: o.full_name, percentage: o.ownership_percentage };
+  // Postgres NUMERIC values come back from Supabase as strings; coerce to a
+  // finite number so downstream math (DonutChart slice math, totals) never
+  // produces NaN/Infinity coordinates that would crash react-native-svg.
+  const rawPct = o.ownership_percentage as unknown;
+  const pctNum = rawPct == null ? null : Number(rawPct);
+  const percentage = pctNum != null && Number.isFinite(pctNum) ? pctNum : null;
+  return { ...o, name: o.full_name, percentage, ownership_percentage: percentage };
 }
 
 export function usePropertyOwners(propertyId: string) {

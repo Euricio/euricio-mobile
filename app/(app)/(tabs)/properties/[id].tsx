@@ -46,16 +46,17 @@ import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
 import { ErrorBoundary } from '../../../../components/ui/ErrorBoundary';
 import { useI18n } from '../../../../lib/i18n';
 
-// Hotfix #3: temporarily disable native-heavy subsections (WebView map,
-// react-native-svg ownership donut, document manager) on the property
-// detail screen. Force-quit + immediate crash on open with no inline
-// ErrorBoundary fallback indicates module evaluation is failing before
-// React renders — most likely a JS/native ABI mismatch on a recently
-// added native module (react-native-svg) shipped via OTA against the
-// older TestFlight binary. Keep the screen functional with basic info
-// while we cut a fresh native build. TODO(hotfix-3): re-enable after
-// native rebuild verified.
-const SAFE_PROPERTY_DETAIL_MODE = true;
+// Hotfix #4: full property menu restored. Hotfix #3's safe-mode flag is
+// removed — the previous "open briefly, then crash" report is consistent
+// with a native-side crash in the SVG donut renderer that fires once the
+// usePropertyOwners query resolves and feeds NaN/Infinity coordinates
+// into a `<Path d="…">`. The fix lives in OwnershipSection / mapOwner:
+// percentages are now hard-coerced to finite numbers, the slice math is
+// re-validated, and any non-finite computed coordinate causes the slice
+// to be dropped instead of emitting a malformed `d` string. Map preview
+// and DocumentManager continue to be rendered through lazy `require()`
+// wrappers so a missing native module degrades into a JS-catchable
+// throw rather than a module-evaluation hard-crash.
 import { calcCommission } from '../../../../lib/commission';
 import { useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
@@ -715,12 +716,9 @@ function PropertyDetailScreenInner() {
       )}
 
       {/* ─── 8. Map Preview ────────────────────────────────────── */}
-      {/* Hotfix #3: temporarily disabled — see SAFE_PROPERTY_DETAIL_MODE */}
-      {!SAFE_PROPERTY_DETAIL_MODE && (
-        <ErrorBoundary label="Map">
-          <MapPreviewSection property={property} t={t} />
-        </ErrorBoundary>
-      )}
+      <ErrorBoundary label="Map">
+        <MapPreviewSection property={property} t={t} />
+      </ErrorBoundary>
 
       {/* ─── 9. Features & Dimensions (chips) ─────────────────── */}
       {featureChips.length > 0 && (
@@ -880,16 +878,13 @@ function PropertyDetailScreenInner() {
       </ErrorBoundary>
 
       {/* ─── 17b. Document Manager (Checklist + Portal) ─────── */}
-      {/* Hotfix #3: temporarily disabled — see SAFE_PROPERTY_DETAIL_MODE */}
-      {!SAFE_PROPERTY_DETAIL_MODE && (
-        <ErrorBoundary label="Dokumente">
-          <DocumentManagerSection
-            propertyId={String(property.id)}
-            propertyName={property.title ?? ''}
-            propertyAddress={property.address ? `${property.address}${property.city ? `, ${property.city}` : ''}` : undefined}
-          />
-        </ErrorBoundary>
-      )}
+      <ErrorBoundary label="Dokumente">
+        <DocumentManagerSection
+          propertyId={String(property.id)}
+          propertyName={property.title ?? ''}
+          propertyAddress={property.address ? `${property.address}${property.city ? `, ${property.city}` : ''}` : undefined}
+        />
+      </ErrorBoundary>
 
       {/* ─── 18. Media Management Card ────────────────────────── */}
       <Card
@@ -913,26 +908,9 @@ function PropertyDetailScreenInner() {
       </Card>
 
       {/* ─── 19. Ownership Section ────────────────────────────── */}
-      {/* Hotfix #3: temporarily disabled — see SAFE_PROPERTY_DETAIL_MODE */}
-      {!SAFE_PROPERTY_DETAIL_MODE && (
-        <ErrorBoundary label="Eigentümer">
-          <OwnershipSectionLazy propertyId={String(property.id)} />
-        </ErrorBoundary>
-      )}
-
-      {/* ─── Hotfix #3 stabilization notice ───────────────────── */}
-      {SAFE_PROPERTY_DETAIL_MODE && (
-        <Card style={styles.section}>
-          <View style={styles.safeModeNoticeRow}>
-            <Ionicons name="information-circle-outline" size={18} color={colors.textSecondary} />
-            <Text style={styles.safeModeNoticeText}>
-              Karte, Eigentümer-Übersicht und Dokumenten-Manager sind in dieser
-              Version vorübergehend deaktiviert, während wir die Mobile-App
-              stabilisieren. Grunddaten bleiben verfügbar.
-            </Text>
-          </View>
-        </Card>
-      )}
+      <ErrorBoundary label="Eigentümer">
+        <OwnershipSectionLazy propertyId={String(property.id)} />
+      </ErrorBoundary>
 
       {/* ─── 20. Portal Publishing ────────────────────────────── */}
       <ErrorBoundary label="Portale">
@@ -1031,20 +1009,29 @@ function PropertyDetailScreenInner() {
 }
 
 // ─── Lazy wrappers for native-heavy subsections ─────────────────────
-// Hotfix #3: these subsections are only rendered when
-// SAFE_PROPERTY_DETAIL_MODE is false. They use require() at render time
-// so the underlying native modules (react-native-webview,
-// react-native-svg) are NOT evaluated on bundle load. This prevents a
-// missing/mismatched native module from crashing the route during
-// module evaluation (before any ErrorBoundary can catch it).
+// Native modules (react-native-webview, react-native-svg, native
+// document picker bits in DocumentManager) are pulled in via require()
+// inside the component body so a hypothetical missing/incompatible
+// native module surfaces as a JS throw caught by the surrounding
+// ErrorBoundary, rather than a module-evaluation hard-crash that would
+// take down the whole route before React mounts.
 
 function MapPreviewSection({ property, t }: { property: any; t: (k: string) => string }) {
   const lat = property.latitude != null ? Number(property.latitude) : NaN;
   const lng = property.longitude != null ? Number(property.longitude) : NaN;
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  // Reject coordinates outside the valid lat/lng range — leaflet would
+  // still render but the call into the WebView's native bridge with
+  // bogus values has been a source of soft-locks on iOS in the past.
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { WebView } = require('react-native-webview');
-  const safeTitle = String(property.title ?? '').replace(/'/g, "\\'");
+  // Decorative popup label — keep only a safe ASCII subset so
+  // the inline <script> string literal in the leaflet HTML below
+  // cannot be broken out of.
+  const safeTitle = String(property.title ?? '')
+    .replace(/[^A-Za-z0-9 .,_\-/()]/g, ' ')
+    .slice(0, 120);
   return (
     <Card style={styles.section}>
       <Text style={styles.sectionTitle}>{t('prop_geocodingPreview')}</Text>
@@ -1599,18 +1586,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.text,
     backgroundColor: colors.background,
-  },
-  // Safe-mode notice (Hotfix #3)
-  safeModeNoticeRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  safeModeNoticeText: {
-    flex: 1,
-    fontSize: fontSize.xs,
-    color: colors.textSecondary,
-    lineHeight: 18,
   },
   // Actions
   actions: {

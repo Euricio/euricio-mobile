@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -110,7 +110,7 @@ export function DocumentManager({
   const [openingReqId, setOpeningReqId] = useState<string | null>(null);
 
   // ── Initialize selection from existing requests ───────────────────
-  useMemo(() => {
+  useEffect(() => {
     if (!initialized && requests.length > 0) {
       const preSelected = new Set<string>();
       requests.forEach((r) => preSelected.add(r.document_type));

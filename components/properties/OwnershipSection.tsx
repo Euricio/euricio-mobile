@@ -73,8 +73,18 @@ function DonutChart({
   const outerR = 64;
   const innerR = 40;
 
-  const total = slices.reduce((s, sl) => s + sl.value, 0);
-  if (total === 0) {
+  // Hard-coerce slice values to finite numbers up front. Postgres NUMERIC
+  // values flow through Supabase as strings, and a single string sneaking
+  // into reduce() would turn `total` into a string concatenation —
+  // subsequent division produces NaN/Infinity, and NaN coordinates fed
+  // into react-native-svg `<Path d="…">` cause a native crash on iOS.
+  const safeSlices: PieSlice[] = slices.map((sl) => {
+    const v = Number(sl.value);
+    return { ...sl, value: Number.isFinite(v) && v > 0 ? v : 0 };
+  });
+
+  const total = safeSlices.reduce((s, sl) => s + sl.value, 0);
+  if (!Number.isFinite(total) || total <= 0) {
     return (
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <Circle cx={cx} cy={cy} r={outerR} fill="none" stroke={colors.borderLight} strokeWidth={outerR - innerR} />
@@ -86,7 +96,7 @@ function DonutChart({
   }
 
   let currentAngle = -Math.PI / 2;
-  const paths = slices
+  const paths = safeSlices
     .filter((sl) => sl.value > 0)
     .map((sl) => {
       const fraction = sl.value / total;
@@ -103,6 +113,13 @@ function DonutChart({
       const iy1 = cy + innerR * Math.sin(endAngle);
       const ix2 = cx + innerR * Math.cos(startAngle);
       const iy2 = cy + innerR * Math.sin(startAngle);
+
+      // Final guard: if any computed coordinate is non-finite, skip this
+      // slice rather than emit a malformed `d` attribute that would crash
+      // the native SVG path parser.
+      if (![x1, y1, x2, y2, ix1, iy1, ix2, iy2, angle].every(Number.isFinite)) {
+        return null;
+      }
 
       const largeArc = angle > Math.PI ? 1 : 0;
 
@@ -178,18 +195,25 @@ export function OwnershipSection({ propertyId }: { propertyId: string }) {
   const [editingOwner, setEditingOwner] = useState<PropertyOwner | null>(null);
   const [form, setForm] = useState<OwnerForm>(emptyForm);
 
-  const totalPct = useMemo(() => owners.reduce((s, o) => s + (o.percentage ?? 0), 0), [owners]);
+  // Coerce percentages to finite numbers — Postgres NUMERIC arrives as a
+  // string from Supabase and would otherwise concat-poison the totals.
+  const numPct = (o: PropertyOwner) => {
+    const n = Number(o.percentage ?? 0);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const totalPct = useMemo(() => owners.reduce((s, o) => s + numPct(o), 0), [owners]);
   const remainingPct = 100 - totalPct;
 
   const effectiveRemaining = editingOwner
-    ? remainingPct + (editingOwner.percentage ?? 0)
+    ? remainingPct + numPct(editingOwner)
     : remainingPct;
 
   // Chart data
   const ownershipSlices: PieSlice[] = useMemo(
     () =>
       owners.map((o, i) => ({
-        value: o.percentage ?? 0,
+        value: numPct(o),
         color: OWNER_COLORS[i % OWNER_COLORS.length],
         label: o.name,
       })),
@@ -197,15 +221,15 @@ export function OwnershipSection({ propertyId }: { propertyId: string }) {
   );
 
   const wonPct = useMemo(
-    () => owners.filter((o) => o.status === 'won').reduce((s, o) => s + (o.percentage ?? 0), 0),
+    () => owners.filter((o) => o.status === 'won').reduce((s, o) => s + numPct(o), 0),
     [owners],
   );
   const pendingPct = useMemo(
-    () => owners.filter((o) => o.status === 'pending').reduce((s, o) => s + (o.percentage ?? 0), 0),
+    () => owners.filter((o) => o.status === 'pending').reduce((s, o) => s + numPct(o), 0),
     [owners],
   );
   const againstPct = useMemo(
-    () => owners.filter((o) => o.status === 'against').reduce((s, o) => s + (o.percentage ?? 0), 0),
+    () => owners.filter((o) => o.status === 'against').reduce((s, o) => s + numPct(o), 0),
     [owners],
   );
 
