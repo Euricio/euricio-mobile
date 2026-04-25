@@ -146,13 +146,24 @@ export function useProperty(id: string) {
   return useQuery({
     queryKey: ['property', id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Try the embedded partner join first. If the FK relationship is not
+      // present in the user's schema cache (older tenant DBs without the
+      // partner_id FK), PostgREST returns an error — fall back to a plain
+      // select so the property detail screen still loads.
+      const withPartner = await supabase
         .from('properties')
         .select('*, partner:partners(id, first_name, last_name, commission_type, commission_value)')
         .eq('id', id)
         .single();
-      if (error) throw error;
-      return data as Property;
+      if (!withPartner.error) return withPartner.data as Property;
+
+      const plain = await supabase
+        .from('properties')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (plain.error) throw plain.error;
+      return plain.data as Property;
     },
     enabled: !!id,
   });

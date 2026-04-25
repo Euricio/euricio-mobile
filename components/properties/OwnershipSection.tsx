@@ -146,7 +146,7 @@ function DonutChart({
         alignmentBaseline="central"
         fontSize={13}
         fontWeight="700"
-        fill={colors.textPrimary}
+        fill={colors.text}
       >
         {centerLabel}
       </SvgText>
@@ -537,7 +537,7 @@ const s = StyleSheet.create({
   sectionTitle: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold as any,
-    color: colors.textPrimary,
+    color: colors.text,
   },
   addButton: {
     flexDirection: 'row',
@@ -600,7 +600,7 @@ const s = StyleSheet.create({
   legendName: {
     flex: 1,
     fontSize: 11,
-    color: colors.textPrimary,
+    color: colors.text,
   },
   legendValue: {
     fontSize: 11,
@@ -644,7 +644,7 @@ const s = StyleSheet.create({
   ownerName: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold as any,
-    color: colors.textPrimary,
+    color: colors.text,
   },
   ownerContact: {
     flexDirection: 'row',
@@ -658,7 +658,7 @@ const s = StyleSheet.create({
   ownerPct: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold as any,
-    color: colors.textPrimary,
+    color: colors.text,
     minWidth: 36,
     textAlign: 'right',
   },
@@ -703,7 +703,7 @@ const s = StyleSheet.create({
   modalTitle: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.bold as any,
-    color: colors.textPrimary,
+    color: colors.text,
     marginBottom: spacing.md,
   },
   inputLabel: {
@@ -720,7 +720,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: fontSize.sm,
-    color: colors.textPrimary,
+    color: colors.text,
     backgroundColor: colors.background,
   },
   inputMultiline: {

@@ -616,9 +616,10 @@ export default function PropertyDetailScreen() {
       {/* ─── 6b. Commission (intern) ───────────────────────── */}
       {property.commission_percentage != null && (() => {
         const partner = property.partner ?? null;
+        const commissionPct = Number(property.commission_percentage);
         const { gross, partnerAmount, net } = calcCommission(
           property.price,
-          property.commission_percentage,
+          Number.isFinite(commissionPct) ? commissionPct : null,
           partner,
         );
         return (
@@ -632,7 +633,7 @@ export default function PropertyDetailScreen() {
             <View style={styles.commissionRow}>
               <View style={styles.commissionCol}>
                 <Text style={styles.commissionValue}>
-                  {property.commission_percentage.toFixed(2).replace('.', ',')} %
+                  {(Number.isFinite(commissionPct) ? commissionPct : 0).toFixed(2).replace('.', ',')} %
                 </Text>
                 <Text style={styles.commissionLabel}>{t('prop_commissionAgreed')}</Text>
               </View>
@@ -708,7 +709,7 @@ export default function PropertyDetailScreen() {
 <script>
 var map = L.map('map').setView([${property.latitude}, ${property.longitude}], 15);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM'}).addTo(map);
-L.marker([${property.latitude}, ${property.longitude}]).addTo(map).bindPopup('${property.title.replace(/'/g, "\\'")}');
+L.marker([${property.latitude}, ${property.longitude}]).addTo(map).bindPopup('${(property.title ?? '').replace(/'/g, "\\'")}');
 </script></body></html>`,
               }}
               style={styles.miniMapWebView}
