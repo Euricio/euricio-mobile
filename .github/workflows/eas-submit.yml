@@ -50,7 +50,7 @@ jobs:
       - name: Submit to store
         run: |
           if [ -n "${{ inputs.build_id }}" ]; then
-            eas submit --platform ${{ inputs.platform }} --id "${{ inputs.build_id }}" --non-interactive
+            eas submit --platform ${{ inputs.platform }} --id "${{ inputs.build_id }}" --non-interactive --verbose --verbose-fastlane
           else
-            eas submit --platform ${{ inputs.platform }} --latest --non-interactive
+            eas submit --platform ${{ inputs.platform }} --latest --non-interactive --verbose --verbose-fastlane
           fi
