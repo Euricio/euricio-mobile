@@ -765,6 +765,18 @@ const es: Record<string, string> = {
   email_signatureSent: 'Solicitud de firma enviada.',
   email_signatureError: 'No se pudo enviar la solicitud de firma.',
   email_signatureNoToken: 'El contrato no tiene token de firma. Prepare la firma en el CRM web.',
+  signature_noSigners: 'No hay firmantes. Inténtelo de nuevo.',
+  signature_savingEmail: 'Guardando correo...',
+  signature_channel: 'Canal de envío',
+  signature_channelEmail: 'Por correo',
+  signature_channelPortal: 'Al portal',
+  signature_portalChecking: 'Comprobando estado del portal...',
+  signature_portalRegistered: 'Registrado en el portal de clientes — envío al portal disponible.',
+  signature_portalNotRegistered: 'Este correo no está registrado en el portal. Solo es posible el envío por correo.',
+  signature_portalLookupError: 'No se pudo comprobar el estado del portal. El envío por correo sigue disponible.',
+  signature_portalNoProperty: 'Sin inmueble vinculado — envío al portal no disponible.',
+  signature_statusSent: 'Enviado',
+  signature_statusSigned: 'Firmado',
 
   // ─── Signed PDF Upload ────────────────────────────────────────────
   signedPdf_uploadTitle: 'Subir contrato firmado',

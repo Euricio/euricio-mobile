@@ -765,6 +765,18 @@ const en: Record<string, string> = {
   email_signatureSent: 'Signature request sent!',
   email_signatureError: 'Could not send signature request.',
   email_signatureNoToken: 'Contract has no signature token. Please prepare the signature in the web CRM.',
+  signature_noSigners: 'No signers. Please try again.',
+  signature_savingEmail: 'Saving email...',
+  signature_channel: 'Delivery channel',
+  signature_channelEmail: 'By email',
+  signature_channelPortal: 'To portal',
+  signature_portalChecking: 'Checking portal status...',
+  signature_portalRegistered: 'Registered in the customer portal — portal delivery available.',
+  signature_portalNotRegistered: 'This email is not registered in the customer portal. Only email delivery is available.',
+  signature_portalLookupError: 'Could not check portal status. Email delivery remains available.',
+  signature_portalNoProperty: 'No property linked — portal delivery not available.',
+  signature_statusSent: 'Sent',
+  signature_statusSigned: 'Signed',
 
   // ─── Signed PDF Upload ────────────────────────────────────────────
   signedPdf_uploadTitle: 'Upload signed contract',

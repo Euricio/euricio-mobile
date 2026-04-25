@@ -19,8 +19,10 @@ import {
 import {
   useSendContractEmail,
   useSendSignatureRequest,
+  usePrepareSignature,
   useEmailSettings,
   EmailNotConfiguredError,
+  ContractSigner,
 } from '../../../../lib/api/email';
 import { CONTRACT_TYPE_CONFIG } from '../../../../lib/contracts/config';
 import { Card } from '../../../../components/ui/Card';
@@ -28,7 +30,10 @@ import { Badge } from '../../../../components/ui/Badge';
 import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
 import { Button } from '../../../../components/ui/Button';
 import { SendContractSheet } from '../../../../components/email/SendContractSheet';
+import { SendSignatureSheet } from '../../../../components/contracts/SendSignatureSheet';
 import { SignedPdfUpload } from '../../../../components/contracts/SignedPdfUpload';
+import { supabase } from '../../../../lib/supabase';
+import { useQuery } from '@tanstack/react-query';
 import {
   colors,
   spacing,
@@ -63,8 +68,28 @@ export default function ContractDetailScreen() {
   const generatePdf = useGeneratePdf();
   const sendContractEmail = useSendContractEmail();
   const sendSignatureRequest = useSendSignatureRequest();
+  const prepareSignature = usePrepareSignature();
   const { data: emailSettings } = useEmailSettings();
   const [showSendSheet, setShowSendSheet] = useState(false);
+  const [showSignatureSheet, setShowSignatureSheet] = useState(false);
+
+  // Load existing signers for this contract (created by prepare-signature).
+  const {
+    data: signers = [],
+    refetch: refetchSigners,
+  } = useQuery({
+    queryKey: ['contract-signers', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contract_signers')
+        .select('*')
+        .eq('contract_id', id)
+        .order('sign_order', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as ContractSigner[];
+    },
+    enabled: !!id,
+  });
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -168,39 +193,80 @@ export default function ContractDetailScreen() {
     );
   };
 
-  const handleSendSignature = () => {
-    if (!emailSettings?.smtp_host) {
-      Alert.alert(t('error'), t('email_smtpNotConfigured'));
-      return;
+  const handleSendSignature = async () => {
+    // Prepare signers/token on first use; after that the same signers are reused.
+    const needsPrepare = !contract.signature_token || signers.length === 0;
+    if (needsPrepare) {
+      try {
+        await prepareSignature.mutateAsync(contract.id);
+        await Promise.all([refetch(), refetchSigners()]);
+      } catch (err) {
+        Alert.alert(
+          t('error'),
+          err instanceof Error ? err.message : t('email_signatureError'),
+        );
+        return;
+      }
     }
-    if (!contract.signature_status && !contract.client_email) {
-      Alert.alert(t('error'), t('email_signatureNoToken'));
-      return;
-    }
+    setShowSignatureSheet(true);
+  };
 
-    Alert.alert(t('email_sendSignature'), t('email_sendSignature'), [
-      { text: t('cancel'), style: 'cancel' },
-      {
-        text: t('email_send'),
-        onPress: () => {
-          sendSignatureRequest.mutate(
-            {
-              contractId: contract.id,
-              signerIds: [],
-            },
-            {
-              onSuccess: () => {
-                Alert.alert(t('email_signatureSent'));
-                refetch();
-              },
-              onError: () => {
-                Alert.alert(t('error'), t('email_signatureError'));
-              },
-            },
-          );
+  const handleConfirmSendSignature = (
+    selections: { signerId: string; channel: 'email' | 'portal' }[],
+  ) => {
+    if (selections.length === 0) return;
+
+    // Group by channel — backend accepts one channel per call.
+    const byChannel: Record<'email' | 'portal', string[]> = {
+      email: [],
+      portal: [],
+    };
+    for (const sel of selections) byChannel[sel.channel].push(sel.signerId);
+
+    const channels = (['email', 'portal'] as const).filter(
+      (c) => byChannel[c].length > 0,
+    );
+
+    let remaining = channels.length;
+    let firstError: unknown = null;
+
+    const finish = () => {
+      if (firstError) {
+        if (firstError instanceof EmailNotConfiguredError) {
+          Alert.alert(t('error'), t('email_smtpNotConfigured'));
+        } else {
+          const msg =
+            firstError instanceof Error
+              ? firstError.message
+              : t('email_signatureError');
+          Alert.alert(t('error'), msg);
+        }
+      } else {
+        setShowSignatureSheet(false);
+        Alert.alert(t('email_signatureSent'));
+        refetch();
+        refetchSigners();
+      }
+    };
+
+    for (const channel of channels) {
+      sendSignatureRequest.mutate(
+        {
+          contractId: contract.id,
+          signerIds: byChannel[channel],
+          channel,
         },
-      },
-    ]);
+        {
+          onError: (err) => {
+            if (!firstError) firstError = err;
+          },
+          onSettled: () => {
+            remaining -= 1;
+            if (remaining === 0) finish();
+          },
+        },
+      );
+    }
   };
 
   const handleEdit = () => {
@@ -286,8 +352,8 @@ export default function ContractDetailScreen() {
           title={t('email_sendSignature')}
           onPress={handleSendSignature}
           variant="ghost"
-          loading={sendSignatureRequest.isPending}
-          disabled={sendSignatureRequest.isPending}
+          loading={prepareSignature.isPending || sendSignatureRequest.isPending}
+          disabled={prepareSignature.isPending || sendSignatureRequest.isPending}
           icon={
             <Ionicons
               name="create-outline"
@@ -437,6 +503,18 @@ export default function ContractDetailScreen() {
         onSend={handleSendContractEmail}
         defaultEmail={contract.client_email || ''}
         loading={sendContractEmail.isPending}
+      />
+
+      {/* Signature Request Bottom Sheet */}
+      <SendSignatureSheet
+        visible={showSignatureSheet}
+        onClose={() => setShowSignatureSheet(false)}
+        signers={signers}
+        propertyId={contract.property_id}
+        smtpConfigured={!!emailSettings?.smtp_host}
+        loading={sendSignatureRequest.isPending}
+        onSend={handleConfirmSendSignature}
+        onSignersChanged={() => refetchSigners()}
       />
     </ScrollView>
   );

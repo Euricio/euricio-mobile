@@ -771,6 +771,18 @@ const de: Record<string, string> = {
   email_signatureSent: 'Unterschriftsanfrage gesendet!',
   email_signatureError: 'Unterschriftsanfrage konnte nicht gesendet werden.',
   email_signatureNoToken: 'Vertrag hat kein Signatur-Token. Bitte bereiten Sie die Signatur im Web-CRM vor.',
+  signature_noSigners: 'Keine Unterzeichner. Bitte versuchen Sie es erneut.',
+  signature_savingEmail: 'E-Mail wird gespeichert...',
+  signature_channel: 'Versandkanal',
+  signature_channelEmail: 'Per E-Mail',
+  signature_channelPortal: 'Ans Portal',
+  signature_portalChecking: 'Portalstatus wird geprüft...',
+  signature_portalRegistered: 'Im Kundenportal registriert — Versand ans Portal verfügbar.',
+  signature_portalNotRegistered: 'Diese E-Mail ist nicht im Kundenportal registriert. Versand nur per E-Mail möglich.',
+  signature_portalLookupError: 'Portalstatus konnte nicht geprüft werden. Versand per E-Mail bleibt möglich.',
+  signature_portalNoProperty: 'Keine Immobilie verknüpft — Versand ans Portal nicht möglich.',
+  signature_statusSent: 'Gesendet',
+  signature_statusSigned: 'Unterschrieben',
 
   // ─── Signed PDF Upload ────────────────────────────────────────────
   signedPdf_uploadTitle: 'Unterschriebenen Vertrag hochladen',

@@ -28,6 +28,7 @@ export interface Contract {
   commission_percentage: number | null;
   status: string;
   signature_status: string | null;
+  signature_token: string | null;
   pdf_url: string | null;
   pdf_stored_url: string | null;
   signed_pdf_url: string | null;

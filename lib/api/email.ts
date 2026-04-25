@@ -137,27 +137,82 @@ export function useSendContractEmail() {
   });
 }
 
-/* ── Send Signature Request ─────────────────────────────────── */
+/* ── Signature Flow ─────────────────────────────────────────── */
+
+export type SignatureChannel = 'email' | 'portal';
+
+export interface ContractSigner {
+  id: string;
+  contract_id: number;
+  role: string;
+  role_label: string | null;
+  name: string | null;
+  email: string | null;
+  sign_order: number;
+  status: string | null;
+}
+
+export interface PrepareSignatureResult {
+  signature_token: string;
+  expires_at: string;
+  signers: ContractSigner[];
+  sign_url: string;
+}
+
+export function usePrepareSignature() {
+  return useMutation({
+    mutationFn: async (contractId: string | number) =>
+      api<PrepareSignatureResult>(
+        `/api/contracts/${contractId}/prepare-signature`,
+        { method: 'POST' },
+      ),
+  });
+}
 
 export interface SendSignatureParams {
-  contractId: string;
+  contractId: string | number;
   signerIds: string[];
+  channel: SignatureChannel;
 }
 
 export function useSendSignatureRequest() {
   return useMutation({
     mutationFn: async (params: SendSignatureParams) =>
-      api<{ success: boolean }>(
+      api<{ success: boolean; sent_to?: string[] }>(
         `/api/contracts/${params.contractId}/send-signature`,
         {
           method: 'POST',
           body: JSON.stringify({
             signerIds: params.signerIds,
-            channel: 'email',
+            channel: params.channel,
           }),
         },
       ),
   });
+}
+
+/**
+ * Portal customer lookup — checks if the given email belongs to a registered
+ * portal customer with active access to the property. Used to gate the
+ * "Send to portal" channel per signer. No auth required (matches web).
+ */
+export interface PortalLookupResult {
+  exists: boolean;
+  customer_id?: string;
+}
+
+export async function lookupPortalCustomer(
+  email: string,
+  propertyId: string | number,
+): Promise<PortalLookupResult> {
+  const url = `${API_URL}/api/portal/customer-lookup?email=${encodeURIComponent(
+    email.trim(),
+  )}&property_id=${encodeURIComponent(String(propertyId))}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    return { exists: false };
+  }
+  return (await res.json()) as PortalLookupResult;
 }
 
 /* ── Send Portal Invite ─────────────────────────────────────── */
