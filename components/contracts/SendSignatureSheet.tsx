@@ -89,6 +89,8 @@ export function SendSignatureSheet({
 
   // Run portal lookup for each client signer with email + propertyId.
   // Agency signers are intentionally excluded — they never use the customer portal.
+  // Debounced 350ms so we don't fire a request on every keystroke while the
+  // broker is still typing the email.
   useEffect(() => {
     if (!visible) return;
     if (!propertyId) {
@@ -96,54 +98,57 @@ export function SendSignatureSheet({
       return;
     }
     let cancelled = false;
-    for (const signer of clientSigners) {
-      const email = (emails[signer.id] || '').trim();
-      if (!email) {
-        setLookups((prev) => {
-          if (!prev[signer.id]) return prev;
-          const next = { ...prev };
-          delete next[signer.id];
-          return next;
-        });
-        continue;
-      }
-      setLookups((prev) => ({ ...prev, [signer.id]: { status: 'loading' } }));
-      lookupPortalCustomer(email, propertyId)
-        .then((data) => {
-          if (cancelled) return;
-          if (data.exists) {
+    const timer = setTimeout(() => {
+      for (const signer of clientSigners) {
+        const email = (emails[signer.id] || '').trim();
+        if (!email) {
+          setLookups((prev) => {
+            if (!prev[signer.id]) return prev;
+            const next = { ...prev };
+            delete next[signer.id];
+            return next;
+          });
+          continue;
+        }
+        setLookups((prev) => ({ ...prev, [signer.id]: { status: 'loading' } }));
+        lookupPortalCustomer(email, propertyId)
+          .then((data) => {
+            if (cancelled) return;
+            if (data.exists) {
+              setLookups((prev) => ({
+                ...prev,
+                [signer.id]: { status: 'registered', customerId: data.customer_id },
+              }));
+            } else {
+              setLookups((prev) => ({
+                ...prev,
+                [signer.id]: { status: 'not_registered' },
+              }));
+              // If portal had been chosen but customer isn't registered, fall back to email.
+              setChannels((prev) =>
+                prev[signer.id] === 'portal'
+                  ? { ...prev, [signer.id]: 'email' }
+                  : prev,
+              );
+            }
+          })
+          .catch(() => {
+            if (cancelled) return;
             setLookups((prev) => ({
               ...prev,
-              [signer.id]: { status: 'registered', customerId: data.customer_id },
+              [signer.id]: { status: 'error' },
             }));
-          } else {
-            setLookups((prev) => ({
-              ...prev,
-              [signer.id]: { status: 'not_registered' },
-            }));
-            // If portal had been chosen but customer isn't registered, fall back to email.
             setChannels((prev) =>
               prev[signer.id] === 'portal'
                 ? { ...prev, [signer.id]: 'email' }
                 : prev,
             );
-          }
-        })
-        .catch(() => {
-          if (cancelled) return;
-          setLookups((prev) => ({
-            ...prev,
-            [signer.id]: { status: 'error' },
-          }));
-          setChannels((prev) =>
-            prev[signer.id] === 'portal'
-              ? { ...prev, [signer.id]: 'email' }
-              : prev,
-          );
-        });
-    }
+          });
+      }
+    }, 350);
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [visible, propertyId, clientSigners, emails]);
 
