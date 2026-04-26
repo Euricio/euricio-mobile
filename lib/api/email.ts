@@ -173,6 +173,7 @@ export interface SendSignatureParams {
   contractId: string | number;
   signerIds: string[];
   channel: SignatureChannel;
+  language?: 'de' | 'en' | 'es';
 }
 
 export function useSendSignatureRequest() {
@@ -185,6 +186,7 @@ export function useSendSignatureRequest() {
           body: JSON.stringify({
             signerIds: params.signerIds,
             channel: params.channel,
+            ...(params.language ? { language: params.language } : {}),
           }),
         },
       ),
@@ -209,8 +211,14 @@ export async function lookupPortalCustomer(
     email.trim(),
   )}&property_id=${encodeURIComponent(String(propertyId))}`;
   const res = await fetch(url);
-  if (!res.ok) {
+  // 404 is the canonical "not registered" signal — treat it as a clean negative
+  // result so the UI shows "not registered" rather than a generic error.
+  if (res.status === 404) {
     return { exists: false };
+  }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(body || `Portal lookup failed (${res.status})`);
   }
   return (await res.json()) as PortalLookupResult;
 }

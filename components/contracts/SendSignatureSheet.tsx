@@ -43,6 +43,8 @@ interface SendSignatureSheetProps {
   propertyId: string | number | null;
   smtpConfigured: boolean;
   loading: boolean;
+  /** Backend send error to surface inline so the broker can correct and retry. */
+  sendError?: string | null;
   onSend: (
     selections: { signerId: string; channel: SignatureChannel }[],
   ) => void;
@@ -57,6 +59,7 @@ export function SendSignatureSheet({
   propertyId,
   smtpConfigured,
   loading,
+  sendError,
   onSend,
   onSignersChanged,
 }: SendSignatureSheetProps) {
@@ -403,6 +406,17 @@ export function SendSignatureSheet({
             })}
           </ScrollView>
 
+          {sendError ? (
+            <View style={styles.errorBox}>
+              <Ionicons
+                name="alert-circle-outline"
+                size={16}
+                color={colors.error}
+              />
+              <Text style={styles.errorText}>{sendError}</Text>
+            </View>
+          ) : null}
+
           <Button
             title={loading ? t('email_sending') : t('email_send')}
             onPress={() => onSend(selections)}
@@ -599,5 +613,19 @@ const styles = StyleSheet.create({
   },
   sendBtn: {
     marginTop: spacing.md,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.error + '15',
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: fontSize.xs,
+    color: colors.error,
   },
 });

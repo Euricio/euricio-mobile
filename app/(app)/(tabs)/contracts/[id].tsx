@@ -44,6 +44,16 @@ import {
 import { useI18n } from '../../../../lib/i18n';
 import type { Locale } from '../../../../lib/i18n';
 
+// Resolve the linked property from a contract row. Some legacy contracts store
+// the property only via the joined `property` relation while `property_id` is
+// null; others vice versa. The portal channel needs whichever is present.
+function resolveLinkedPropertyId(contract: {
+  property_id?: string | null;
+  property?: { id?: string | number | null } | null;
+}): string | number | null {
+  return contract.property_id ?? contract.property?.id ?? null;
+}
+
 function getStatusBadge(
   status: string,
   t: (key: string) => string,
@@ -61,7 +71,7 @@ function getStatusBadge(
 }
 
 export default function ContractDetailScreen() {
-  const { t, formatDate } = useI18n();
+  const { t, formatDate, locale } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: contract, isLoading, refetch, isRefetching } = useContract(id!);
   const deleteContract = useDeleteContract();
@@ -72,6 +82,9 @@ export default function ContractDetailScreen() {
   const { data: emailSettings } = useEmailSettings();
   const [showSendSheet, setShowSendSheet] = useState(false);
   const [showSignatureSheet, setShowSignatureSheet] = useState(false);
+  const [signatureSendError, setSignatureSendError] = useState<string | null>(
+    null,
+  );
 
   // Load existing signers for this contract (created by prepare-signature).
   const {
@@ -215,6 +228,7 @@ export default function ContractDetailScreen() {
     selections: { signerId: string; channel: 'email' | 'portal' }[],
   ) => {
     if (selections.length === 0) return;
+    setSignatureSendError(null);
 
     // Group by channel — backend accepts one channel per call.
     const byChannel: Record<'email' | 'portal', string[]> = {
@@ -232,15 +246,15 @@ export default function ContractDetailScreen() {
 
     const finish = () => {
       if (firstError) {
-        if (firstError instanceof EmailNotConfiguredError) {
-          Alert.alert(t('error'), t('email_smtpNotConfigured'));
-        } else {
-          const msg =
-            firstError instanceof Error
+        const msg =
+          firstError instanceof EmailNotConfiguredError
+            ? t('email_smtpNotConfigured')
+            : firstError instanceof Error
               ? firstError.message
               : t('email_signatureError');
-          Alert.alert(t('error'), msg);
-        }
+        // Surface inline inside the sheet so the broker can correct and retry
+        // without losing context (e.g. fix email, switch channel).
+        setSignatureSendError(msg);
       } else {
         setShowSignatureSheet(false);
         Alert.alert(t('email_signatureSent'));
@@ -255,6 +269,7 @@ export default function ContractDetailScreen() {
           contractId: contract.id,
           signerIds: byChannel[channel],
           channel,
+          language: locale,
         },
         {
           onError: (err) => {
@@ -508,11 +523,15 @@ export default function ContractDetailScreen() {
       {/* Signature Request Bottom Sheet */}
       <SendSignatureSheet
         visible={showSignatureSheet}
-        onClose={() => setShowSignatureSheet(false)}
+        onClose={() => {
+          setShowSignatureSheet(false);
+          setSignatureSendError(null);
+        }}
         signers={signers}
-        propertyId={contract.property_id}
+        propertyId={resolveLinkedPropertyId(contract)}
         smtpConfigured={!!emailSettings?.smtp_host}
         loading={sendSignatureRequest.isPending}
+        sendError={signatureSendError}
         onSend={handleConfirmSendSignature}
         onSignersChanged={() => refetchSigners()}
       />
