@@ -6,5 +6,5 @@
 // running on the device* — no remote-debug session required.
 //
 // Update both fields when you commit an OTA / build change.
-export const BUILD_SHA = '3575c3e (hotfix #8)';
-export const BUILD_LABEL = 'hotfix #8 — build marker';
+export const BUILD_SHA = 'f1cbc3c (hotfix #9)';
+export const BUILD_LABEL = 'hotfix #9 — Carto map tiles';
