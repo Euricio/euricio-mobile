@@ -778,6 +778,27 @@ const es: Record<string, string> = {
   signature_statusSent: 'Enviado',
   signature_statusSigned: 'Firmado',
 
+  // ─── Broker / agent signature card ─────────────────────────────────
+  agentSign_title: 'Firma del agente',
+  agentSign_help:
+    'Firme aquí antes de enviar el contrato al cliente. Su firma se guarda como un campo independiente del contrato; no se incrusta en el PDF.',
+  agentSign_emptyHint: 'Aún no ha firmado',
+  agentSign_signedBadge: 'Firmado',
+  agentSign_pendingBadge: 'Pendiente',
+  agentSign_open: 'Firmar ahora',
+  agentSign_replace: 'Volver a firmar',
+  agentSign_signedAt: 'Firmado el',
+  agentSign_lockedNote:
+    'Solicitud de firma ya enviada. La firma del agente queda bloqueada.',
+  agentSign_gateHint:
+    'Firme primero como agente para poder solicitar la firma del cliente.',
+  agentSign_requiredBeforeRequest:
+    'Debe firmar como agente antes de solicitar la firma del cliente.',
+  agentSign_padTitle: 'Firma del agente',
+  agentSign_padHint: 'Firme con el dedo o con el Apple Pencil.',
+  agentSign_clear: 'Borrar',
+  agentSign_saveError: 'No se pudo guardar la firma. Inténtelo de nuevo.',
+
   // ─── Signed PDF Upload ────────────────────────────────────────────
   signedPdf_uploadTitle: 'Subir contrato firmado',
   signedPdf_camera: 'Cámara',

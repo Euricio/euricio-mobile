@@ -34,6 +34,8 @@ export interface Contract {
   signed_pdf_url: string | null;
   contract_date: string | null;
   signing_location: string | null;
+  agent_signature_url: string | null;
+  agent_signed_at: string | null;
   created_at: string;
   updated_at: string;
   // Joined relations
@@ -218,6 +220,76 @@ export function useProperties() {
       return data ?? [];
     },
     enabled: !!user,
+  });
+}
+
+// ─── Agent (broker) Signature ───────────────────────────────────────
+
+export interface AgentSignParams {
+  contractId: string;
+  /** Base64-encoded PNG of the agent's signature (no `data:` prefix). */
+  signaturePngBase64: string;
+}
+
+export interface AgentSignResult {
+  success: boolean;
+  agent_signature_url?: string | null;
+  agent_signed_at?: string | null;
+}
+
+/**
+ * POSTs the broker/agent signature to the WebCRM endpoint
+ * `/api/contracts/[id]/agent-sign`. The signature is a separate image,
+ * NOT drawn into the generated PDF — that part is handled server-side
+ * (or, today, only stored alongside the contract row).
+ */
+export function useAgentSignContract() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      contractId,
+      signaturePngBase64,
+    }: AgentSignParams): Promise<AgentSignResult> => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const apiUrl =
+        process.env.EXPO_PUBLIC_API_URL || 'https://crm.euricio.es';
+      const res = await fetch(
+        `${apiUrl}/api/contracts/${contractId}/agent-sign`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            signature_png_base64: signaturePngBase64,
+          }),
+        },
+      );
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(text || `Agent sign failed (${res.status})`);
+      }
+
+      // Endpoint may return JSON or empty body; tolerate both.
+      const body = await res.text();
+      if (!body) return { success: true };
+      try {
+        return JSON.parse(body) as AgentSignResult;
+      } catch {
+        return { success: true };
+      }
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['contract', vars.contractId] });
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+    },
   });
 }
 
