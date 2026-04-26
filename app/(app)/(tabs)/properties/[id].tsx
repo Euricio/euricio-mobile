@@ -887,11 +887,19 @@ function PropertyDetailScreenInner() {
 // initial mount. The "advanced" view still ships on the web build; tap
 // targets here open the system Maps app via Linking.
 
-// Web-Mercator tile math for static OpenStreetMap thumbnails. We render
-// a 2×2 grid of 256-px tiles around the property pin. No WebView, no API
-// key, no native module — only the standard RN <Image>, which is the
-// most stable rendering path. Falls back to a clean coordinate card if
-// no coords are available.
+// Web-Mercator tile math for static map thumbnails. We render a 3×3
+// grid of 256-px raster tiles around the property pin. No WebView, no
+// API key, no native module — only the standard RN <Image>.
+//
+// Tile source: Carto's public "voyager" basemap CDN. We previously used
+// tile.openstreetmap.org, but the OSM Foundation tile servers reject
+// requests from clients without a recognisable User-Agent / Referer
+// (RN's <Image> on iOS sends neither), so the tiles silently 4xx and
+// the preview renders as a blank grey box. Carto's basemap CDN allows
+// anonymous client requests, returns proper Cache-Control headers, and
+// is the de-facto fallback used by countless OSS map clients. Each
+// tile is fetched from a different subdomain (a/b/c/d) so the host
+// browser cache and HTTP/2 connections parallelise cleanly.
 function lng2tileX(lng: number, z: number) {
   return ((lng + 180) / 360) * Math.pow(2, z);
 }
@@ -904,6 +912,27 @@ const MAP_ZOOM = 15;
 const MAP_TILE = 256;
 const MAP_GRID = 3; // 3×3 grid centred on the pin
 const MAP_HEIGHT = 220;
+const TILE_SUBDOMAINS = ['a', 'b', 'c', 'd'];
+function tileUrl(z: number, x: number, y: number) {
+  const sub = TILE_SUBDOMAINS[(x + y) % TILE_SUBDOMAINS.length];
+  // Carto Voyager basemap (street-style, OSM-derived, free CDN).
+  return `https://${sub}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}.png`;
+}
+
+function MapTileImage({ url }: { url: string }) {
+  // Image hides itself if onError fires, leaving the grey card
+  // background visible underneath instead of a broken-image icon.
+  const [failed, setFailed] = useState(false);
+  if (failed) return <View style={styles.mapTile} />;
+  return (
+    <Image
+      source={{ uri: url }}
+      style={styles.mapTile}
+      resizeMode="cover"
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 function MapPreviewSection({ property, t }: { property: any; t: (k: string) => string }) {
   const lat = property.latitude != null ? Number(property.latitude) : NaN;
@@ -952,7 +981,7 @@ function MapPreviewSection({ property, t }: { property: any; t: (k: string) => s
         const y = y0 + dy;
         tileGrid.push({
           key: `${x}-${y}`,
-          url: `https://tile.openstreetmap.org/${MAP_ZOOM}/${x}/${y}.png`,
+          url: tileUrl(MAP_ZOOM, x, y),
         });
       }
     }
@@ -975,12 +1004,7 @@ function MapPreviewSection({ property, t }: { property: any; t: (k: string) => s
         {hasCoords ? (
           <View style={styles.mapTileGrid}>
             {tileGrid.map((tile) => (
-              <Image
-                key={tile.key}
-                source={{ uri: tile.url }}
-                style={styles.mapTile}
-                resizeMode="cover"
-              />
+              <MapTileImage key={tile.key} url={tile.url} />
             ))}
           </View>
         ) : (
@@ -1012,7 +1036,7 @@ function MapPreviewSection({ property, t }: { property: any; t: (k: string) => s
 
         {hasCoords && (
           <View style={styles.mapAttribution} pointerEvents="none">
-            <Text style={styles.mapAttributionText}>© OpenStreetMap</Text>
+            <Text style={styles.mapAttributionText}>© OpenStreetMap, © CARTO</Text>
           </View>
         )}
       </TouchableOpacity>
