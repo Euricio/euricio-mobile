@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,8 +12,6 @@ import {
   Dimensions,
   Alert,
   Switch,
-  ActivityIndicator,
-  Platform,
 } from 'react-native';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,13 +29,8 @@ import {
   PORTAL_META,
 } from '../../../../lib/api/portalPublishing';
 import { usePropertyImages, PropertyImage } from '../../../../lib/api/propertyImages';
-import {
-  usePropertyDocuments,
-  useUploadPropertyDocument,
-  useDeletePropertyDocument,
-  PropertyDocument,
-  DOCUMENT_TYPE_LABELS,
-} from '../../../../lib/api/propertyMedia';
+import { usePropertyDocuments } from '../../../../lib/api/propertyMedia';
+import { useDocumentRequests } from '../../../../lib/api/document-requests';
 import { supabase } from '../../../../lib/supabase';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
@@ -47,24 +40,15 @@ import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
 import { ErrorBoundary } from '../../../../components/ui/ErrorBoundary';
 import { useI18n } from '../../../../lib/i18n';
 
-// Hotfix #5: previous attempts (error boundaries, lazy native requires,
-// donut math hardening) did not stop the production crash. Symptom is a
-// native-side crash that fires ~1s after the screen mounts, i.e. after
-// async queries (owners, geocoded coords) resolve and trigger render of
-// the embedded native components. We now drop both native-heavy widgets
-// from the initial render path entirely:
-//   • Map preview: replaced with a pure RN coordinate / address card
-//     plus a "Open in Maps" button. WebView/Leaflet are only invoked on
-//     user tap via Linking.openURL — no native bridge usage on mount.
-//   • Ownership donut: replaced with a pure RN horizontal-bar legend +
-//     summary. react-native-svg is no longer imported by the property
-//     detail tree at all.
-// The full menu and all sections remain visible.
+// The property detail screen mounts only pure-RN UI on its initial
+// render path. Native-heavy widgets that previously crashed in
+// production (WebView leaflet map, react-native-svg donut, inline
+// document manager) are isolated either behind Linking.openURL on tap
+// or behind a dedicated subroute (property-doc-portal, property-media).
+// All section subtrees are wrapped in ErrorBoundary so any single
+// failure stays contained and the rest of the menu remains usable.
 import { calcCommission } from '../../../../lib/commission';
 import { useQueryClient } from '@tanstack/react-query';
-import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
 import {
   colors,
   spacing,
@@ -241,14 +225,13 @@ function PropertyDetailScreenInner() {
   const { data: property, isLoading, refetch, isRefetching } = useProperty(id!);
   const { data: images } = usePropertyImages(id!);
   const { data: documents } = usePropertyDocuments(id!);
+  const { data: docRequests } = useDocumentRequests(id!);
   const { data: listing } = usePropertyListing(id!);
   const deleteProperty = useDeleteProperty();
   const togglePublish = useTogglePublish();
   const { data: portalConfigs } = useConfiguredPortals();
   const { data: portalStatuses } = usePropertyPortalStatus(id!);
   const togglePortalPublishing = useTogglePortalPublishing();
-  const uploadDocument = useUploadPropertyDocument();
-  const deleteDocument = useDeletePropertyDocument();
   const queryClient = useQueryClient();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const { t, formatPrice, formatDate, locale } = useI18n();
@@ -299,86 +282,6 @@ function PropertyDetailScreenInner() {
     },
     [id, queryClient, t],
   );
-
-  const handleUploadDocument = useCallback(async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({ type: '*/*' });
-      if (result.canceled || !result.assets?.[0]) return;
-      const file = result.assets[0];
-      uploadDocument.mutate({
-        propertyId: id!,
-        uri: file.uri,
-        fileName: file.name,
-        fileSize: file.size ?? null,
-        mimeType: file.mimeType ?? 'application/octet-stream',
-        documentType: 'other',
-      });
-    } catch {
-      Alert.alert(t('error'), t('propDocs_uploadError'));
-    }
-  }, [id, uploadDocument, t]);
-
-  const getSignedUrl = useCallback(async (doc: PropertyDocument): Promise<string> => {
-    if (doc.signed_url) return doc.signed_url;
-    const { data, error } = await supabase.storage
-      .from('property-documents')
-      .createSignedUrl(doc.storage_path, 3600);
-    if (error) throw new Error(error.message);
-    if (!data?.signedUrl) throw new Error('Could not generate URL');
-    return data.signedUrl;
-  }, []);
-
-  const openDocument = useCallback(async (doc: PropertyDocument) => {
-    try {
-      const url = await getSignedUrl(doc);
-      await Linking.openURL(url);
-    } catch (err: any) {
-      Alert.alert(t('error'), err.message || 'Could not open document');
-    }
-  }, [getSignedUrl, t]);
-
-  const shareDocument = useCallback(async (doc: PropertyDocument) => {
-    try {
-      const url = await getSignedUrl(doc);
-      const fileUri = FileSystem.cacheDirectory + doc.file_name;
-      await FileSystem.downloadAsync(url, fileUri);
-
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri, {
-          mimeType: 'application/pdf',
-          UTI: 'com.adobe.pdf',
-        });
-      }
-    } catch (err: any) {
-      Alert.alert(t('error'), err.message || 'Could not share document');
-    }
-  }, [getSignedUrl, t]);
-
-  const handleDeleteDocument = useCallback(
-    (doc: PropertyDocument) => {
-      Alert.alert(t('propDocs_delete'), t('propDocs_deleteConfirm'), [
-        { text: t('cancel'), style: 'cancel' },
-        {
-          text: t('delete'),
-          style: 'destructive',
-          onPress: () =>
-            deleteDocument.mutate({
-              documentId: doc.id,
-              storagePath: doc.storage_path,
-              propertyId: id!,
-            }),
-        },
-      ]);
-    },
-    [id, deleteDocument, t],
-  );
-
-  const formatFileSize = (bytes: number | null): string => {
-    if (!bytes) return '';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
 
   if (isLoading) return <LoadingScreen />;
 
@@ -828,69 +731,32 @@ function PropertyDetailScreenInner() {
         </Card>
       )}
 
-      {/* ─── 17. Documents (inline) ───────────────────────────── */}
-      <ErrorBoundary label="Dokumente">
-      <Card style={styles.section}>
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>{t('propDocs_title')}</Text>
-          <TouchableOpacity onPress={handleUploadDocument} style={styles.uploadButton}>
-            {uploadDocument.isPending ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <>
-                <Ionicons name="cloud-upload-outline" size={18} color={colors.primary} />
-                <Text style={styles.uploadButtonText}>{t('propDocs_upload')}</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-        {documents && documents.length > 0 ? (
-          documents.map((doc) => (
-            <View key={doc.id} style={styles.docCard}>
-              <View style={styles.docCardInfo}>
-                <Ionicons name="attach" size={20} color={colors.primary} />
-                <View style={styles.docCardText}>
-                  <Text style={styles.docCardName} numberOfLines={1}>{doc.file_name}</Text>
-                  <Text style={styles.docCardMeta}>
-                    {DOCUMENT_TYPE_LABELS[doc.document_type] ?? doc.document_type}
-                    {doc.created_at ? ` · ${formatDate(doc.created_at)}` : ''}
-                    {doc.file_size ? ` · ${formatFileSize(doc.file_size)}` : ''}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.docCardActions}>
-                <TouchableOpacity style={styles.docCardActionBtn} onPress={() => openDocument(doc)}>
-                  <Ionicons name="open-outline" size={18} color={colors.primary} />
-                  <Text style={styles.docCardActionLabel}>{t('propDocs_open')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.docCardActionBtn} onPress={() => shareDocument(doc)}>
-                  <Ionicons name="share-outline" size={18} color={colors.primary} />
-                  <Text style={styles.docCardActionLabel}>{t('propDocs_share')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.docCardActionBtn} onPress={() => handleDeleteDocument(doc)}>
-                  <Ionicons name="trash-outline" size={18} color={colors.error} />
-                  <Text style={[styles.docCardActionLabel, { color: colors.error }]}>{t('propDocs_delete')}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))
-        ) : (
-          <Text style={styles.emptyText}>{t('propDocs_empty')}</Text>
-        )}
-      </Card>
-      </ErrorBoundary>
-
-      {/* ─── 17b. Document Manager (subpage link) ──────────────
-        Hotfix #6: DocumentManager is no longer mounted inline. The
-        previous inline mount triggered a hook-count mismatch crash
-        ("Rendered more hooks than during the previous render") because
-        a useCallback was declared after an early loading return. The
-        underlying hook bug is fixed in DocumentManager.tsx, but we
-        still isolate the section onto its own route so any future
-        render error stays contained and the rest of the property menu
-        (incl. ownership, portals, metadata) remains usable. */}
-      <Card
-        style={styles.section}
+      {/* ─── 17. Dokumentenmanagement (subpage link) ──────────────
+        The inline document list previously mounted on this screen has
+        been moved to a dedicated subpage. Mounting native-heavy doc
+        UI inline historically triggered a hook-order mismatch crash
+        on first render ("Rendered more hooks than during the previous
+        render"). The detail screen now only renders a stable, pure-RN
+        navigation card; all upload / open / share / delete actions
+        live on the doc-portal route, which has its own ErrorBoundary
+        and stable hook order. */}
+      <NavCard
+        icon="folder-open-outline"
+        title={t('docportal.section.title')}
+        subtitle={(() => {
+          const docCount = documents?.length ?? 0;
+          const requestedCount = (docRequests ?? []).filter(
+            (r) => r.status === 'requested',
+          ).length;
+          const parts: string[] = [];
+          parts.push(t('media_docCount', { count: docCount }));
+          if (requestedCount > 0) {
+            parts.push(`${requestedCount} ${t('docportal.status.requested')}`);
+          } else {
+            parts.push(t('docportal.requestDocs'));
+          }
+          return parts.join(' · ');
+        })()}
         onPress={() =>
           router.push(
             `/(app)/property-doc-portal?propertyId=${property.id}` +
@@ -898,41 +764,17 @@ function PropertyDetailScreenInner() {
               `&propertyAddress=${encodeURIComponent(property.address ? `${property.address}${property.city ? `, ${property.city}` : ''}` : '')}`,
           )
         }
-      >
-        <View style={styles.mediaCardRow}>
-          <View style={styles.mediaCardLeft}>
-            <Ionicons name="folder-open-outline" size={24} color={colors.primary} />
-            <View>
-              <Text style={styles.sectionTitle}>{t('docportal.section.title')}</Text>
-              <Text style={styles.mediaCardCount}>
-                {t('docportal.requestDocs')} · {t('docportal.manageAccess')}
-              </Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
-        </View>
-      </Card>
+      />
 
       {/* ─── 18. Media Management Card ────────────────────────── */}
-      <Card
-        style={styles.section}
+      <NavCard
+        icon="images-outline"
+        title={t('media_title')}
+        subtitle={`${t('media_photoCount', { count: images?.length ?? 0 })} · ${t('media_docCount', { count: documents?.length ?? 0 })}`}
         onPress={() =>
-          router.push(`/(app)/property-media?propertyId=${property.id}&propertyTitle=${encodeURIComponent(property.title)}`)
+          router.push(`/(app)/property-media?propertyId=${property.id}&propertyTitle=${encodeURIComponent(property.title ?? '')}`)
         }
-      >
-        <View style={styles.mediaCardRow}>
-          <View style={styles.mediaCardLeft}>
-            <Ionicons name="images-outline" size={24} color={colors.primary} />
-            <View>
-              <Text style={styles.sectionTitle}>{t('media_title')}</Text>
-              <Text style={styles.mediaCardCount}>
-                {t('media_photoCount', { count: images?.length ?? 0 })} · {t('media_docCount', { count: documents?.length ?? 0 })}
-              </Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
-        </View>
-      </Card>
+      />
 
       {/* ─── 19. Ownership Section ────────────────────────────── */}
       <ErrorBoundary label="Eigentümer">
@@ -1058,8 +900,8 @@ function lat2tileY(lat: number, z: number) {
 
 const MAP_ZOOM = 15;
 const MAP_TILE = 256;
-const MAP_GRID = 2; // 2×2 = 512×512 px logical
-const MAP_HEIGHT = 180;
+const MAP_GRID = 3; // 3×3 grid centred on the pin
+const MAP_HEIGHT = 220;
 
 function MapPreviewSection({ property, t }: { property: any; t: (k: string) => string }) {
   const lat = property.latitude != null ? Number(property.latitude) : NaN;
@@ -1090,7 +932,7 @@ function MapPreviewSection({ property, t }: { property: any; t: (k: string) => s
     }
   };
 
-  // Pre-compute the 2×2 tile grid centred on the pin. Pin offset is in
+  // Pre-compute the tile grid centred on the pin. Pin offset is in
   // pixels relative to the top-left of the rendered grid, so the marker
   // lands exactly on the property location.
   let tileGrid: { url: string; key: string }[] = [];
@@ -1099,16 +941,15 @@ function MapPreviewSection({ property, t }: { property: any; t: (k: string) => s
   if (hasCoords) {
     const tx = lng2tileX(lng, MAP_ZOOM);
     const ty = lat2tileY(lat, MAP_ZOOM);
-    // Anchor grid so pin sits in the middle of the 2×2 block.
-    const x0 = Math.floor(tx) - (MAP_GRID / 2 - 1);
-    const y0 = Math.floor(ty) - (MAP_GRID / 2 - 1);
+    const half = Math.floor(MAP_GRID / 2);
+    const x0 = Math.floor(tx) - half;
+    const y0 = Math.floor(ty) - half;
     for (let dy = 0; dy < MAP_GRID; dy++) {
       for (let dx = 0; dx < MAP_GRID; dx++) {
         const x = x0 + dx;
         const y = y0 + dy;
         tileGrid.push({
           key: `${x}-${y}`,
-          // Standard OSM tile URL, no API key required.
           url: `https://tile.openstreetmap.org/${MAP_ZOOM}/${x}/${y}.png`,
         });
       }
@@ -1120,12 +961,16 @@ function MapPreviewSection({ property, t }: { property: any; t: (k: string) => s
     pinTopPct = Math.max(0, Math.min(100, (pxY / totalPx) * 100));
   }
 
+  const addressLine = hasAddress
+    ? `${property.address ?? ''}${property.address && property.city ? ', ' : ''}${property.city ?? ''}`
+    : '';
+
   return (
     <Card style={styles.section}>
       <Text style={styles.sectionTitle}>{t('prop_geocodingPreview')}</Text>
 
-      {hasCoords ? (
-        <TouchableOpacity activeOpacity={0.85} onPress={openMaps} style={styles.mapThumbWrap}>
+      <TouchableOpacity activeOpacity={0.9} onPress={openMaps} style={styles.mapThumbWrap}>
+        {hasCoords ? (
           <View style={styles.mapTileGrid}>
             {tileGrid.map((tile) => (
               <Image
@@ -1136,44 +981,42 @@ function MapPreviewSection({ property, t }: { property: any; t: (k: string) => s
               />
             ))}
           </View>
-          {/* Pin overlay — pure RN, anchored on the geocoded lat/lng. */}
+        ) : (
+          <View style={styles.mapPlaceholder}>
+            <Ionicons name="map-outline" size={36} color={colors.textTertiary} />
+          </View>
+        )}
+
+        {hasCoords && (
           <View
             pointerEvents="none"
-            style={[
-              styles.mapPin,
-              { left: `${pinLeftPct}%`, top: `${pinTopPct}%` },
-            ]}
+            style={[styles.mapPin, { left: `${pinLeftPct}%`, top: `${pinTopPct}%` }]}
           >
             <View style={styles.mapPinShadow} />
-            <Ionicons name="location" size={28} color={colors.primary} />
+            <View style={styles.mapPinDot}>
+              <Ionicons name="location" size={22} color={colors.white} />
+            </View>
           </View>
-          <View style={styles.mapAttribution}>
+        )}
+
+        {!!addressLine && (
+          <View style={styles.mapAddressOverlay} pointerEvents="none">
+            <Ionicons name="location" size={14} color={colors.white} />
+            <Text style={styles.mapAddressText} numberOfLines={2}>
+              {addressLine}
+            </Text>
+          </View>
+        )}
+
+        {hasCoords && (
+          <View style={styles.mapAttribution} pointerEvents="none">
             <Text style={styles.mapAttributionText}>© OpenStreetMap</Text>
           </View>
-        </TouchableOpacity>
-      ) : null}
+        )}
+      </TouchableOpacity>
 
-      <View style={styles.locationCard}>
-        <View style={styles.locationIconBox}>
-          <Ionicons name="location" size={24} color={colors.primary} />
-        </View>
-        <View style={styles.locationTextBox}>
-          {hasAddress && (
-            <Text style={styles.locationAddress} numberOfLines={2}>
-              {property.address}
-              {property.city ? `, ${property.city}` : ''}
-            </Text>
-          )}
-          {hasCoords && (
-            <Text style={styles.locationCoords}>
-              {lat.toFixed(5)}, {lng.toFixed(5)}
-            </Text>
-          )}
-        </View>
-      </View>
-
-      <TouchableOpacity onPress={openMaps} style={styles.locationButton}>
-        <Ionicons name="map-outline" size={18} color={colors.white} />
+      <TouchableOpacity onPress={openMaps} style={styles.locationButton} activeOpacity={0.85}>
+        <Ionicons name="navigate-outline" size={18} color={colors.white} />
         <Text style={styles.locationButtonText}>{t('properties_showOnMap')}</Text>
       </TouchableOpacity>
     </Card>
@@ -1212,6 +1055,35 @@ function DetailRow({ label, value }: { label: string; value: string }) {
       <Text style={styles.detailLabel}>{label}</Text>
       <Text style={styles.detailValue} numberOfLines={2}>{value}</Text>
     </View>
+  );
+}
+
+function NavCard({
+  icon,
+  title,
+  subtitle,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+}) {
+  return (
+    <Card style={styles.navCard} onPress={onPress}>
+      <View style={styles.navCardRow}>
+        <View style={styles.navCardLeft}>
+          <View style={styles.navCardIconBox}>
+            <Ionicons name={icon} size={22} color={colors.primary} />
+          </View>
+          <View style={styles.navCardText}>
+            <Text style={styles.navCardTitle}>{title}</Text>
+            <Text style={styles.navCardSubtitle} numberOfLines={1}>{subtitle}</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+      </View>
+    </Card>
   );
 }
 
@@ -1506,7 +1378,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
-  // OpenStreetMap thumbnail (pure RN <Image> grid, no WebView)
+  // Map preview card (pure RN <Image> tile grid, no WebView)
   mapThumbWrap: {
     height: MAP_HEIGHT,
     borderRadius: borderRadius.md,
@@ -1525,25 +1397,64 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   mapTile: {
-    width: '50%',
-    height: '50%',
+    width: `${100 / MAP_GRID}%`,
+    height: `${100 / MAP_GRID}%`,
   },
-  mapPin: {
-    position: 'absolute',
-    width: 28,
-    height: 28,
-    marginLeft: -14,
-    marginTop: -28,
+  mapPlaceholder: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  mapPin: {
+    position: 'absolute',
+    width: 32,
+    height: 36,
+    marginLeft: -16,
+    marginTop: -36,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  mapPinDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2,
+    elevation: 3,
+  },
   mapPinShadow: {
     position: 'absolute',
-    bottom: -2,
+    bottom: 0,
     width: 14,
     height: 6,
     borderRadius: 7,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  mapAddressOverlay: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    right: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: 'rgba(30,58,95,0.85)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: borderRadius.sm,
+  },
+  mapAddressText: {
+    flex: 1,
+    color: colors.white,
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
   },
   mapAttribution: {
     position: 'absolute',
@@ -1558,41 +1469,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: colors.textSecondary,
   },
-  // Mobile-stable location card (used alongside the OSM thumbnail)
-  locationCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  locationIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  locationTextBox: {
-    flex: 1,
-    gap: 2,
-  },
-  locationAddress: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold,
-    color: colors.text,
-  },
-  locationCoords: {
-    fontSize: fontSize.xs,
-    color: colors.textSecondary,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  locationHint: {
-    fontSize: 10,
-    color: colors.textTertiary,
-    fontStyle: 'italic',
-    marginTop: 2,
-  },
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1602,12 +1478,50 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: borderRadius.sm,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
   locationButtonText: {
     color: colors.white,
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold,
+  },
+  // NavCard
+  navCard: {
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.md,
+  },
+  navCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  navCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    flex: 1,
+  },
+  navCardIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primaryLight + '22',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navCardText: {
+    flex: 1,
+  },
+  navCardTitle: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.text,
+  },
+  navCardSubtitle: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   // Image reorder
   imageReorderRow: {
