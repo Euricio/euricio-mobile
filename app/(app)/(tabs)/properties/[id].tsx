@@ -56,6 +56,7 @@ import {
   fontWeight,
   borderRadius,
 } from '../../../../constants/theme';
+import { BUILD_SHA } from '../../../../constants/buildInfo';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -873,6 +874,7 @@ function PropertyDetailScreenInner() {
           style={styles.actionButton}
         />
       </View>
+      <Text style={styles.buildMarker}>App-Code: {BUILD_SHA}</Text>
     </ScrollView>
   );
 }
@@ -1714,5 +1716,13 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     width: '100%',
+  },
+  buildMarker: {
+    textAlign: 'center',
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+    fontSize: 10,
+    color: colors.textTertiary,
+    opacity: 0.6,
   },
 });
