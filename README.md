@@ -142,8 +142,42 @@ Folgende Schritte müssen im Apple Developer Portal manuell durchgeführt werden
 1. **App ID** `com.euricio.crm` im Apple Developer Portal anlegen
 2. **Push Notification** Capability aktivieren
 3. **VoIP Services** Capability aktivieren (für Twilio Voice in Phase 2)
-4. **Provisioning Profile** für Development erstellen (oder EAS Managed Credentials nutzen)
-5. In **App Store Connect**: Neue App anlegen mit Bundle ID `com.euricio.crm`
+4. **Associated Domains** Capability aktivieren (für Universal Links auf `crm.euricio.es`)
+5. **Provisioning Profile** für Development erstellen (oder EAS Managed Credentials nutzen)
+6. In **App Store Connect**: Neue App anlegen mit Bundle ID `com.euricio.crm`, App ID `6762286649`, SKU `euricio-crm-ios-001`
+
+## In-App Signing & Universal Links (iOS)
+
+Signier- und Kunden-Portal-Links auf `crm.euricio.es` öffnen ab Build #3 direkt in
+der App (`SFSafariViewController` ohne sichtbare URL-Leiste) statt im System-Safari.
+
+**Backend (einmalig):** unter `https://crm.euricio.es/.well-known/apple-app-site-association`
+folgendes JSON ausliefern (Content-Type `application/json`, ohne `.json`-Endung):
+
+```json
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["ZCAN59P52X.com.euricio.crm"],
+        "components": [
+          { "/": "/sign/*" },
+          { "/": "/portal/*" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**iOS-Konfiguration** (`app.config.js`): `associatedDomains: ['applinks:crm.euricio.es']`.
+
+**Android (Platzhalter):** Universal-Links-Pendant (App Links) ist vorbereitet,
+aber nicht aktiv. Aktivieren mit:
+1. SHA-256-Fingerprint des Release-Signing-Keys ermitteln (`eas credentials`)
+2. `https://crm.euricio.es/.well-known/assetlinks.json` mit dem Fingerprint hosten
+3. Den auskommentierten `intentFilters`-Block in `app.config.js` (Android-Sektion) aktivieren
+4. Neuer EAS-Build
 
 ## Design-System
 

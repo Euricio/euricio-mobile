@@ -65,10 +65,15 @@ module.exports = ({ config }) => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.euricio.crm',
-    buildNumber: '2',
+    buildNumber: '3',
     // appleTeamId required by @bacons/apple-targets to sign the widget
     // extension target. Must match the team owning the bundle identifier.
     appleTeamId: 'ZCAN59P52X',
+    // Universal Links: signing/portal URLs from crm.euricio.es open inside
+    // the app instead of Safari. Backend must serve apple-app-site-association
+    // at https://crm.euricio.es/.well-known/apple-app-site-association with
+    // appID "ZCAN59P52X.com.euricio.crm" and paths ["/sign/*", "/portal/*"].
+    associatedDomains: ['applinks:crm.euricio.es'],
     entitlements: {
       'com.apple.security.application-groups': [
         'group.com.euricio.crm.widget',
@@ -98,6 +103,21 @@ module.exports = ({ config }) => ({
       'VIBRATE',
       'RECEIVE_BOOT_COMPLETED',
     ],
+    // Android App Links placeholder — iOS-only rollout for now. To activate:
+    // 1) host /.well-known/assetlinks.json on crm.euricio.es with the release
+    //    SHA-256 fingerprint of the Android signing key, and
+    // 2) uncomment the intentFilters block below + rebuild.
+    // intentFilters: [
+    //   {
+    //     action: 'VIEW',
+    //     autoVerify: true,
+    //     data: [
+    //       { scheme: 'https', host: 'crm.euricio.es', pathPrefix: '/sign/' },
+    //       { scheme: 'https', host: 'crm.euricio.es', pathPrefix: '/portal/' },
+    //     ],
+    //     category: ['BROWSABLE', 'DEFAULT'],
+    //   },
+    // ],
   },
 
   web: {

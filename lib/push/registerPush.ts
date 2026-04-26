@@ -1,7 +1,8 @@
-import { Platform, Linking } from 'react-native';
+import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import { router } from 'expo-router';
 import { supabase } from '../supabase';
+import { openInAppBrowser } from '../inAppBrowser';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://crm.euricio.es';
 
@@ -159,14 +160,15 @@ export async function wirePushTapHandler(): Promise<() => void> {
 
     // Contract signature push from web send-signature flow:
     // payload contains { kind:'contract_signature', contract_id, signature_token, signer_id }.
-    // The signing UI lives on the web CRM; open it in the system browser.
+    // The signing UI lives on the web CRM but is presented in-app via
+    // SFSafariViewController so the user never leaves Euricio.
     if (data?.kind === 'contract_signature' && typeof data.signature_token === 'string') {
       const signer = typeof data.signer_id === 'string' ? data.signer_id : '';
       const url = `${API_URL}/sign/${encodeURIComponent(data.signature_token)}${
         signer ? `?signer=${encodeURIComponent(signer)}` : ''
       }`;
-      Linking.openURL(url).catch(err => {
-        console.warn('[push] contract_signature openURL failed:', url, err);
+      openInAppBrowser(url).catch(err => {
+        console.warn('[push] contract_signature openInAppBrowser failed:', url, err);
       });
       return;
     }
