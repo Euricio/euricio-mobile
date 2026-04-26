@@ -32,6 +32,7 @@ import { Button } from '../../../../components/ui/Button';
 import { SendContractSheet } from '../../../../components/email/SendContractSheet';
 import { SendSignatureSheet } from '../../../../components/contracts/SendSignatureSheet';
 import { SignedPdfUpload } from '../../../../components/contracts/SignedPdfUpload';
+import { AgentSignatureCard } from '../../../../components/contracts/AgentSignatureCard';
 import { supabase } from '../../../../lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -127,6 +128,18 @@ export default function ContractDetailScreen() {
     (c) => c.enabled,
   );
 
+  // Once the signature request has gone out (status flips to 'sent'/'signed' or
+  // any signer has been notified) the broker signature is locked — replacing it
+  // mid-flow would invalidate what was already shown to the client.
+  const signatureRequestSent =
+    contract.status === 'signed' ||
+    contract.status === 'archived' ||
+    contract.signature_status === 'sent' ||
+    contract.signature_status === 'signed' ||
+    signers.some((s) => s.status === 'sent' || s.status === 'signed');
+  const agentHasSigned = !!contract.agent_signed_at;
+  const canRequestSignature = agentHasSigned;
+
   const propertyDisplay = contract.property
     ? `${contract.property.address || ''}, ${contract.property.city || ''}`.trim()
     : contract.property_address || '';
@@ -207,6 +220,11 @@ export default function ContractDetailScreen() {
   };
 
   const handleSendSignature = async () => {
+    // Broker must sign the contract themselves before requesting client signature.
+    if (!contract.agent_signed_at) {
+      Alert.alert(t('error'), t('agentSign_requiredBeforeRequest'));
+      return;
+    }
     // Prepare signers/token on first use; after that the same signers are reused.
     const needsPrepare = !contract.signature_token || signers.length === 0;
     if (needsPrepare) {
@@ -352,6 +370,15 @@ export default function ContractDetailScreen() {
         )}
       </View>
 
+      {/* Broker / agent signature — required before requesting client signature */}
+      <AgentSignatureCard
+        contractId={contract.id}
+        agentSignatureUrl={contract.agent_signature_url}
+        agentSignedAt={contract.agent_signed_at}
+        locked={signatureRequestSent}
+        onSigned={() => refetch()}
+      />
+
       {/* Email Actions */}
       <View style={styles.emailActions}>
         <Button
@@ -368,17 +395,26 @@ export default function ContractDetailScreen() {
           onPress={handleSendSignature}
           variant="ghost"
           loading={prepareSignature.isPending || sendSignatureRequest.isPending}
-          disabled={prepareSignature.isPending || sendSignatureRequest.isPending}
+          disabled={
+            !canRequestSignature ||
+            prepareSignature.isPending ||
+            sendSignatureRequest.isPending
+          }
           icon={
             <Ionicons
               name="create-outline"
               size={16}
-              color={colors.primary}
+              color={canRequestSignature ? colors.primary : colors.textTertiary}
             />
           }
           style={styles.emailBtn}
         />
       </View>
+      {!canRequestSignature && (
+        <Text style={styles.signatureGateNote}>
+          {t('agentSign_gateHint')}
+        </Text>
+      )}
 
       {/* Signed PDF Upload */}
       <SignedPdfUpload
@@ -619,6 +655,14 @@ const styles = StyleSheet.create({
   },
   emailBtn: {
     flex: 1,
+  },
+  signatureGateNote: {
+    marginHorizontal: spacing.md,
+    marginTop: -spacing.xs,
+    marginBottom: spacing.md,
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
   section: {
     marginHorizontal: spacing.md,

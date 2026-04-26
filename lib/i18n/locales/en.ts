@@ -778,6 +778,27 @@ const en: Record<string, string> = {
   signature_statusSent: 'Sent',
   signature_statusSigned: 'Signed',
 
+  // ─── Broker / agent signature card ────────────────────────────────
+  agentSign_title: 'Agent signature',
+  agentSign_help:
+    'Sign here before sending the contract to the client. Your signature is stored as a separate contract field and is not drawn into the PDF.',
+  agentSign_emptyHint: 'Not yet signed',
+  agentSign_signedBadge: 'Signed',
+  agentSign_pendingBadge: 'Pending',
+  agentSign_open: 'Sign now',
+  agentSign_replace: 'Sign again',
+  agentSign_signedAt: 'Signed at',
+  agentSign_lockedNote:
+    'Signature request already sent — agent signature is locked.',
+  agentSign_gateHint:
+    'Sign as the agent first to enable requesting the client signature.',
+  agentSign_requiredBeforeRequest:
+    'You must sign as the agent before requesting the client signature.',
+  agentSign_padTitle: 'Agent signature',
+  agentSign_padHint: 'Sign with your finger or Apple Pencil.',
+  agentSign_clear: 'Clear',
+  agentSign_saveError: 'Could not save signature. Please try again.',
+
   // ─── Signed PDF Upload ────────────────────────────────────────────
   signedPdf_uploadTitle: 'Upload signed contract',
   signedPdf_camera: 'Camera',

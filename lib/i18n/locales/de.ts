@@ -784,6 +784,28 @@ const de: Record<string, string> = {
   signature_statusSent: 'Gesendet',
   signature_statusSigned: 'Unterschrieben',
 
+  // ─── Makler-/Agent-Unterschrift ────────────────────────────────────
+  agentSign_title: 'Unterschrift des Maklers',
+  agentSign_help:
+    'Unterschreiben Sie hier, bevor Sie den Vertrag an den Kunden senden. Ihre Unterschrift wird als separates Feld am Vertrag gespeichert und nicht in das PDF eingebettet.',
+  agentSign_emptyHint: 'Noch nicht unterschrieben',
+  agentSign_signedBadge: 'Unterschrieben',
+  agentSign_pendingBadge: 'Ausstehend',
+  agentSign_open: 'Jetzt unterschreiben',
+  agentSign_replace: 'Erneut unterschreiben',
+  agentSign_signedAt: 'Unterschrieben am',
+  agentSign_lockedNote:
+    'Unterschriftsanfrage wurde bereits versendet. Maklerunterschrift ist gesperrt.',
+  agentSign_gateHint:
+    'Bitte zuerst als Makler unterschreiben, bevor Sie eine Kundenunterschrift anfordern.',
+  agentSign_requiredBeforeRequest:
+    'Bitte unterschreiben Sie zuerst als Makler, bevor Sie eine Unterschrift vom Kunden anfordern.',
+  agentSign_padTitle: 'Maklerunterschrift',
+  agentSign_padHint: 'Mit dem Finger oder Apple Pencil unterschreiben.',
+  agentSign_clear: 'Löschen',
+  agentSign_saveError:
+    'Unterschrift konnte nicht gespeichert werden. Bitte erneut versuchen.',
+
   // ─── Signed PDF Upload ────────────────────────────────────────────
   signedPdf_uploadTitle: 'Unterschriebenen Vertrag hochladen',
   signedPdf_camera: 'Kamera',
