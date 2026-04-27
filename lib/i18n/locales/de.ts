@@ -805,6 +805,8 @@ const de: Record<string, string> = {
   agentSign_clear: 'Löschen',
   agentSign_saveError:
     'Unterschrift konnte nicht gespeichert werden. Bitte erneut versuchen.',
+  agentSign_emptyError:
+    'Unterschrift ist leer. Bitte erneut unterschreiben, bevor Sie speichern.',
 
   // ─── Signed PDF Upload ────────────────────────────────────────────
   signedPdf_uploadTitle: 'Unterschriebenen Vertrag hochladen',

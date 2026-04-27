@@ -373,7 +373,7 @@ export default function ContractDetailScreen() {
       {/* Broker / agent signature — required before requesting client signature */}
       <AgentSignatureCard
         contractId={contract.id}
-        agentSignatureUrl={contract.agent_signature_url}
+        agentSignaturePng={contract.agent_signature_png}
         agentSignedAt={contract.agent_signed_at}
         locked={signatureRequestSent}
         onSigned={() => refetch()}

@@ -798,6 +798,7 @@ const en: Record<string, string> = {
   agentSign_padHint: 'Sign with your finger or Apple Pencil.',
   agentSign_clear: 'Clear',
   agentSign_saveError: 'Could not save signature. Please try again.',
+  agentSign_emptyError: 'Signature is empty. Please sign again before saving.',
 
   // ─── Signed PDF Upload ────────────────────────────────────────────
   signedPdf_uploadTitle: 'Upload signed contract',

@@ -798,6 +798,8 @@ const es: Record<string, string> = {
   agentSign_padHint: 'Firme con el dedo o con el Apple Pencil.',
   agentSign_clear: 'Borrar',
   agentSign_saveError: 'No se pudo guardar la firma. Inténtelo de nuevo.',
+  agentSign_emptyError:
+    'La firma está vacía. Vuelva a firmar antes de guardar.',
 
   // ─── Signed PDF Upload ────────────────────────────────────────────
   signedPdf_uploadTitle: 'Subir contrato firmado',

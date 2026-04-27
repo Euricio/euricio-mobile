@@ -3,6 +3,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import {
+  buildAgentSignaturePayload,
+  EmptySignatureError,
+} from './agentSignaturePayload';
+
+export { buildAgentSignaturePayload, EmptySignatureError };
 
 export interface SavedClause {
   key: string;
@@ -34,7 +40,7 @@ export interface Contract {
   signed_pdf_url: string | null;
   contract_date: string | null;
   signing_location: string | null;
-  agent_signature_url: string | null;
+  agent_signature_png: string | null;
   agent_signed_at: string | null;
   created_at: string;
   updated_at: string;
@@ -227,13 +233,19 @@ export function useProperties() {
 
 export interface AgentSignParams {
   contractId: string;
-  /** Base64-encoded PNG of the agent's signature (no `data:` prefix). */
+  /**
+   * Agent signature as a PNG. Accepts either a raw base64 string or a full
+   * `data:image/png;base64,…` data URL — the request to the WebCRM endpoint
+   * is always normalized to a data URL since that is what is stored in
+   * `contracts.agent_signature_png` and re-served as-is.
+   */
   signaturePngBase64: string;
+  /** Optional override of the signer name (defaults to the auth user). */
+  signerName?: string;
 }
 
 export interface AgentSignResult {
   success: boolean;
-  agent_signature_url?: string | null;
   agent_signed_at?: string | null;
 }
 
@@ -242,6 +254,10 @@ export interface AgentSignResult {
  * `/api/contracts/[id]/agent-sign`. The signature is a separate image,
  * NOT drawn into the generated PDF — that part is handled server-side
  * (or, today, only stored alongside the contract row).
+ *
+ * Throws an `EmptySignatureError` before the request leaves the device when
+ * the canvas export was empty/failed, so the user sees a local message
+ * rather than the server's `missing_signature` reply.
  */
 export function useAgentSignContract() {
   const queryClient = useQueryClient();
@@ -250,7 +266,13 @@ export function useAgentSignContract() {
     mutationFn: async ({
       contractId,
       signaturePngBase64,
+      signerName,
     }: AgentSignParams): Promise<AgentSignResult> => {
+      const signatureData = buildAgentSignaturePayload(signaturePngBase64);
+      if (!signatureData) {
+        throw new EmptySignatureError();
+      }
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -267,7 +289,8 @@ export function useAgentSignContract() {
             Authorization: `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
-            signature_png_base64: signaturePngBase64,
+            signatureData,
+            ...(signerName ? { signerName } : {}),
           }),
         },
       );
