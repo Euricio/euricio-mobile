@@ -14,6 +14,7 @@ import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { useAgentSignContract } from '../../lib/api/contracts';
+import { EmptySignatureError } from '../../lib/api/agentSignaturePayload';
 import { useI18n } from '../../lib/i18n';
 import {
   colors,
@@ -25,7 +26,12 @@ import {
 
 interface AgentSignatureCardProps {
   contractId: string;
-  agentSignatureUrl: string | null | undefined;
+  /**
+   * Stored agent signature value. The backend persists this as a PNG data
+   * URL on `contracts.agent_signature_png`, so it can be passed straight to
+   * `<Image source={{ uri }} />` without any extra resolving.
+   */
+  agentSignaturePng: string | null | undefined;
   agentSignedAt: string | null | undefined;
   /** When true the card is locked (e.g. signature request already sent or contract signed). */
   locked?: boolean;
@@ -41,7 +47,7 @@ interface AgentSignatureCardProps {
  */
 export function AgentSignatureCard({
   contractId,
-  agentSignatureUrl,
+  agentSignaturePng,
   agentSignedAt,
   locked = false,
   onSigned,
@@ -62,10 +68,13 @@ export function AgentSignatureCard({
       setPadOpen(false);
       onSigned?.();
     } catch (err) {
-      Alert.alert(
-        t('error'),
-        err instanceof Error ? err.message : t('agentSign_saveError'),
-      );
+      const message =
+        err instanceof EmptySignatureError
+          ? t('agentSign_emptyError')
+          : err instanceof Error && err.message
+            ? err.message
+            : t('agentSign_saveError');
+      Alert.alert(t('error'), message);
     }
   };
 
@@ -99,10 +108,10 @@ export function AgentSignatureCard({
 
       <Text style={styles.help}>{t('agentSign_help')}</Text>
 
-      {hasSignature && agentSignatureUrl ? (
+      {hasSignature && agentSignaturePng ? (
         <View style={styles.preview}>
           <Image
-            source={{ uri: agentSignatureUrl }}
+            source={{ uri: agentSignaturePng }}
             style={styles.previewImage}
             resizeMode="contain"
           />
@@ -316,6 +325,7 @@ function SignaturePadModal({
   const { t } = useI18n();
   const webRef = useRef<WebView>(null);
   const [dirty, setDirty] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const html = useMemo(() => PAD_HTML, []);
 
@@ -325,17 +335,39 @@ function SignaturePadModal({
     );
   };
 
+  const handleSavePress = () => {
+    if (!dirty || submitting || exporting) return;
+    // Guard against the request leaving before the WebView has produced a
+    // base64 payload — the export round-trip is asynchronous, so flip a
+    // local "exporting" flag and let the message handler clear it.
+    setExporting(true);
+    send('export');
+  };
+
   const onMessage = (evt: WebViewMessageEvent) => {
     try {
       const msg = JSON.parse(evt.nativeEvent.data);
       if (msg.type === 'state') setDirty(!!msg.dirty);
-      if (msg.type === 'export' && typeof msg.base64 === 'string') {
-        onSubmit(msg.base64);
+      if (msg.type === 'export') {
+        setExporting(false);
+        const base64 = typeof msg.base64 === 'string' ? msg.base64 : '';
+        // A blank/effectively-blank canvas can return very short data URLs
+        // (e.g. an all-white PNG). Surface a local message instead of
+        // forwarding to the server only to get `missing_signature` back.
+        if (!base64 || base64.length < 32) {
+          Alert.alert(t('error'), t('agentSign_emptyError'));
+          return;
+        }
+        onSubmit(base64);
       }
     } catch {
       // ignore malformed messages
+      setExporting(false);
     }
   };
+
+  const saveDisabled = !dirty || submitting || exporting;
+  const saveBusy = submitting || exporting;
 
   return (
     <Modal
@@ -346,23 +378,23 @@ function SignaturePadModal({
     >
       <View style={modalStyles.container}>
         <View style={modalStyles.header}>
-          <TouchableOpacity onPress={onClose} disabled={submitting}>
+          <TouchableOpacity onPress={onClose} disabled={saveBusy}>
             <Text style={modalStyles.headerCancel}>{t('cancel')}</Text>
           </TouchableOpacity>
           <Text style={modalStyles.headerTitle}>
             {t('agentSign_padTitle')}
           </Text>
           <TouchableOpacity
-            onPress={() => send('export')}
-            disabled={!dirty || submitting}
+            onPress={handleSavePress}
+            disabled={saveDisabled}
           >
             <Text
               style={[
                 modalStyles.headerSave,
-                (!dirty || submitting) && modalStyles.headerSaveDisabled,
+                saveDisabled && modalStyles.headerSaveDisabled,
               ]}
             >
-              {submitting ? '…' : t('save')}
+              {saveBusy ? '…' : t('save')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -380,7 +412,7 @@ function SignaturePadModal({
             overScrollMode="never"
             bounces={false}
           />
-          {submitting && (
+          {saveBusy && (
             <View style={modalStyles.overlay}>
               <ActivityIndicator color={colors.primary} />
             </View>
@@ -391,18 +423,18 @@ function SignaturePadModal({
           <Text style={modalStyles.footerHint}>{t('agentSign_padHint')}</Text>
           <TouchableOpacity
             onPress={() => send('clear')}
-            disabled={!dirty || submitting}
+            disabled={!dirty || saveBusy}
             style={modalStyles.clearBtn}
           >
             <Ionicons
               name="refresh-outline"
               size={16}
-              color={dirty ? colors.primary : colors.textTertiary}
+              color={dirty && !saveBusy ? colors.primary : colors.textTertiary}
             />
             <Text
               style={[
                 modalStyles.clearText,
-                (!dirty || submitting) && { color: colors.textTertiary },
+                (!dirty || saveBusy) && { color: colors.textTertiary },
               ]}
             >
               {t('agentSign_clear')}
