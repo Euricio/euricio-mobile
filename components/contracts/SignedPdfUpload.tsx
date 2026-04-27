@@ -237,9 +237,10 @@ export function SignedPdfUpload({
 
   return (
     <>
-      {/* Signed PDF Section in Contract Detail */}
+      {/* Signed PDF Section in Contract Detail — manual upload of paper-signed copy */}
       <Card style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('signedPdf_signedPdf')}</Text>
+        <Text style={styles.sectionTitle}>{t('signedPdf_manualTitle')}</Text>
+        <Text style={styles.sectionHint}>{t('signedPdf_manualHint')}</Text>
 
         {signedPdfUrl ? (
           <View style={styles.signedPdfContainer}>
@@ -458,6 +459,11 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
     color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  sectionHint: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
     marginBottom: spacing.sm,
   },
 

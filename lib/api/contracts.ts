@@ -38,6 +38,11 @@ export interface Contract {
   pdf_url: string | null;
   pdf_stored_url: string | null;
   signed_pdf_url: string | null;
+  // Auto-generated final signed PDF — written by the backend after the
+  // remote signing snapshot completes. Distinct from `signed_pdf_url`,
+  // which is the broker's manual photo/PDF upload of a paper-signed copy.
+  final_pdf_url: string | null;
+  final_pdf_storage_path: string | null;
   contract_date: string | null;
   signing_location: string | null;
   agent_signature_png: string | null;
@@ -226,6 +231,83 @@ export function useProperties() {
       return data ?? [];
     },
     enabled: !!user,
+  });
+}
+
+// ─── Final Signed Contract (auto-generated) ─────────────────────────
+
+/**
+ * Returns a directly-openable URL for the auto-generated signed contract
+ * PDF, if one exists. Prefers `final_pdf_url` (already a signed/public URL
+ * the backend wrote), falling back to a freshly-minted signed URL from the
+ * `contracts` storage bucket using `final_pdf_storage_path` — covers the
+ * case where the stored URL has expired since the row was last written.
+ */
+export function useFinalSignedPdfUrl(contract: Pick<
+  Contract,
+  'final_pdf_url' | 'final_pdf_storage_path'
+> | null | undefined) {
+  return useQuery({
+    queryKey: [
+      'contract-final-pdf-url',
+      contract?.final_pdf_url ?? null,
+      contract?.final_pdf_storage_path ?? null,
+    ],
+    queryFn: async (): Promise<string | null> => {
+      if (!contract) return null;
+      if (contract.final_pdf_url) return contract.final_pdf_url;
+      if (!contract.final_pdf_storage_path) return null;
+      const { data } = await supabase.storage
+        .from('contracts')
+        .createSignedUrl(contract.final_pdf_storage_path, 60 * 60 * 24);
+      return data?.signedUrl ?? null;
+    },
+    enabled: !!contract && (!!contract.final_pdf_url || !!contract.final_pdf_storage_path),
+    staleTime: 60 * 60 * 1000,
+  });
+}
+
+/**
+ * Loads any `signed_contract`-typed documents linked to a contract's
+ * property. The remote-signing pipeline also writes the final PDF into
+ * `property_documents` so it's reachable from the property side; this
+ * surface lets the contract detail screen show those rows when the
+ * `contracts.final_pdf_*` columns are not (yet) populated for older rows.
+ */
+export interface SignedContractDocument {
+  id: string;
+  property_id: number;
+  storage_path: string;
+  file_name: string;
+  document_type: string;
+  created_at: string;
+  signed_url: string | null;
+}
+
+export function useSignedContractDocuments(propertyId: string | number | null) {
+  return useQuery({
+    queryKey: ['signed-contract-documents', propertyId],
+    queryFn: async (): Promise<SignedContractDocument[]> => {
+      if (!propertyId) return [];
+      const { data, error } = await supabase
+        .from('property_documents')
+        .select('id, property_id, storage_path, file_name, document_type, created_at')
+        .eq('property_id', propertyId)
+        .eq('document_type', 'signed_contract')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+
+      const rows = data ?? [];
+      return Promise.all(
+        rows.map(async (doc: any) => {
+          const { data: urlData } = await supabase.storage
+            .from('property-documents')
+            .createSignedUrl(doc.storage_path, 3600);
+          return { ...doc, signed_url: urlData?.signedUrl ?? null } as SignedContractDocument;
+        }),
+      );
+    },
+    enabled: !!propertyId,
   });
 }
 

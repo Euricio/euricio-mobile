@@ -33,6 +33,7 @@ import { SendContractSheet } from '../../../../components/email/SendContractShee
 import { SendSignatureSheet } from '../../../../components/contracts/SendSignatureSheet';
 import { SignedPdfUpload } from '../../../../components/contracts/SignedPdfUpload';
 import { AgentSignatureCard } from '../../../../components/contracts/AgentSignatureCard';
+import { FinalSignedContractCard } from '../../../../components/contracts/FinalSignedContractCard';
 import { supabase } from '../../../../lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -378,6 +379,9 @@ export default function ContractDetailScreen() {
         locked={signatureRequestSent}
         onSigned={() => refetch()}
       />
+
+      {/* Final auto-generated signed contract (server-side after remote signing) */}
+      <FinalSignedContractCard contract={contract} />
 
       {/* Email Actions */}
       <View style={styles.emailActions}>

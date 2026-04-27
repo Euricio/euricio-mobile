@@ -65,7 +65,7 @@ module.exports = ({ config }) => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.euricio.crm',
-    buildNumber: '4',
+    buildNumber: '5',
     // appleTeamId required by @bacons/apple-targets to sign the widget
     // extension target. Must match the team owning the bundle identifier.
     appleTeamId: 'ZCAN59P52X',
