@@ -94,7 +94,16 @@ function PortalCard({
   const meta = PORTAL_META[portal];
   const status = config?.status ?? 'not_configured';
 
-  const dateLocale = lang === 'de' ? 'de-DE' : lang === 'es' ? 'es-ES' : 'en-GB';
+  const dateLocale =
+    lang === 'de'
+      ? 'de-DE'
+      : lang === 'es'
+        ? 'es-ES'
+        : lang === 'ca'
+          ? 'ca-ES'
+          : lang === 'eu'
+            ? 'eu-ES'
+            : 'en-GB';
 
   function formatDate(dateStr: string | null) {
     if (!dateStr) return t('portal.never');

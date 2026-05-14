@@ -19,8 +19,20 @@ import { colors, spacing, fontSize, fontWeight, borderRadius } from '../../../co
 
 export default function BusyModeScreen() {
   const { t, locale } = useI18n();
+  // The caller-facing announcement language defaults to the agent's UI
+  // locale where supported, but Catalan and Basque agents default the
+  // *caller* announcement to Spanish (the language all incoming callers
+  // in Spain reliably understand). The agent can still pick ca/eu
+  // explicitly in the BusyPresetPicker if they want it for a Catalan- or
+  // Basque-speaking caller base.
   const defaultLang: AnnouncementLang =
-    locale === 'de' ? 'de' : locale === 'en' ? 'en' : 'es';
+    locale === 'de'
+      ? 'de'
+      : locale === 'en'
+        ? 'en'
+        : locale === 'ca' || locale === 'eu'
+          ? 'es'
+          : 'es';
   const { data: busyStatus, isLoading } = useBusyStatus();
   const setBusy = useSetBusy();
   const user = useAuthStore(s => s.user);

@@ -41,6 +41,8 @@ export default function EditLeadScreen() {
     { value: 'de', label: t('lang_de') },
     { value: 'en', label: t('lang_en') },
     { value: 'es', label: t('lang_es') },
+    { value: 'ca', label: t('lang_ca') },
+    { value: 'eu', label: t('lang_eu') },
     { value: 'fr', label: t('lang_fr') },
     { value: 'pt', label: t('lang_pt') },
     { value: 'it', label: t('lang_it') },

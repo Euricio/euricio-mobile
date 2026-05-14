@@ -50,6 +50,8 @@ function StageForm({
   const [nameDe, setNameDe] = useState(initial?.name_de || '');
   const [nameEn, setNameEn] = useState(initial?.name_en || '');
   const [nameEs, setNameEs] = useState(initial?.name_es || '');
+  const [nameCa, setNameCa] = useState(initial?.name_ca || '');
+  const [nameEu, setNameEu] = useState(initial?.name_eu || '');
   const [selectedColor, setSelectedColor] = useState(initial?.color || STAGE_COLORS[0]);
   const [isWon, setIsWon] = useState(initial?.is_won || false);
   const [isLost, setIsLost] = useState(initial?.is_lost || false);
@@ -60,6 +62,10 @@ function StageForm({
       name_de: nameDe.trim(),
       name_en: nameEn.trim() || nameDe.trim(),
       name_es: nameEs.trim() || nameDe.trim(),
+      // ca/eu are optional in the schema — only persist when the admin
+      // actually filled them in, so getStageName() can fall back to es.
+      name_ca: nameCa.trim() || null,
+      name_eu: nameEu.trim() || null,
       stage_key: initial?.stage_key || nameDe.trim().toLowerCase().replace(/\s+/g, '_'),
       color: selectedColor,
       is_won: isWon,
@@ -89,6 +95,20 @@ function StageForm({
         value={nameEs}
         onChangeText={setNameEs}
         placeholder="p.ej. Cualificado"
+      />
+      <Text style={styles.inputLabel}>{t('pipeline_stageNameCa')}</Text>
+      <TextInput
+        style={styles.input}
+        value={nameCa}
+        onChangeText={setNameCa}
+        placeholder="p.ex. Qualificat"
+      />
+      <Text style={styles.inputLabel}>{t('pipeline_stageNameEu')}</Text>
+      <TextInput
+        style={styles.input}
+        value={nameEu}
+        onChangeText={setNameEu}
+        placeholder="adib. Kualifikatua"
       />
       <Text style={styles.inputLabel}>{t('pipeline_stageColor')}</Text>
       <View style={styles.colorRow}>
