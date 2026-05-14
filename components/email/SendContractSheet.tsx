@@ -88,7 +88,7 @@ export function SendContractSheet({
           {/* Language Picker */}
           <Text style={styles.label}>{t('email_language')}</Text>
           <View style={styles.langRow}>
-            {(['de', 'en', 'es'] as Locale[]).map((loc) => (
+            {(['de', 'en', 'es', 'ca', 'eu'] as Locale[]).map((loc) => (
               <TouchableOpacity
                 key={loc}
                 style={[

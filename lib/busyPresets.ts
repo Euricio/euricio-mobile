@@ -9,7 +9,7 @@ export type BusyPresetKey =
   | 'sick_leave'
   | 'custom'
 
-export type AnnouncementLang = 'es' | 'de' | 'en'
+export type AnnouncementLang = 'es' | 'de' | 'en' | 'ca' | 'eu'
 
 export interface BusyPreset {
   key: BusyPresetKey
@@ -28,11 +28,22 @@ export const BUSY_PRESETS: BusyPreset[] = [
   { key: 'custom',         icon: '✏️' },
 ]
 
-/** Twilio SayLanguage codes matching an AnnouncementLang */
+/**
+ * Twilio SayLanguage codes matching an AnnouncementLang.
+ *
+ * Twilio's <Say> voice does not currently support Catalan or Basque natively
+ * as TTS locales. Until we move to a TTS engine that supports ca-ES / eu-ES
+ * (e.g. Polly Neural with a ca/eu voice, or a third-party TTS via <Play>),
+ * spoken announcements in those languages fall back to Spanish (es-ES) on
+ * Twilio. The text templates below are still localized so any future TTS
+ * upgrade automatically picks up correct copy.
+ */
 export const TWILIO_SAY_LANG: Record<AnnouncementLang, string> = {
   es: 'es-ES',
   de: 'de-DE',
   en: 'en-GB',
+  ca: 'es-ES',
+  eu: 'es-ES',
 }
 
 type Tpl = { base: string; withCallback: string }
@@ -43,7 +54,7 @@ type PresetMap = Record<Exclude<BusyPresetKey, 'custom'>, Tpl>
  * Used both client-side (preview) and server-side (TwiML <Say>).
  * Friendly, verbose, apologetic tone. Placeholders: {{name}}, {{callbackTime}}.
  */
-export const PRESET_TEMPLATES: Record<AnnouncementLang, PresetMap> = {
+export const PRESET_TEMPLATES: Partial<Record<AnnouncementLang, PresetMap>> = {
   es: {
     in_appointment: {
       base: 'Hola, gracias por su llamada. En este momento {{name}} se encuentra atendiendo una cita y no puede atenderle personalmente. Le rogamos disculpe las molestias; en seguida le pasamos con un compañero que estará encantado de ayudarle.',
@@ -148,6 +159,82 @@ export const PRESET_TEMPLATES: Record<AnnouncementLang, PresetMap> = {
       withCallback: 'Hello and thank you for calling. {{name}} is out sick today and unable to take your call personally. He expects to be back from {{callbackTime}}. To ensure you receive the attention you deserve, a colleague from the team will be with you in just a few seconds.',
     },
   },
+
+  // Catalan templates. NOTE: Twilio <Say> does not yet support a Catalan
+  // voice — these templates are kept for any future TTS engine that does,
+  // and are displayed in the preview when the caller language is set to ca.
+  // Flagged in i18n/REVIEW.md for editorial review by a native speaker.
+  ca: {
+    in_appointment: {
+      base: 'Bon dia i moltes gràcies per la seva trucada. En aquest moment {{name}} està atenent una visita i no el pot atendre personalment. Disculpi les molèsties; tot seguit el passem amb un company que l’ajudarà amb molt de gust.',
+      withCallback: 'Bon dia i moltes gràcies per la seva trucada. En aquest moment {{name}} està atenent una visita i no el pot atendre personalment. Tornarà a estar disponible cap a les {{callbackTime}}. Disculpi les molèsties; tot seguit el passem amb un company que l’ajudarà amb molt de gust.',
+    },
+    at_notary: {
+      base: 'Bon dia i gràcies per posar-se en contacte amb nosaltres. En aquest moment {{name}} es troba a la notaria formalitzant una operació i no el pot atendre directament. Disculpi les molèsties; un altre membre de l’equip l’atendrà de seguida.',
+      withCallback: 'Bon dia i gràcies per posar-se en contacte amb nosaltres. En aquest moment {{name}} es troba a la notaria formalitzant una operació i no el pot atendre directament. Preveu tornar cap a les {{callbackTime}}. Disculpi les molèsties; un altre membre de l’equip l’atendrà de seguida.',
+    },
+    at_viewing: {
+      base: 'Bon dia, moltes gràcies per la seva trucada. {{name}} està en aquests moments ensenyant un immoble a un client i no el pot atendre personalment. L’atenem igualment amb molt de gust: el passem amb un company de l’equip.',
+      withCallback: 'Bon dia, moltes gràcies per la seva trucada. {{name}} està en aquests moments ensenyant un immoble a un client i no el pot atendre personalment. Tornarà a estar disponible aproximadament a les {{callbackTime}}. L’atenem igualment amb molt de gust: el passem amb un company de l’equip.',
+    },
+    on_call: {
+      base: 'Bon dia i gràcies per la seva trucada. En aquest moment {{name}} està atenent una altra conversa telefònica. El passem de seguida amb un company de l’equip que l’atendrà amb molt de gust.',
+      withCallback: 'Bon dia i gràcies per la seva trucada. En aquest moment {{name}} està atenent una altra conversa telefònica. Estimem que el podrà tornar a trucar a partir de les {{callbackTime}}. Si ho prefereix, el passem de seguida amb un company de l’equip que l’atendrà amb molt de gust.',
+    },
+    in_meeting: {
+      base: 'Bon dia, gràcies per contactar amb nosaltres. {{name}} es troba en una reunió interna en aquest moment i no pot atendre la seva trucada personalment. Mentrestant, el passem amb un company que podrà ajudar-lo immediatament.',
+      withCallback: 'Bon dia, gràcies per contactar amb nosaltres. {{name}} es troba en una reunió interna en aquest moment i no pot atendre la seva trucada personalment. Preveu acabar cap a les {{callbackTime}}. Mentrestant, el passem amb un company que podrà ajudar-lo immediatament.',
+    },
+    off_duty: {
+      base: 'Bon dia i gràcies per la seva trucada. {{name}} avui no està de servei i no estarà disponible durant el dia d’avui. Perquè la seva consulta no quedi sense resposta, un company de l’equip l’atendrà de seguida.',
+      withCallback: 'Bon dia i gràcies per la seva trucada. {{name}} avui no està de servei i no estarà disponible durant el dia d’avui. Tornarà a estar operatiu a partir de les {{callbackTime}}. Perquè la seva consulta no quedi sense resposta, un company de l’equip l’atendrà de seguida.',
+    },
+    on_vacation: {
+      base: 'Bon dia i gràcies per trucar. En aquests moments {{name}} està gaudint de les seves vacances i no el podrà atendre personalment. Durant la seva absència, un company de l’equip s’encarregarà d’atendre’l amb la mateixa dedicació de sempre — el passem de seguida.',
+      withCallback: 'Bon dia i gràcies per trucar. En aquests moments {{name}} està gaudint de les seves vacances i no el podrà atendre personalment. Tornarà a estar disponible a partir del {{callbackTime}}. Durant la seva absència, un company de l’equip s’encarregarà d’atendre’l amb la mateixa dedicació de sempre — el passem de seguida.',
+    },
+    sick_leave: {
+      base: 'Bon dia, gràcies per la seva trucada. {{name}} avui està absent per motius de salut i no el pot atendre personalment. Perquè rebi l’atenció que mereix, un company de l’equip es posarà amb vostè en uns segons.',
+      withCallback: 'Bon dia, gràcies per la seva trucada. {{name}} avui està absent per motius de salut i no el pot atendre personalment. Preveu reincorporar-se a partir del {{callbackTime}}. Perquè rebi l’atenció que mereix, un company de l’equip es posarà amb vostè en uns segons.',
+    },
+  },
+
+  // Basque templates. Same TTS caveat as ca above — see note on
+  // TWILIO_SAY_LANG. Flagged in i18n/REVIEW.md for editorial review.
+  eu: {
+    in_appointment: {
+      base: 'Egun on eta eskerrik asko zure deiagatik. Une honetan {{name}} hitzordu batean dago eta ezin zaitu pertsonalki artatu. Barkatu eragozpenak; berehala lankide batekin lotuko zaitugu, gustura lagunduko dizu.',
+      withCallback: 'Egun on eta eskerrik asko zure deiagatik. Une honetan {{name}} hitzordu batean dago eta ezin zaitu pertsonalki artatu. Gutxi gorabehera {{callbackTime}} aldera egongo da berriz eskuragarri. Barkatu eragozpenak; berehala lankide batekin lotuko zaitugu, gustura lagunduko dizu.',
+    },
+    at_notary: {
+      base: 'Egun on eta eskerrik asko gurekin harremanetan jartzeagatik. Une honetan {{name}} notarioan dago eragiketa bat formalizatzen eta ezin zaitu zuzenean artatu. Barkatu eragozpenak; taldeko beste kide batek berehala artatuko zaitu.',
+      withCallback: 'Egun on eta eskerrik asko gurekin harremanetan jartzeagatik. Une honetan {{name}} notarioan dago eragiketa bat formalizatzen eta ezin zaitu zuzenean artatu. {{callbackTime}} inguruan itzultzea aurreikusten du. Barkatu eragozpenak; taldeko beste kide batek berehala artatuko zaitu.',
+    },
+    at_viewing: {
+      base: 'Egun on, eskerrik asko zure deiagatik. Une honetan {{name}} bezero bati higiezin bat erakusten ari zaio eta ezin zaitu pertsonalki artatu. Berdin-berdin artatuko zaitugu gustu handiz: lankide batekin lotuko zaitugu.',
+      withCallback: 'Egun on, eskerrik asko zure deiagatik. Une honetan {{name}} bezero bati higiezin bat erakusten ari zaio eta ezin zaitu pertsonalki artatu. Gutxi gorabehera {{callbackTime}} aldera egongo da berriz eskuragarri. Berdin-berdin artatuko zaitugu gustu handiz: lankide batekin lotuko zaitugu.',
+    },
+    on_call: {
+      base: 'Egun on eta eskerrik asko zure deiagatik. Une honetan {{name}} beste elkarrizketa bat artatzen ari da. Berehala lankide batekin lotuko zaitugu, eta gustu handiz artatuko zaitu.',
+      withCallback: 'Egun on eta eskerrik asko zure deiagatik. Une honetan {{name}} beste elkarrizketa bat artatzen ari da. Aurreikusten dugu {{callbackTime}}-(e)tik aurrera dei egin ahal izango dizula. Nahi izanez gero, berehala lankide batekin lotuko zaitugu, gustu handiz artatuko zaitu.',
+    },
+    in_meeting: {
+      base: 'Egun on, eskerrik asko gurekin harremanetan jartzeagatik. {{name}} barneko bilera batean dago une honetan eta ezin du zure deia pertsonalki artatu. Bitartean, lankide batekin lotuko zaitugu, berehala lagunduko dizu.',
+      withCallback: 'Egun on, eskerrik asko gurekin harremanetan jartzeagatik. {{name}} barneko bilera batean dago une honetan eta ezin du zure deia pertsonalki artatu. {{callbackTime}} aldera amaitzea aurreikusten du. Bitartean, lankide batekin lotuko zaitugu, berehala lagunduko dizu.',
+    },
+    off_duty: {
+      base: 'Egun on eta eskerrik asko zure deiagatik. {{name}} gaur ez dago lanean eta ez da egunean zehar eskuragarri egongo. Zure eskaerak erantzunik gabe gera ez dadin, taldeko lankide batek berehala artatuko zaitu.',
+      withCallback: 'Egun on eta eskerrik asko zure deiagatik. {{name}} gaur ez dago lanean eta ez da egunean zehar eskuragarri egongo. {{callbackTime}}-(e)tik aurrera berriz egongo da lanean. Zure eskaerak erantzunik gabe gera ez dadin, taldeko lankide batek berehala artatuko zaitu.',
+    },
+    on_vacation: {
+      base: 'Egun on eta eskerrik asko deitzeagatik. Une honetan {{name}} oporretan dago eta ezin zaitu pertsonalki artatu. Bere absentzian, taldeko lankide bat arduratuko da zutaz beti bezalako arretarekin — berehala lotuko zaitugu.',
+      withCallback: 'Egun on eta eskerrik asko deitzeagatik. Une honetan {{name}} oporretan dago eta ezin zaitu pertsonalki artatu. {{callbackTime}}-(e)tik aurrera egongo da berriz zuretzat eskuragarri. Bere absentzian, taldeko lankide bat arduratuko da zutaz beti bezalako arretarekin — berehala lotuko zaitugu.',
+    },
+    sick_leave: {
+      base: 'Egun on, eskerrik asko zure deiagatik. {{name}} gaur osasun arrazoiengatik ez dago eta ezin zaitu pertsonalki artatu. Merezi duzun arreta jaso dezazun, taldeko lankide batek segundo gutxiren buruan kontaktatuko du zurekin.',
+      withCallback: 'Egun on, eskerrik asko zure deiagatik. {{name}} gaur osasun arrazoiengatik ez dago eta ezin zaitu pertsonalki artatu. {{callbackTime}}-(e)tik aurrera berriz bueltatzea aurreikusten du. Merezi duzun arreta jaso dezazun, taldeko lankide batek segundo gutxiren buruan kontaktatuko du zurekin.',
+    },
+  },
 }
 
 /**
@@ -162,7 +249,11 @@ export function renderPresetAnnouncement(
 ): string {
   if (!presetKey || presetKey === 'custom') return ''
   const hasCallback = !!(callbackTime && callbackTime.trim().length > 0)
-  const tpl = PRESET_TEMPLATES[language]?.[presetKey]
+  // Languages without a hand-authored template fall back to Spanish — the
+  // closest cultural match for ca-ES / eu-ES callers and a safe default for
+  // any future locale added before a translation is provided.
+  const tpl =
+    PRESET_TEMPLATES[language]?.[presetKey] ?? PRESET_TEMPLATES.es?.[presetKey]
   if (!tpl) return ''
   const template = hasCallback ? tpl.withCallback : tpl.base
   return template

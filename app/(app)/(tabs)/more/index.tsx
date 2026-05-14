@@ -600,7 +600,7 @@ export default function MoreScreen() {
       {/* Language Section */}
       <Text style={styles.sectionHeader}>{t('settings_language')}</Text>
       <Card>
-        {(['de', 'es', 'en'] as Locale[]).map((loc, index) => (
+        {(['de', 'es', 'en', 'ca', 'eu'] as Locale[]).map((loc, index) => (
           <SettingRow
             key={loc}
             icon="language-outline"

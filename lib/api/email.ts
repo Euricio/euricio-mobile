@@ -114,10 +114,16 @@ export function useTestSmtp() {
 
 /* ── Send Contract Email ────────────────────────────────────── */
 
+// Languages accepted by the backend email-rendering pipeline. The backend
+// templates currently exist for de/en/es; ca/eu are accepted at the API
+// boundary and the backend falls back to es (the regional co-official
+// language for those locales) until ca/eu templates ship.
+export type ContractEmailLanguage = 'de' | 'en' | 'es' | 'ca' | 'eu';
+
 export interface SendContractEmailParams {
   contractId: string;
   recipientEmail: string;
-  language: 'de' | 'en' | 'es';
+  language: ContractEmailLanguage;
 }
 
 export function useSendContractEmail() {
@@ -173,7 +179,7 @@ export interface SendSignatureParams {
   contractId: string | number;
   signerIds: string[];
   channel: SignatureChannel;
-  language?: 'de' | 'en' | 'es';
+  language?: ContractEmailLanguage;
 }
 
 export function useSendSignatureRequest() {

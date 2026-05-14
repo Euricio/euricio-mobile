@@ -633,7 +633,7 @@ export function DocumentManager({
                     {t('docportal.accessModal.customerLanguage')} <Text style={{ color: colors.error }}>*</Text>
                   </Text>
                   <View style={styles.langRow}>
-                    {(['de', 'en', 'es'] as Locale[]).map((loc) => (
+                    {(['de', 'en', 'es', 'ca', 'eu'] as Locale[]).map((loc) => (
                       <TouchableOpacity
                         key={loc}
                         style={[styles.langChip, modalLanguage === loc && styles.langChipActive]}

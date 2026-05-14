@@ -13,6 +13,8 @@ const DURATION_MINUTES = [15, 30, 45, 60, 90, 120] as const;
 
 const LANG_OPTIONS: { key: AnnouncementLang; flag: string; code: string }[] = [
   { key: 'es', flag: '🇪🇸', code: 'ES' },
+  { key: 'ca', flag: '🇪🇸', code: 'CA' },
+  { key: 'eu', flag: '🇪🇸', code: 'EU' },
   { key: 'de', flag: '🇩🇪', code: 'DE' },
   { key: 'en', flag: '🇬🇧', code: 'EN' },
 ];

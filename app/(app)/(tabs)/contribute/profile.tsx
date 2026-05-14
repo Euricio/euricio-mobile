@@ -5,6 +5,7 @@ import { colors, fontSize, fontWeight, borderRadius, spacing, shadow } from '../
 import { ScoreCard } from '../../../../components/contributor/ScoreCard';
 import { VisibilityToggle } from '../../../../components/contributor/VisibilityToggle';
 import { apiGet, apiPatch } from '../../../../lib/contributor/api';
+import { useI18n } from '../../../../lib/i18n';
 import type {
   ContributorProfile, ContributorScore, ProfileVisibility, Contribution, RewardGrant,
 } from '../../../../lib/contributor/types';
@@ -18,6 +19,7 @@ type MeResponse = {
 };
 
 export default function Profile() {
+  const { formatDate } = useI18n();
   const [me, setMe] = useState<MeResponse | null>(null);
   const [mine, setMine] = useState<Contribution[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,7 +112,7 @@ export default function Profile() {
                 >
                   <Text style={styles.mineTitle} numberOfLines={1}>{c.title}</Text>
                   <Text style={styles.mineMeta}>
-                    {c.type} · {new Date(c.created_at).toLocaleDateString('es-ES')}
+                    {c.type} · {formatDate(c.created_at)}
                   </Text>
                 </TouchableOpacity>
               );

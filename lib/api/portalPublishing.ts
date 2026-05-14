@@ -18,10 +18,22 @@ interface PropertyPortalStatus {
   published_at: string | null;
 }
 
-const PORTAL_GROUPS = [
-  { label: { de: 'Spanien', en: 'Spain', es: 'España' }, portals: ['idealista', 'fotocasa', 'pisos', 'kyero'] as PortalName[] },
-  { label: { de: 'Deutschland', en: 'Germany', es: 'Alemania' }, portals: ['immoscout24', 'immowelt', 'kleinanzeigen'] as PortalName[] },
-  { label: { de: 'Großbritannien', en: 'United Kingdom', es: 'Reino Unido' }, portals: ['rightmove', 'zoopla', 'onthemarket'] as PortalName[] },
+const PORTAL_GROUPS: Array<{
+  label: Partial<Record<'de' | 'en' | 'es' | 'ca' | 'eu', string>>;
+  portals: PortalName[];
+}> = [
+  {
+    label: { de: 'Spanien', en: 'Spain', es: 'España', ca: 'Espanya', eu: 'Espainia' },
+    portals: ['idealista', 'fotocasa', 'pisos', 'kyero'] as PortalName[],
+  },
+  {
+    label: { de: 'Deutschland', en: 'Germany', es: 'Alemania', ca: 'Alemanya', eu: 'Alemania' },
+    portals: ['immoscout24', 'immowelt', 'kleinanzeigen'] as PortalName[],
+  },
+  {
+    label: { de: 'Großbritannien', en: 'United Kingdom', es: 'Reino Unido', ca: 'Regne Unit', eu: 'Erresuma Batua' },
+    portals: ['rightmove', 'zoopla', 'onthemarket'] as PortalName[],
+  },
 ];
 
 const PORTAL_META: Record<PortalName, { name: string; color: string }> = {

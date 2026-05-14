@@ -363,9 +363,7 @@ export default function LeadDetailScreen() {
       {/* Voice call history */}
       {voiceCallLogs.length > 0 && (
         <Card>
-          <Text style={styles.cardTitle}>
-            {locale === 'de' ? 'Telefonie-Verlauf' : locale === 'es' ? 'Historial de llamadas' : 'Call history'}
-          </Text>
+          <Text style={styles.cardTitle}>{t('lead_callHistory')}</Text>
           {voiceCallLogs.map(vc => (
             <View key={vc.id} style={voiceStyles.row}>
               <View style={voiceStyles.iconWrap}>
@@ -380,23 +378,20 @@ export default function LeadDetailScreen() {
                   {vc.direction === 'inbound' ? (vc.caller_name || vc.from_number || '—') : (vc.to_number || '—')}
                 </Text>
                 <Text style={voiceStyles.meta}>
-                  {new Date(vc.start_time).toLocaleString(locale === 'de' ? 'de-DE' : locale === 'es' ? 'es-ES' : 'en-GB', {
+                  {formatDate(new Date(vc.start_time), {
                     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
                   })}
                   {'  ·  '}{formatDuration(vc.duration)}
                 </Text>
                 {vc.handled_by_name && (
                   <Text style={voiceStyles.handler}>
-                    {(locale === 'de' ? 'Bearbeitet von: ' : locale === 'es' ? 'Atendido por: ' : 'Handled by: ')}
-                    {vc.handled_by_name}
+                    {t('lead_handledBy')}{vc.handled_by_name}
                   </Text>
                 )}
               </View>
               {vc.is_missed && (
                 <View style={voiceStyles.missedBadge}>
-                  <Text style={voiceStyles.missedBadgeText}>
-                    {locale === 'de' ? 'Verpasst' : locale === 'es' ? 'Perdida' : 'Missed'}
-                  </Text>
+                  <Text style={voiceStyles.missedBadgeText}>{t('lead_callMissed')}</Text>
                 </View>
               )}
             </View>

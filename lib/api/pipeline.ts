@@ -10,6 +10,11 @@ export interface PipelineStage {
   name_de: string;
   name_en: string;
   name_es: string;
+  // name_ca / name_eu are optional because not every tenant has authored
+  // localized stage names in the backend yet. When absent, getStageName()
+  // falls back through the i18n fallback chain (ca/eu → es → de).
+  name_ca?: string | null;
+  name_eu?: string | null;
   color: string;
   sort_order: number;
   is_default: boolean;
@@ -34,8 +39,25 @@ export interface PipelineLead {
 }
 
 export function getStageName(stage: PipelineStage, locale: Locale): string {
-  const key = `name_${locale}` as keyof PipelineStage;
-  return (stage[key] as string) || stage.name_de || stage.stage_key;
+  // Walk a small fallback chain so Catalan/Basque users don't see raw
+  // stage_key when the backend has not yet been migrated to include
+  // name_ca/name_eu. Order mirrors LOCALE_FALLBACK_CHAIN in lib/i18n/types.
+  const order: Locale[] =
+    locale === 'ca' || locale === 'eu'
+      ? [locale, 'es', 'en', 'de']
+      : locale === 'en'
+        ? ['en', 'de', 'es']
+        : locale === 'es'
+          ? ['es', 'en', 'de']
+          : ['de', 'en', 'es'];
+
+  for (const code of order) {
+    const value = (stage as unknown as Record<string, string | null | undefined>)[
+      `name_${code}`
+    ];
+    if (value && value.trim().length > 0) return value;
+  }
+  return stage.stage_key;
 }
 
 export function usePipelineStages() {

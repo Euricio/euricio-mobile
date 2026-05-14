@@ -6,6 +6,7 @@ import { StatusPill } from '../../../../../components/contributor/StatusPill';
 import { AdminReply } from '../../../../../components/contributor/AdminReply';
 import { apiGet } from '../../../../../lib/contributor/api';
 import type { Contribution, AdminReply as AdminReplyRow } from '../../../../../lib/contributor/types';
+import { useI18n } from '../../../../../lib/i18n';
 
 type DetailResponse = {
   contribution: Contribution;
@@ -14,6 +15,7 @@ type DetailResponse = {
 
 export default function FeedbackDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { formatDate } = useI18n();
   const [data, setData] = useState<DetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +41,7 @@ export default function FeedbackDetail() {
             <StatusPill status={c.status} />
           </View>
           <Text style={styles.title}>{c.title}</Text>
-          <Text style={styles.date}>{new Date(c.created_at).toLocaleString('es-ES')}</Text>
+          <Text style={styles.date}>{formatDate(c.created_at, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</Text>
 
           {Object.entries(body).map(([k, v]) => (
             <View key={k} style={{ marginTop: spacing.md }}>
