@@ -331,6 +331,12 @@ const ca: Record<string, string> = {
   login_errorUnknown: 'Error desconegut',
 
   // ─── Call Screen ───────────────────────────────────────────────────
+  // ─── Click-to-call (Pipedrive / deep link) ───
+  dial_title: 'Iniciar trucada',
+  dial_call_now: 'Trucar ara',
+  dial_invalid_number: 'No s\'ha rebut cap número de telèfon vàlid.',
+  dial_hint_logging: 'Després de la trucada, apareixerà automàticament a l\'historial del contacte a Pipedrive.',
+  dial_back: 'Anar al tauler',
   call_title: 'Trucada',
   call_connecting: 'Connectant...',
   call_mute: 'Silencia',
