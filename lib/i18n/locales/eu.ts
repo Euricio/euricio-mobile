@@ -325,6 +325,12 @@ const eu: Record<string, string> = {
   login_errorUnknown: 'Errore ezezaguna',
 
   // ─── Call Screen ───────────────────────────────────────────────────
+  // ─── Click-to-call (Pipedrive / deep link) ───
+  dial_title: 'Hasi deia',
+  dial_call_now: 'Deitu orain',
+  dial_invalid_number: 'Ez da telefono-zenbaki baliozkorik jaso.',
+  dial_hint_logging: 'Deiaren ondoren, automatikoki agertuko da kontaktuaren historian Pipedriven.',
+  dial_back: 'Joan panelera',
   call_title: 'Deia',
   call_connecting: 'Konektatzen...',
   call_mute: 'Mututu',

@@ -365,6 +365,12 @@ const es: Record<string, string> = {
   login_errorUnknown: 'Error desconocido',
 
   // ─── Call Screen ───────────────────────────────────────────────────
+  // ─── Click-to-call (Pipedrive / deep link) ───
+  dial_title: 'Iniciar llamada',
+  dial_call_now: 'Llamar ahora',
+  dial_invalid_number: 'No se ha recibido un número de teléfono válido.',
+  dial_hint_logging: 'Tras la llamada, aparecerá automáticamente en el historial del contacto en Pipedrive.',
+  dial_back: 'Ir al panel',
   call_title: 'Llamada',
   call_connecting: 'Conectando...',
   call_mute: 'Silenciar',
